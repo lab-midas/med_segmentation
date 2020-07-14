@@ -1,4 +1,7 @@
 # MedSeg: Medical Segmentation
+<!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
+[![All Contributors](https://img.shields.io/badge/all_contributors-1-orange.svg?style=flat-square)](#contributors-)
+<!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 ## Introduction
 This repository contains code to train and evaluate 3D Convolutional Neural Networks for semantic segmentation on medical images.
@@ -101,3 +104,16 @@ This project is licensed under the Apache License - see the [LICENSE](LICENSE) f
 
 ## Contributors 
 Thanks to Marc Fischer for providing the med_io pipeline around which this framework was structured.  
+
+<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+<!-- prettier-ignore-start -->
+<!-- markdownlint-disable -->
+<table>
+  <tr>
+    <td align="center"><a href="https://github.com/marcfi"><img src="https://avatars2.githubusercontent.com/u/48595245?v=4" width="100px;" alt=""/><br /><sub><b>marcfi</b></sub></a><br /><a href="https://github.com/lab-midas/med_segmentation/commits?author=marcfi" title="Code">💻</a> <a href="#ideas-marcfi" title="Ideas, Planning, & Feedback">🤔</a> <a href="#maintenance-marcfi" title="Maintenance">🚧</a> <a href="#tool-marcfi" title="Tools">🔧</a></td>
+  </tr>
+</table>
+
+<!-- markdownlint-enable -->
+<!-- prettier-ignore-end -->
+<!-- ALL-CONTRIBUTORS-LIST:END -->
