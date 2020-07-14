@@ -99,5 +99,5 @@ Custom evaluation metrics are defined in [/models/metrics.py](./models/metrics.p
 ## License
 This project is licensed under the Apache License - see the [LICENSE](LICENSE) file for details.
 
-##Contributors 
+## Contributors 
 Thanks to Marc Fischer for providing the med_io pipeline around which this framework was structured.  
