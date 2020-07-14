@@ -1,6 +1,6 @@
 # MedSeg: Medical Segmentation
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-2-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-3-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 ## Introduction
@@ -112,6 +112,7 @@ Thanks to Marc Fischer for providing the med_io pipeline around which this frame
   <tr>
     <td align="center"><a href="https://github.com/marcfi"><img src="https://avatars2.githubusercontent.com/u/48595245?v=4" width="100px;" alt=""/><br /><sub><b>marcfi</b></sub></a><br /><a href="https://github.com/lab-midas/med_segmentation/commits?author=marcfi" title="Code">💻</a> <a href="#ideas-marcfi" title="Ideas, Planning, & Feedback">🤔</a> <a href="#maintenance-marcfi" title="Maintenance">🚧</a> <a href="#tool-marcfi" title="Tools">🔧</a></td>
     <td align="center"><a href="https://sites.google.com/site/kspaceastronauts"><img src="https://avatars1.githubusercontent.com/u/15344655?v=4" width="100px;" alt=""/><br /><sub><b>Thomas Kuestner</b></sub></a><br /><a href="https://github.com/lab-midas/med_segmentation/commits?author=thomaskuestner" title="Code">💻</a> <a href="#ideas-thomaskuestner" title="Ideas, Planning, & Feedback">🤔</a> <a href="#maintenance-thomaskuestner" title="Maintenance">🚧</a> <a href="#projectManagement-thomaskuestner" title="Project Management">📆</a> <a href="https://github.com/lab-midas/med_segmentation/commits?author=thomaskuestner" title="Documentation">📖</a> <a href="https://github.com/lab-midas/med_segmentation/pulls?q=is%3Apr+reviewed-by%3Athomaskuestner" title="Reviewed Pull Requests">👀</a> <a href="https://github.com/lab-midas/med_segmentation/commits?author=thomaskuestner" title="Tests">⚠️</a></td>
+    <td align="center"><a href="https://www.is.mpg.de/de/people/thepp"><img src="https://avatars1.githubusercontent.com/u/30172495?v=4" width="100px;" alt=""/><br /><sub><b>tobiashepp</b></sub></a><br /><a href="https://github.com/lab-midas/med_segmentation/commits?author=tobiashepp" title="Code">💻</a> <a href="#ideas-tobiashepp" title="Ideas, Planning, & Feedback">🤔</a> <a href="#maintenance-tobiashepp" title="Maintenance">🚧</a> <a href="#tool-tobiashepp" title="Tools">🔧</a> <a href="#security-tobiashepp" title="Security">🛡️</a></td>
   </tr>
 </table>
 
