@@ -16,6 +16,21 @@
         "maintenance",
         "tool"
       ]
+    },
+    {
+      "login": "thomaskuestner",
+      "name": "Thomas Kuestner",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/15344655?v=4",
+      "profile": "https://sites.google.com/site/kspaceastronauts",
+      "contributions": [
+        "code",
+        "ideas",
+        "maintenance",
+        "projectManagement",
+        "doc",
+        "review",
+        "test"
+      ]
     }
   ],
   "contributorsPerLine": 7,
