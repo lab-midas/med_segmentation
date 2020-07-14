@@ -31,6 +31,19 @@
         "review",
         "test"
       ]
+    },
+    {
+      "login": "tobiashepp",
+      "name": "tobiashepp",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/30172495?v=4",
+      "profile": "https://www.is.mpg.de/de/people/thepp",
+      "contributions": [
+        "code",
+        "ideas",
+        "maintenance",
+        "tool",
+        "security"
+      ]
     }
   ],
   "contributorsPerLine": 7,
