@@ -79,7 +79,7 @@ densely connected with merge-and-run mapping network
 <img src=readme/MRGE.png width="70%"></img>
 
 #### Dilated dense convolution
-DCNet: Densely connected networks (including modifications: dilated convs, ...)
+Densely connected networks (including modifications: dilated convs, ...)
 
 <img src=readme/dilatedDense.png width="70%"></img>
 
