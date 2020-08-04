@@ -53,6 +53,16 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "KaijieMo1",
+      "name": "KaijieMo1",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/69183027?v=4",
+      "profile": "https://github.com/KaijieMo1",
+      "contributions": [
+        "code",
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
