@@ -74,6 +74,18 @@
         "projectManagement",
         "question"
       ]
+    },
+    {
+      "login": "SarahMue",
+      "name": "SarahMue",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/30621951?v=4",
+      "profile": "https://github.com/SarahMue",
+      "contributions": [
+        "code",
+        "ideas",
+        "plugin",
+        "maintenance"
+      ]
     }
   ],
   "contributorsPerLine": 7,
