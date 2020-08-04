@@ -63,6 +63,17 @@
         "code",
         "doc"
       ]
+    },
+    {
+      "login": "sergiosgatidis",
+      "name": "sergiosgatidis",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/52936169?v=4",
+      "profile": "https://github.com/sergiosgatidis",
+      "contributions": [
+        "ideas",
+        "projectManagement",
+        "question"
+      ]
     }
   ],
   "contributorsPerLine": 7,
