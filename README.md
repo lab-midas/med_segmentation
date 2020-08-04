@@ -1,6 +1,6 @@
 # MedSeg: Medical Segmentation
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-5-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-6-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 ## Introduction
@@ -115,6 +115,7 @@ Thanks to Marc Fischer for providing the med_io pipeline around which this frame
     <td align="center"><a href="https://www.is.mpg.de/de/people/thepp"><img src="https://avatars1.githubusercontent.com/u/30172495?v=4" width="100px;" alt=""/><br /><sub><b>tobiashepp</b></sub></a><br /><a href="https://github.com/lab-midas/med_segmentation/commits?author=tobiashepp" title="Code">💻</a> <a href="#ideas-tobiashepp" title="Ideas, Planning, & Feedback">🤔</a> <a href="#maintenance-tobiashepp" title="Maintenance">🚧</a> <a href="#tool-tobiashepp" title="Tools">🔧</a> <a href="#security-tobiashepp" title="Security">🛡️</a></td>
     <td align="center"><a href="https://github.com/a-doering"><img src="https://avatars1.githubusercontent.com/u/35858164?v=4" width="100px;" alt=""/><br /><sub><b>a-doering</b></sub></a><br /><a href="https://github.com/lab-midas/med_segmentation/commits?author=a-doering" title="Code">💻</a></td>
     <td align="center"><a href="https://github.com/KaijieMo1"><img src="https://avatars3.githubusercontent.com/u/69183027?v=4" width="100px;" alt=""/><br /><sub><b>KaijieMo1</b></sub></a><br /><a href="https://github.com/lab-midas/med_segmentation/commits?author=KaijieMo1" title="Code">💻</a> <a href="https://github.com/lab-midas/med_segmentation/commits?author=KaijieMo1" title="Documentation">📖</a></td>
+    <td align="center"><a href="https://github.com/sergiosgatidis"><img src="https://avatars1.githubusercontent.com/u/52936169?v=4" width="100px;" alt=""/><br /><sub><b>sergiosgatidis</b></sub></a><br /><a href="#ideas-sergiosgatidis" title="Ideas, Planning, & Feedback">🤔</a> <a href="#projectManagement-sergiosgatidis" title="Project Management">📆</a> <a href="#question-sergiosgatidis" title="Answering Questions">💬</a></td>
   </tr>
 </table>
 
