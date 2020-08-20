@@ -1,5 +1,6 @@
 import tensorflow as tf
 from tensorflow.keras.layers import *
+from tensorflow.keras.activations import tanh
 
 """basic network building blocks"""
 
@@ -87,7 +88,7 @@ def block(f=64, k=3, s=2, order=None, order_param=None, order_priority=False):
             elif item == 's':
                 x = Softmax()(x)
             elif item == 't':
-                x=Tanh()(x)
+                x=tanh()(x)
 
             # Pooling#
             elif item == 'ap': # average pooling
