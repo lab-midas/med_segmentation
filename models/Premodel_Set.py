@@ -208,7 +208,7 @@ class Premodel_Set:
         def get_up_convolution(n_filters, pool_size, kernel_size=(2, 2, 2), strides=(2, 2, 2),
                                deconvolution=False):
             if deconvolution:
-                return Deconvolution3D(filters=n_filters, kernel_size=kernel_size,
+                return Conv3DTranspose(filters=n_filters, kernel_size=kernel_size,
                                        strides=strides)
             else:
                 return UpSampling3D(size=pool_size)
