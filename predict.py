@@ -14,7 +14,7 @@ from med_io.get_pad_and_patch import *
 from plot.plot_figure import *
 from plot.plot_config import *
 from models.Premodel_Custom_Class import *
-import cv2
+#import cv2
 from models.load_model import load_model_file
 from med_io.read_mat import read_mat_file
 from med_io.read_dicom import read_dicom_dir
@@ -131,7 +131,7 @@ def predict(config, datasets=None, save_predict_data=False, name_ID=None):
                     img_data, label_data_onehot = image_transform(config, img_data, label_data_onehot=label_data)
                     # Patch the image
                     patch_imgs, indice_list = patch_image(config, img_data)
-                    predict_img = predict_image(config, dataset, model, patch_imgs, indice_list_model)
+                    predict_img = predict_image(config, dataset, model, patch_imgs, indice_list)
                     predict_img, label_data_onehot = select_output_channel(config, dataset, predict_img,
                                                                            label_data_onehot)
                     predict_img_integers, predict_img_onehot, label_data_integers, label_data_onehot \
@@ -422,7 +422,7 @@ def read_predict_file(config, data_path_img=None, data_path_label=None, name_ID=
         if datatype == 'nii':
             label_data = read_dicom_dir(data_path_img)
         elif datatype == 'mat':
-            _, label_data, _ = read_mat(data_path_img)
+            _, label_data, _ = read_mat_file(data_path_img)
         else:
             pass
     if data_path_img and data_path_label:
