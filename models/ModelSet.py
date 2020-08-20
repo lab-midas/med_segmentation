@@ -1,6 +1,7 @@
 import tensorflow as tf
 from tensorflow.keras.layers import *
 import tensorflow.keras.backend as K
+from tensorflow.keras.utils import multi_gpu_model
 from .blocks import *
 # from .loss_Function import *
 import models.loss_function as loss_function
@@ -144,7 +145,7 @@ class ModelSet:
         if config['feed_pos']:
             return create_and_compile_model([inputs, in_pos], out, config)
         else:
-            return create_and_compile_model(in_, out, config)
+            return create_and_compile_model(inputs, out, config)
 
     def model_MRGE_2(self, config):
         "Experimental"
@@ -211,7 +212,7 @@ class ModelSet:
         if config['feed_pos']:
             return create_and_compile_model([inputs, in_pos], out, config)
         else:
-            return create_and_compile_model(in_, out, config)
+            return create_and_compile_model(inputs, out, config)
 
 
     def model_U_net_old(self, config, depth=None):
@@ -219,6 +220,7 @@ class ModelSet:
         conv_param = config['convolution_parameter']
         inputs = Input(shape=(*config['patch_size'],) + (config['channel_img_num'],), name='inp1')
         x = inputs
+        in_pos = None
         levels = list()
         # add levels with max pooling
 
@@ -638,6 +640,7 @@ class ModelSet:
         '''
 
         inputs = Input(shape=config['patch_size'], name='input_layer')
+        in_pos = None
         n_base_filter = 32
         reshaped = Reshape([config['patch_size'][1], config['patch_size'][2], 1])(inputs)
 
