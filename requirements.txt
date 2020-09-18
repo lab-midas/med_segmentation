@@ -4,11 +4,10 @@ pydicom
 nibabel
 pynrrd
 pyyaml
-sklearn
+scikit-learn
 scikit-image
 scipy
 pandas
-keras
 tensorflow
 SimpleITK
 nibabel
