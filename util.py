@@ -3,9 +3,6 @@ import pickle
 import os
 from sklearn.model_selection import train_test_split
 import numpy as np
-from models.metrics import get_custom_metrics
-from keras.utils.np_utils import to_categorical
-import random
 
 
 def convert_yaml_config(config):
@@ -109,7 +106,7 @@ def convert_tf_optimizer(config):
 
 def convert_integers_to_onehot(img, num_classes=3):
     # if some values in img > num_classes-1=> error
-    return to_categorical(img, num_classes=num_classes)
+    return tf.keras.utils.to_categorical(img, num_classes=num_classes)
 
 
 def convert_onehot_to_integers(img, axis=-1):
