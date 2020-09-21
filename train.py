@@ -208,19 +208,20 @@ def k_fold_train_process(config, model, k_fold, paths, dataset, cp_callback, ini
         if not config['k_fold_merge_model']:
 
             # train all k-fold on one model
-            model, history = train_process(config, model, paths_train_img, paths_train_label, paths_val_img,
+            model, history_curr = train_process(config, model, paths_train_img, paths_train_label, paths_val_img,
                                            paths_val_label, dataset, cp_callback,
                                            saver1, k_fold_index=k,
                                            init_epoch=k * config['epochs'] + init_epoch)
-            history_dataset.append(history)
+            history.append(history_curr)
 
         else:
             # establish one new model at each fold.
-            model, history = train_process(config, model, paths_train_img, paths_train_label, paths_val_img,
+            model, history_curr = train_process(config, model, paths_train_img, paths_train_label, paths_val_img,
                                            paths_val_label, dataset, cp_callback,
                                            saver1, k_fold_index=k,
                                            init_epoch=init_epoch)
 
+            history.append(history_curr)
             # save model
             saved_model_path = config['saved_models_dir'] + '/' + config['exp_name'] + '/' + config['model']
             if not os.path.exists(saved_model_path): os.makedirs(saved_model_path)

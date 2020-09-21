@@ -196,8 +196,8 @@ class Patient:
         label_onehot = self.get_label()
         img_data = self.get_original_image()
         predict_category = self.get_predict_image()
-        predict_onehot = convert_categories_to_onehot(predict_category, num_classes=label_onehot.shape[-1])
-        label_category = convert_onehot_to_categories(label_onehot)
+        predict_onehot = convert_integers_to_onehot(predict_category, num_classes=label_onehot.shape[-1])
+        label_category = convert_onehot_to_integers(label_onehot)
 
         dict_data = {'predict_category': predict_category,
                      'predict_onehot': predict_onehot,
@@ -208,8 +208,8 @@ class Patient:
         if plot_function_name is not None:
 
             self.config['plot_figure'] = plot_function_name
-            if not isinstance(config['plot_figure'], list):
-                config['plot_figure'] = [config['plot_figure']]
+            if not isinstance(self.config['plot_figure'], list):
+                self.config['plot_figure'] = [self.config['plot_figure']]
 
         save_plot_rootdir = './Patient'
         plot_figures_single(self.config, dict_data, dataset=self.dataset, name_ID=self.name_ID,

@@ -53,6 +53,39 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "KaijieMo1",
+      "name": "KaijieMo1",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/69183027?v=4",
+      "profile": "https://github.com/KaijieMo1",
+      "contributions": [
+        "code",
+        "doc"
+      ]
+    },
+    {
+      "login": "sergiosgatidis",
+      "name": "sergiosgatidis",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/52936169?v=4",
+      "profile": "https://github.com/sergiosgatidis",
+      "contributions": [
+        "ideas",
+        "projectManagement",
+        "question"
+      ]
+    },
+    {
+      "login": "SarahMue",
+      "name": "SarahMue",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/30621951?v=4",
+      "profile": "https://github.com/SarahMue",
+      "contributions": [
+        "code",
+        "ideas",
+        "plugin",
+        "maintenance"
+      ]
     }
   ],
   "contributorsPerLine": 7,

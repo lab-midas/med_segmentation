@@ -50,7 +50,7 @@ def evaluate(config, datasets=None):
         # Save loss
         dictionary['evaluate_loss'] = list_loss_and_metrics[0]
         # Save metrics
-        for i, item in enumerate(list_metrics):
+        for i, item in enumerate(lists_loss_and_metrics):
             dictionary['evaluate_'+item]=list_loss_and_metrics[i+1]
 
         with open(path_pickle+dataset + '.pickle', 'wb') as fp:

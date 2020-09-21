@@ -1,6 +1,6 @@
 # MedSeg: Medical Segmentation
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-4-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-7-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 ## Introduction
@@ -79,7 +79,7 @@ densely connected with merge-and-run mapping network
 <img src=readme/MRGE.png width="70%"></img>
 
 #### Dilated dense convolution
-DCNet: Densely connected networks (including modifications: dilated convs, ...)
+Densely connected networks (including modifications: dilated convs, ...)
 
 <img src=readme/dilatedDense.png width="70%"></img>
 
@@ -114,6 +114,9 @@ Thanks to Marc Fischer for providing the med_io pipeline around which this frame
     <td align="center"><a href="https://sites.google.com/site/kspaceastronauts"><img src="https://avatars1.githubusercontent.com/u/15344655?v=4" width="100px;" alt=""/><br /><sub><b>Thomas Kuestner</b></sub></a><br /><a href="https://github.com/lab-midas/med_segmentation/commits?author=thomaskuestner" title="Code">💻</a> <a href="#ideas-thomaskuestner" title="Ideas, Planning, & Feedback">🤔</a> <a href="#maintenance-thomaskuestner" title="Maintenance">🚧</a> <a href="#projectManagement-thomaskuestner" title="Project Management">📆</a> <a href="https://github.com/lab-midas/med_segmentation/commits?author=thomaskuestner" title="Documentation">📖</a> <a href="https://github.com/lab-midas/med_segmentation/pulls?q=is%3Apr+reviewed-by%3Athomaskuestner" title="Reviewed Pull Requests">👀</a> <a href="https://github.com/lab-midas/med_segmentation/commits?author=thomaskuestner" title="Tests">⚠️</a></td>
     <td align="center"><a href="https://www.is.mpg.de/de/people/thepp"><img src="https://avatars1.githubusercontent.com/u/30172495?v=4" width="100px;" alt=""/><br /><sub><b>tobiashepp</b></sub></a><br /><a href="https://github.com/lab-midas/med_segmentation/commits?author=tobiashepp" title="Code">💻</a> <a href="#ideas-tobiashepp" title="Ideas, Planning, & Feedback">🤔</a> <a href="#maintenance-tobiashepp" title="Maintenance">🚧</a> <a href="#tool-tobiashepp" title="Tools">🔧</a> <a href="#security-tobiashepp" title="Security">🛡️</a></td>
     <td align="center"><a href="https://github.com/a-doering"><img src="https://avatars1.githubusercontent.com/u/35858164?v=4" width="100px;" alt=""/><br /><sub><b>a-doering</b></sub></a><br /><a href="https://github.com/lab-midas/med_segmentation/commits?author=a-doering" title="Code">💻</a></td>
+    <td align="center"><a href="https://github.com/KaijieMo1"><img src="https://avatars3.githubusercontent.com/u/69183027?v=4" width="100px;" alt=""/><br /><sub><b>KaijieMo1</b></sub></a><br /><a href="https://github.com/lab-midas/med_segmentation/commits?author=KaijieMo1" title="Code">💻</a> <a href="https://github.com/lab-midas/med_segmentation/commits?author=KaijieMo1" title="Documentation">📖</a></td>
+    <td align="center"><a href="https://github.com/sergiosgatidis"><img src="https://avatars1.githubusercontent.com/u/52936169?v=4" width="100px;" alt=""/><br /><sub><b>sergiosgatidis</b></sub></a><br /><a href="#ideas-sergiosgatidis" title="Ideas, Planning, & Feedback">🤔</a> <a href="#projectManagement-sergiosgatidis" title="Project Management">📆</a> <a href="#question-sergiosgatidis" title="Answering Questions">💬</a></td>
+    <td align="center"><a href="https://github.com/SarahMue"><img src="https://avatars3.githubusercontent.com/u/30621951?v=4" width="100px;" alt=""/><br /><sub><b>SarahMue</b></sub></a><br /><a href="https://github.com/lab-midas/med_segmentation/commits?author=SarahMue" title="Code">💻</a> <a href="#ideas-SarahMue" title="Ideas, Planning, & Feedback">🤔</a> <a href="#plugin-SarahMue" title="Plugin/utility libraries">🔌</a> <a href="#maintenance-SarahMue" title="Maintenance">🚧</a></td>
   </tr>
 </table>
 

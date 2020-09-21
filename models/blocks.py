@@ -14,10 +14,10 @@ def DilatedConv(filters, conv_param):
     return block(filters, k=3, s=1, order=['b', 'r', 'c'], order_param=[None, None, conv_param])
 
 """atrous spatial pyramid pooling"""
-def ASPP(filters, strides, conv_param, image_level_pool_size):
+def ASPP(filters, strides, conv_param, dilation_rate_list, image_level_pool_size):
     ## pyramid part
     def func(x):
-        pyramid_1x1 = block(filters, 1, stride, order=['c', 'b', 'r'], order_param=[conv_param, None, None])(x)
+        pyramid_1x1 = block(filters, 1, strides, order=['c', 'b', 'r'], order_param=[conv_param, None, None])(x)
         branch = [pyramid_1x1]
         for rate in dilation_rate_list:
             conv_param['dilation_rate'] = rate
@@ -77,10 +77,10 @@ def MR_local_pr_no_bn(filters, conv_param):
     return MR_local_pr_no_bn
 
 
-def MR_global_pr_no_bn():
+def MR_global_pr_no_bn(filters, conv_param):
     def MR_global_pr_no_bn(x):
         x = block(filters // 2, 1, 1, order=['c', 'r'], order_param=[conv_param, None])(x)
-        x = DilatedConv_no_bn(filters // 2, conv_param)(x)
+        x = block(filters // 2, 3, 1, order=['c', 'r', 'c', 'r'], order_param=[conv_param, None])(x)
         return  block(filters, 1, 1, order=['c', 'r'], order_param=[conv_param, None])(x)
     return MR_global_pr_no_bn
 
@@ -130,11 +130,11 @@ def MR_GE_block_merge(filters, conv_param_local,conv_param_global):
 
 def MRGE_exp_block(filters, dilation_max, conv_param_local,conv_param_global):
     def MRGE_exp_block(x):
-        x, y = MR_block_split(filters, cov_param)(x)
+        x, y = MR_block_split(filters, conv_param_local)(x)
         block_num = int(log2(dilation_max) + 1)
         rate_list = [2 ** i for i in range(block_num)]
         for rate in rate_list[:-1]:
-            cov_param['dilation_rate'] = rate
+            conv_param_local['dilation_rate'] = rate
             x, y = MR_GE_block(filters, conv_param_local,conv_param_global)(x, y)
         x = MR_GE_block_merge(filters, conv_param_local,conv_param_global)(x, y)
         return x
@@ -219,10 +219,10 @@ def dense_conv(filters, conv_param):
 
 # Transition pool layer
 def transitionLayerPool(filters,conv_param):
-        return lambda x: block(filters, 1,1,order=['b','r','c','ap'], order_param=[None,None, conv_param,{pool_size:2}])(x)
+        return lambda x: block(filters, 1,1,order=['b','r','c','ap'], order_param=[None,None, conv_param,{'pool_size':2}])(x)
 
 # Transition transpose up layer
-def transitionLayerTransposeUp(mode, f, lbda):
+def transitionLayerTransposeUp(filters, conv_param):
     def func(x):
         x=block(filters, 1, 1, order=['b', 'r', 'c'],order_param=[None, None, conv_param])(x)
         return block(filters, 3, 2, order=[ 'dc'],order_param=[conv_param])(x)
