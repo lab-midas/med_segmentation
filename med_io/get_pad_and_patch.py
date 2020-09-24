@@ -2,6 +2,9 @@ import numpy as np
 import random
 import tensorflow as tf
 import scipy.stats
+import scipy.io as sio
+from util import get_thresholds
+
 
 def pad_img_label(config, max_data_size, images_data, images_shape, labels_data=None, labels_shape=None):
     """
@@ -45,7 +48,7 @@ def pad_img_label(config, max_data_size, images_data, images_shape, labels_data=
         return images_data
 
 
-def get_fixed_patches_index(config,max_fix_img_size, patch_size, overlap_rate=0.5, start=None, end=None, shuffle=False,
+def get_fixed_patches_index(config, max_fix_img_size, patch_size, overlap_rate=0.5, start=None, end=None, shuffle=False,
                             max_patch_num=None):
     """
     Get fixed patches position list by given image size
@@ -53,6 +56,7 @@ def get_fixed_patches_index(config,max_fix_img_size, patch_size, overlap_rate=0.
     it cannot iterate the specific (individual and different) image size of each single image.
     Thus a fix grid of patches is created before creating pipeline.
     Note:Image and label must have the same size!
+    :param config: type dict: config parameter
     :param max_fix_img_size: type list of int: size of unpatched image,
                               the length must be greater than or equal to the length of :param: patch_size
     :param patch_size: type list of int: patch size images
@@ -89,32 +93,30 @@ def get_fixed_patches_index(config,max_fix_img_size, patch_size, overlap_rate=0.
 
     else:
         # patching with probability method
-        index_list = [[0]*dim]
-        if not max_patch_num: max_patch_num = 1000 # default max patch number
+        index_list = [[0] * dim]
+        if not max_patch_num: max_patch_num = 1000  # default max patch number
         N = (max_patch_num, 1)
         if config['patch_probability_distribution']['normal']['use']:
             # Patching sampling with truncated normal distribution
-            if  config['patch_probability_distribution']['normal']['mu']:
+            if config['patch_probability_distribution']['normal']['mu']:
                 mu = config['patch_probability_distribution']['normal']['mu']
             else:
-                mu = (start + end) // 2 # default mean value
+                mu = (start + end) // 2  # default mean value
 
-            if  config['patch_probability_distribution']['normal']['sigma']:
+            if config['patch_probability_distribution']['normal']['sigma']:
                 sigma = config['patch_probability_distribution']['normal']['sigma']
             else:
-                sigma = end - start # default std value
-            print(start,end,mu,sigma)
-
+                sigma = end - start  # default std value
             # Still some problems here, Tensorflow doesn't support type NPY_INT
             lst = [
                 scipy.stats.truncnorm.rvs((start[i] - mu[i]) / sigma, (end[i] - mu[i]) / sigma, loc=mu[i],
                                           scale=sigma[i],
-                                          size=N)[:, 0] for i in range(dim)].astype(np.int32) #
+                                          size=N)[:, 0] for i in range(dim)].astype(np.int32)  #
             index_list = np.stack(lst, axis=-1).astype(np.int32)
 
         if config['patch_probability_distribution']['uniform']:
             # Patching sampling with truncated uniform distribution
-            lst = [np.random.uniform(start[i], end[i], size=N)[:, 0] for i in range(dim)] # [:, 0]
+            lst = [np.random.uniform(start[i], end[i], size=N)[:, 0] for i in range(dim)]  # [:, 0]
             index_list = np.stack(lst, axis=-1).astype(np.int32)
 
     if shuffle: np.random.shuffle(index_list)
@@ -172,7 +174,8 @@ def get_predict_patches_index(data_img, patch_size, overlap_rate=0.5, start=None
     return patch_img_collection, index_list
 
 
-def unpatch_predict_image(data_patches, indice_list, patch_size, unpatch_data_size=None, set_zero_by_threshold=True, threshold=0.1,
+def unpatch_predict_image(data_patches, indice_list, patch_size, unpatch_data_size=None, set_zero_by_threshold=True,
+                          threshold=0.1,
                           output_patch_size=None):
     """
     Unpatch the predict image by list of patch images.
@@ -191,6 +194,7 @@ def unpatch_predict_image(data_patches, indice_list, patch_size, unpatch_data_si
     # Data_patches list
     dim = len(patch_size)
     data_patch_size = np.array(data_patches[0]).shape
+
     assert (len(data_patches) == len(indice_list))
 
     indice_list = np.int32(indice_list)
@@ -206,7 +210,6 @@ def unpatch_predict_image(data_patches, indice_list, patch_size, unpatch_data_si
         weight_patch = np.ones((*patch_size,) + (data_patch_size[-1],))
     else:
         weight_patch = np.ones((*output_patch_size,) + (data_patch_size[-1],))
-
     for data_patch, index in zip(data_patches, indice_list):
 
         # Indexing using function slice for variable dim, Indexing last channel by slice(None, None),equivalent to [:]
@@ -215,9 +218,11 @@ def unpatch_predict_image(data_patches, indice_list, patch_size, unpatch_data_si
             predict_img[
                 (*[slice(index[i], index[i] + patch_size[i]) for i in range(dim)] + [slice(None, None)],)] += data_patch
             # Overlay all weight value on the weight map
+
             unpatch_weight_map[
                 (*[slice(index[i], index[i] + patch_size[i]) for i in range(dim)] + [
                     slice(None, None)],)] += weight_patch
+
         else:  # else if input image shape>=output image shape
             for j in range(dim): assert patch_size[j] >= output_patch_size[j]
             # Gap between input size image and output size image
@@ -236,9 +241,45 @@ def unpatch_predict_image(data_patches, indice_list, patch_size, unpatch_data_si
     return unpatch_img
 
 
+def prediction_prob_and_decision(config, patch_prob_img, indice_list):
+    """
+    Specially for prediction the results by network body part identification
+    :param config: type dict:  config parameter
+    :param patch_prob_img:  type list:
+    :param indice_list: type list, position of corresonded :param patch_prob_img
+    :return: prob_map: type ndarray: predicted probability map
+    :return: decision_map: type ndarray: predicted decision map
+    """
+
+    n_classes = config['body_identification_n_classes']
+    #  patch_prob_img size(len of indice_list, n_classes)
+
+    patch_shape = config['patch_size']
+    # Body identification patch size [1, X,Y]
+    # Initialize the map
+    # patch_prob_img[0] represents total num of patches.
+    patch_prob_maps = np.zeros([len(indice_list), patch_shape[1], patch_shape[2], n_classes])
+    patch_decision_maps = np.zeros([len(indice_list), patch_shape[1], patch_shape[2], n_classes])
+
+    for i, pos in enumerate(indice_list):
+        # one hot map
+        # patch_decision_maps +1 at the correspondent pixels
+        patch_decision_maps[i, :, :, np.argmax(patch_prob_img[i, :])] += 1
+
+        # patch_prob_maps +predict results at the correspondent pixels
+        for class_ in range(n_classes):
+            patch_prob_maps[i, :, :, class_] += patch_prob_img[i, class_]
+
+    # u
+    prob_map = unpatch_predict_image(patch_prob_maps, indice_list, patch_shape, set_zero_by_threshold=False)
+    decision_map = unpatch_predict_image(patch_decision_maps, indice_list, patch_shape, set_zero_by_threshold=False)
+
+    return prob_map, decision_map
+
+
 def get_patches_data(data_size, patch_size, data_img, data_label, index_list, random_rate=0.3,
                      slice_channel_img=None, slice_channel_label=None, output_patch_size=None, random_shift_patch=True,
-                     squeeze_channel=False):
+                     squeeze_channel=False, squeeze_dimension=None):
     """
     Get patches from unpatched image and correspondent label by the list of patch positions.
     :param data_size: type ndarray: data size of :param: data_img and :param data_label
@@ -281,6 +322,7 @@ def get_patches_data(data_size, patch_size, data_img, data_label, index_list, ra
 
     # indexing using function slice for variable dim,indexing last channel by slice(None, None),equivalent to [:]
     # Get patch image data
+
     patch_img_collection = [
         data_img[(*[slice(index[i], index[i] + patch_size[i]) for i in range(dim)]
                    + [slice(None, None)],)]
@@ -310,16 +352,24 @@ def get_patches_data(data_size, patch_size, data_img, data_label, index_list, ra
     # Select channels for input images and labels by the yaml file
     if slice_channel_img is not None:
         if not squeeze_channel:
+
             # Select the image channel for patching
             patch_img_collection = [tf.stack([img[..., i] for i in slice_channel_img], axis=-1) for img in
                                     patch_img_collection]
         else:
+
             # Reduce one dimension (especially for network Body Identification)
             patch_img_collection = [img[..., 0] for img in
                                     patch_img_collection]
 
+        if squeeze_dimension is not None:
+            patch_img_collection = [img[..., 0, :] for img in patch_img_collection]
     if slice_channel_label is not None:
         # Select the label channel for patching
         patch_label_collection = [tf.stack([label[..., i] for i in slice_channel_label], axis=-1) for label in
                                   patch_label_collection]
+
+        if squeeze_dimension is not None:
+            patch_label_collection = [label[..., 0, :] for label in patch_label_collection]
+
     return patch_img_collection, patch_label_collection, index_list
