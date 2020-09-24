@@ -8,8 +8,6 @@ from tensorflow.keras.models import load_model
 from models.load_model import load_model_file
 import pickle
 import datetime
-import os
-import random
 
 
 def train(config, restore=False):
@@ -28,11 +26,23 @@ def train(config, restore=False):
             # Resume dataset.
             with open(config['dir_model_checkpoint'] + '/' + config['exp_name'] + '/' + 'training_info.pickle',
                       'rb') as fp:
-                restore_dataset = pickle.load(fp)[dataset]
-                if restore_dataset != dataset:
-                    continue
-                else:
-                    print('Resume training dataset: ', dataset, '...')
+                restore_dataset = pickle.load(fp)['dataset']
+
+                while True:
+                    if restore_dataset != dataset:
+                        command = input(
+                            'Warning! The stored resuming dataset name last time is not coincident with the dataset this time,'
+                            ' do you want to overwrite? (y/n)')
+                        if command == 'y':
+                            break
+                        elif command == 'n':
+                            dataset = restore_dataset
+                            break
+                        else:
+                            print('Invalid command.')
+                    else:
+                        print('Resume training dataset: ', dataset, '...')
+                        break
 
         config = train_config_setting(config, dataset)
 
@@ -53,9 +63,10 @@ def train(config, restore=False):
 
         print(model.summary())
         # Create checkpoint for saving model during training.
-        if not os.path.exists(config['dir_model_checkpoint'] + '/' + config['exp_name']):
-            os.makedirs(config['dir_model_checkpoint'] + '/' + config['exp_name'])
-        checkpoint_path = config['dir_model_checkpoint'] + '/' + config['exp_name'] + '/cp.hdf5'
+        if not os.path.exists(config['dir_model_checkpoint'] + '/' + config['exp_name']): os.makedirs(
+            config['dir_model_checkpoint'] + '/' + config['exp_name'])
+        checkpoint_path = config['dir_model_checkpoint'] + '/' + config['exp_name'] + '/cp_' + dataset + '_' + config[
+            'model'] + '.hdf5'
 
         # Create a callback that saves the model's weights every X epochs.
         cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path, verbose=1, save_weights_only=False,
@@ -73,11 +84,17 @@ def train(config, restore=False):
 
         # Log data at end of training epoch
         class Additional_Saver(tf.keras.callbacks.Callback):
+            """
+            The program on the end of each epoch,
+            Add here if any progress are processed on the end of each epoch
+            """
             def on_epoch_end(self, epoch, logs={}):
+
                 if epoch % config['save_training_model_period'] == 0 and epoch != 0:
                     with open(config['dir_model_checkpoint'] + '/' + config['exp_name'] + '/training_info.pickle',
                               'wb') as fp:
-                        pickle.dump({'epoch': epoch, 'dataype': dataset}, fp, protocol=pickle.HIGHEST_PROTOCOL)
+                        pickle.dump({'epoch': epoch, 'dataset': dataset, 'model': config['model']}, fp,
+                                    protocol=pickle.HIGHEST_PROTOCOL)
                 if not os.path.exists('train_record'): os.makedirs('train_record')
                 file1 = open('train_record/' + config['model'] + '_' + dataset + ".txt", "a+")
                 now = datetime.datetime.now()
@@ -88,7 +105,6 @@ def train(config, restore=False):
                 file1.close()
 
         saver1 = Additional_Saver()
-
         print('Now training data: ', dataset)
         k_fold = config['k_fold'][dataset]
         history_dataset = []
@@ -117,7 +133,8 @@ def train(config, restore=False):
 def train_process(config, model, paths_train_img, paths_train_label, paths_val_img, paths_val_label, dataset,
                   cp_callback,
                   saver1, k_fold_index=0, init_epoch=0):
-    """Internal function"""
+    """Internal function
+        Train process"""
 
     # Building pipelines of training and validation Dataset.
 
@@ -136,15 +153,18 @@ def train_process(config, model, paths_train_img, paths_train_label, paths_val_i
                         validation_steps=config['val_steps_per_epoch'],
                         validation_freq=config['validation_freq'],
                         verbose=config['train_verbose_mode'])
+
+
     print(history.history)
     # Save the histories and plot figures
-    save_histories_plot_images(history, config=config, dataset=dataset, mode='train_val', k_fold_index=k_fold_index)
+    if config['save_history_on_train_process']:
+        save_histories_plot_images(history, config=config, dataset=dataset, mode='train_val', k_fold_index=k_fold_index)
     return model, history
 
 
 def train_config_setting(config, dataset):
     """
-    Configuring parameter for training
+    Configuring parameter for training process
     :param config: type dict: config parameter
     :param dataset: type str: dataset  name
     :return: config: type dict: config parameter
@@ -169,7 +189,8 @@ def train_config_setting(config, dataset):
             config['channel_label_num'] = len(config['output_channel'][dataset])
 
         # output channel+1 if the model output background channel (if the stored labels have no background channels)
-        if config['model_add_background_output']:
+        # some pretrained models had already added background output.
+        if config['model_add_background_output']:  # and (not config['train_premodel_add_background_output']):
             config['channel_label_num'] += 1
 
     print('channel_img,', config['channel_img_num'], 'channel_label,', config['channel_label_num'])
@@ -178,7 +199,7 @@ def train_config_setting(config, dataset):
 
 def k_fold_train_process(config, model, k_fold, paths, dataset, cp_callback, init_epoch, saver1):
     """
-    K-fold training
+    K-fold training process
 
     :param config: type dict: config parameter
     :param model:  type tf.keras.Model, training model
@@ -189,11 +210,12 @@ def k_fold_train_process(config, model, k_fold, paths, dataset, cp_callback, ini
     :return: models:  type tf.keras.Model, trained model
     :return: history type  list of float, metrics evaluating value from each epoch.
     """
-    history = None
+    # history = None
     list_1 = list(zip(paths['path_train_val_img'], paths['path_train_val_label']))
     random.shuffle(list_1)
     divided_datapath = len(list_1) // k_fold
     assert (divided_datapath > 0)
+    history = []
     for k in range(k_fold):
         # Split train and eva
         list_val = list_1[k * divided_datapath:(k + 1) * divided_datapath]
@@ -208,20 +230,18 @@ def k_fold_train_process(config, model, k_fold, paths, dataset, cp_callback, ini
         if not config['k_fold_merge_model']:
 
             # train all k-fold on one model
-            model, history_curr = train_process(config, model, paths_train_img, paths_train_label, paths_val_img,
+            model, history = train_process(config, model, paths_train_img, paths_train_label, paths_val_img,
                                            paths_val_label, dataset, cp_callback,
                                            saver1, k_fold_index=k,
                                            init_epoch=k * config['epochs'] + init_epoch)
-            history.append(history_curr)
 
         else:
             # establish one new model at each fold.
-            model, history_curr = train_process(config, model, paths_train_img, paths_train_label, paths_val_img,
-                                           paths_val_label, dataset, cp_callback,
-                                           saver1, k_fold_index=k,
-                                           init_epoch=init_epoch)
-
-            history.append(history_curr)
+            model, hist = train_process(config, model, paths_train_img, paths_train_label, paths_val_img,
+                                        paths_val_label, dataset, cp_callback,
+                                        saver1, k_fold_index=k,
+                                        init_epoch=init_epoch)
+            history.append(hist)
             # save model
             saved_model_path = config['saved_models_dir'] + '/' + config['exp_name'] + '/' + config['model']
             if not os.path.exists(saved_model_path): os.makedirs(saved_model_path)
