@@ -4,80 +4,53 @@ import tensorflow.keras.backend as K
 import tensorflow as tf
 
 
-def  l1_loss(y_true, y_pred,config):
+def l1_loss(y_true, y_pred, config):
     """ l1 loss
             y_true: true targets tensor.
             y_pred: predictions tensor.
     """
 
-    sum_loss=0
+    sum_loss = 0
     for class_index in range(config['channel_label_num']):
-        y_t=y_true[...,class_index]
-        y_p=y_pred[...,class_index]
-        sum_loss+=K.mean((tf.abs(y_p - y_t)))*config['loss_channel_weight'][class_index]
-    return sum_loss
-
-def l2_loss(y_true, y_pred,config):
-    sum_loss=0
-    for class_index in range(config['channel_label_num']):
-        y_t=y_true[...,class_index]
-        y_p=y_pred[...,class_index]
-        sum_loss+=K.mean(K.pow(y_p - y_t,2))*config['loss_channel_weight'][class_index]
+        y_t = y_true[..., class_index]
+        y_p = y_pred[..., class_index]
+        sum_loss += K.mean((tf.abs(y_p - y_t))) * config['loss_channel_weight'][class_index]
     return sum_loss
 
 
-def dice_loss(y_true, y_pred,config):
+def l2_loss(y_true, y_pred, config):
+    sum_loss = 0
+    for class_index in range(config['channel_label_num']):
+        y_t = y_true[..., class_index]
+        y_p = y_pred[..., class_index]
+        sum_loss += K.mean(K.pow(y_p - y_t, 2)) * config['loss_channel_weight'][class_index]
+    return sum_loss
+
+
+def dice_loss(y_true, y_pred, config):
     """ Dice loss
             y_true: true targets tensor.
             y_pred: predictions tensor.
             Dice calculation with smoothing to avoid division by zero
-    """
-    #smooth = 1E-16
-    smooth = K.epsilon()
-    sum_loss,weight_sum=0,0
-    for class_index in range(config['channel_label_num']):
-        y_t=y_true[...,class_index]
-        y_p=y_pred[...,class_index]
-        intersection = K.sum(K.abs(y_t * y_p), axis=-1)
-        loss =1 - (2. * intersection + smooth) / (K.sum(K.square(y_t), -1) + K.sum(K.square(y_p), -1) + smooth)
-        sum_loss+=loss*config['loss_channel_weight'][class_index]
-        weight_sum+=config['loss_channel_weight'][class_index]
-    return sum_loss/(weight_sum+smooth)
 
-def dice_coefficient_loss(y_true, y_pred,config, smooth=K.epsilon(), axis=None):
-    """ Dice coefficient along specific axis (same as  1+dice_loss() if axis=None)
-            y_true: true targets tensor.
-            y_pred: predictions tensor.
-            smooth: smoothing parameter to avoid division by zero
-            axis: along which to calculate Dice
-    """
-    intersection = K.sum(K.abs(y_true * y_pred), axis=axis)
-    return -(2. * intersection + smooth) / (K.sum(K.abs(y_true), axis=axis) + K.sum(K.abs(y_pred), axis=axis) + smooth)
 
-def dice_loss_v2(y_true, y_pred,config):
+
+    """
+
     smooth = 1E-16
+    # smooth = K.epsilon()
     sum_loss, weight_sum = 0, 0
     for class_index in range(config['channel_label_num']):
         y_t = y_true[..., class_index]
         y_p = y_pred[..., class_index]
-        intersection = K.sum(K.abs(y_t * y_p), axis=-1)
-        loss = 1 - (2. * intersection + smooth) / (K.sum(K.abs(y_t)) + K.sum(K.abs(y_p)) + smooth)
+        intersection = K.sum(K.abs(y_t * y_p))
+        loss = 1 - (2. * intersection + smooth) / (K.sum(K.square(y_t)) + K.sum(K.square(y_p)) + smooth)
         sum_loss += loss * config['loss_channel_weight'][class_index]
         weight_sum += config['loss_channel_weight'][class_index]
     return sum_loss / (weight_sum + smooth)
 
-def jaccard_dist_loss_(y_true, y_pred):
-    """ Jaccard distance loss
-            y_true: true targets tensor.
-            y_pred: predictions tensor.
-    """
-    smooth = K.epsilon()
-    intersection = K.sum(K.abs(y_true * y_pred))
-    sum_ = K.sum(K.abs(y_true) + K.abs(y_pred))
-    jac = (intersection + smooth) / (sum_ - intersection + smooth)
-    return - jac
 
-def focal_loss(y_true, y_pred,config, alpha=0.25, gamma=2.0):
+def focal_loss(y_true, y_pred, config, alpha=0.25, gamma=2.0):
     """ multi-class focal loss
             y_true: true targets tensor.
             y_pred: predictions tensor.
@@ -122,25 +95,28 @@ def focal_loss(y_true, y_pred,config, alpha=0.25, gamma=2.0):
             modulating_factor = tf.pow((1.0 - p_t), gamma)
 
         # compute the final loss and return
+
         return tf.reduce_sum(alpha_factor * modulating_factor * ce, axis=-1)
-    smooth = 1E-16
+
+    smooth = K.epsilon()
     sum_loss, weight_sum = 0, 0
     for class_index in range(config['channel_label_num']):
-        fl = sigmoid_focal_crossentropy(y_true[...,class_index], y_pred[...,class_index], alpha=alpha, gamma=gamma)
-        loss=K.sum(fl)
+        fl = sigmoid_focal_crossentropy(y_true[..., class_index], y_pred[..., class_index], alpha=alpha, gamma=gamma)
+        loss = K.mean(fl)
         sum_loss += loss * config['loss_channel_weight'][class_index]
         weight_sum += config['loss_channel_weight'][class_index]
 
     return sum_loss / (weight_sum + smooth)
 
+    # return sigmoid_focal_crossentropy(y_true, y_pred, alpha=alpha, gamma=gamma)
 
-def jaccard_dist_loss(y_true, y_pred,config):
-    smooth = 1E-16
+
+def jaccard_dist_loss(y_true, y_pred, config):
+    smooth = K.epsilon()
     sum_loss, weight_sum = 0, 0
     for class_index in range(config['channel_label_num']):
         y_t = y_true[..., class_index]
         y_p = y_pred[..., class_index]
-
 
         intersection = K.sum(K.abs(y_t * y_p))
         sum_ = K.sum(K.abs(y_t) + K.abs(y_p))
@@ -150,59 +126,19 @@ def jaccard_dist_loss(y_true, y_pred,config):
 
     return sum_loss / (weight_sum + smooth)
 
-def jaccard_dist_loss_hybrid(y_true, y_pred,config):
-    smooth = 1E-16
-    y_tru=y_true[0]
+
+def jaccard_dist_loss_hybrid(y_true, y_pred, config):
+    smooth = K.epsilon()
+    y_tru = y_true[0]
     y_pre = y_pred[0]
-    print('y_tru',y_tru)
+    print('y_tru', y_tru)
     intersection = K.sum(K.abs(y_tru * y_pre))
     sum_ = K.sum(K.abs(y_tru) + K.abs(y_pre))
     sum_loss = -(intersection + smooth) / (sum_ - intersection + smooth)
 
-    y_tru=y_true[1]
+    y_tru = y_true[1]
     y_pre = y_pred[1]
-    loss= K.mean((tf.abs(y_tru - y_pre)))
-    sum_loss+=loss
-
+    loss = K.mean((tf.abs(y_tru - y_pre)))
+    sum_loss += loss
 
     return sum_loss
-
-
-
-
-#================
-"""Loss function for Body identification """
-
-
-def precision(y_true, y_pred):
-    '''Metric: true positives / (true positives + false positives)'''
-
-    neg_y_true = 1 - y_true
-    tp = K.sum(y_true[...] * y_pred[...])
-    fp = K.sum(neg_y_true[...] * y_pred[...])
-    precision = tp / (tp + fp + K.epsilon())
-    return precision
-
-
-def sensitivity(y_true, y_pred):  # also called recall
-    '''Metric: true positives / (true positives + false negatives)'''
-
-    neg_y_pred = 1 - y_pred
-    tp = K.sum(y_true[...] * y_pred[...])
-    fn = K.sum(y_true[...] * neg_y_pred[...])
-    sensitivity = tp / (tp + fn + K.epsilon())
-    return sensitivity
-
-
-def specificity(y_true, y_pred):
-    '''Metric: true negatives / (true negatives + false positives)'''
-
-    neg_y_true = 1 - y_true
-    neg_y_pred = 1 - y_pred
-    fp = K.sum(neg_y_true[...] * y_pred[...])
-    tn = K.sum(neg_y_true[...] * neg_y_pred[...])
-    specificity = tn / (tn + fp + K.epsilon())
-    return specificity
-
-
-
