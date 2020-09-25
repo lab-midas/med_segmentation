@@ -62,7 +62,6 @@ def pipeline(config, dataset_image_path, dataset_label_path, dataset=None):
         """
         images_data, images_shape = parser(args[0])
         labels_data, labels_shape = parser(args[1])
-
         if not config['read_body_identification']:
             # Change orientation
             if config['transpose_permute'] is not None:
@@ -92,10 +91,11 @@ def pipeline(config, dataset_image_path, dataset_label_path, dataset=None):
                                                                       labels_data,
                                                                       patches_indices, slice_channel_img=input_slice,
                                                                       slice_channel_label=output_slice,
-                                                                      output_patch_size=config['model_output_size'])
+                                                                      output_patch_size=config['model_output_size'],
+                                                                      squeeze_channel=config['squeeze_channel'])
 
             # List regularize
-            index_list = index_list / (np.array(max_data_size) + 1e-16)
+            #index_list = index_list / (np.array(max_data_size) + 1e-16)
             if config['feed_pos']:
                 return (patchs_imgs, index_list), patchs_labels
             else:
@@ -110,7 +110,7 @@ def pipeline(config, dataset_image_path, dataset_label_path, dataset=None):
             # Special case for network "body identification"
             if config['transpose_permute'] is not None:
                 images_data = tf.transpose(images_data, perm=config['transpose_permute'])
-                images_shape = tf.transpose(images_shape, perm=config['transpose_permute'])
+
 
             patchs_imgs, _, index_list = get_patches_data(max_data_size, patch_size, images_data,
                                                           data_label=None,
@@ -118,6 +118,8 @@ def pipeline(config, dataset_image_path, dataset_label_path, dataset=None):
                                                           slice_channel_label=None,
                                                           output_patch_size=config['model_output_size'],
                                                           squeeze_channel=config['squeeze_channel'])
+
+
             # Generate labels by patch indices  according to labels_data(position of hip, wrist etc.)
             generate_labels = generate_label(config, labels_data, patches_indices, patch_size)
 
@@ -125,22 +127,15 @@ def pipeline(config, dataset_image_path, dataset_label_path, dataset=None):
                 # Single output
                 generate_labels = generate_labels[0]
 
+
             if config['feed_pos']:
                 return [patchs_imgs, index_list], generate_labels
             else:
                 # Multiple output
-                return patchs_imgs, generate_labels  # patchs_imgs, (generate_labels[0], generate_labels[1])
+                return patchs_imgs, generate_labels
 
     # Create pipeline and config dataset.
     dataset = zip_data_path_TFRecordDataset.map(map_func=_map, num_parallel_calls=config['num_parallel_calls'])
 
-    dataset = dataset.unbatch().batch(config['batch']).shuffle(config['shuffle']).prefetch(
-        tf.data.experimental.AUTOTUNE)
-    """
-    while True:
-        for elem ,elem2 in dataset:
-            print(elem)
-            print(elem2)
-"""
-
+    dataset = dataset.unbatch().batch(config['batch']).shuffle(config['shuffle']).prefetch(tf.data.experimental.AUTOTUNE)
     return dataset
