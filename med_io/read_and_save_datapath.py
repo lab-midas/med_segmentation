@@ -14,7 +14,6 @@ def read_and_save_tfrec_path(config, rootdir, filename_tfrec_pickle=None, datase
     if dirs==[]:
         print('Failed saving tfrecords files: No directories in the tfrecords rootdir!')
         return None
-
     lst_image = []
     lst_label = []
     if config['read_body_identification']:
