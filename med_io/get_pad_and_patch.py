@@ -48,7 +48,7 @@ def pad_img_label(config, max_data_size, images_data, images_shape, labels_data=
         return images_data
 
 
-def get_fixed_patches_index(config, max_fix_img_size, patch_size, overlap_rate=0.5, start=None, end=None, shuffle=False,
+def get_fixed_patches_index(config, max_fix_img_size, patch_size, overlap_rate=0.5, start=None, end=None, shuffle=True,
                             max_patch_num=None):
     """
     Get fixed patches position list by given image size
@@ -75,7 +75,7 @@ def get_fixed_patches_index(config, max_fix_img_size, patch_size, overlap_rate=0
     if start is None: start = np.array([0] * dim)
     assert (len(start) == len(overlap_rate) == dim)
     patch_size = [tf.math.minimum(max_fix_img_size[i], patch_size[i]) for i in range(dim)]
-    end1 = [max_fix_img_size[i] - patch_size[i] for i in range(dim)]  # 停止点列表 int list
+    end1 = [max_fix_img_size[i] - patch_size[i] for i in range(dim)]  # end points int list
     if end is not None:
         for i in range(dim):
             if end[i] > end1[i]: end[i] = end1[i]
@@ -118,7 +118,7 @@ def get_fixed_patches_index(config, max_fix_img_size, patch_size, overlap_rate=0
             # Patching sampling with truncated uniform distribution
             lst = [np.random.uniform(start[i], end[i], size=N)[:, 0] for i in range(dim)]  # [:, 0]
             index_list = np.stack(lst, axis=-1).astype(np.int32)
-
+    shuffle=config['index_shuffle'] # set config['index_shuffle'] =True can greatly enhance the quality of the results.
     if shuffle: np.random.shuffle(index_list)
     if max_patch_num: index_list = index_list[:max_patch_num]
     return index_list
