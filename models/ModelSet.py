@@ -17,6 +17,7 @@ class ModelSet:
     """
     === network models
     """
+
     # Merge-And-Run Mapping network
     def model_MRGE(self, config):
 
@@ -41,9 +42,9 @@ class ModelSet:
             rate_list = [2 ** i for i in range(block_num)]
             for rate in rate_list[:-1]:
                 conv_param_global['dilation_rate'] = rate
-                x, y = MR_GE_block(filters, conv_param_local,conv_param_global)(x, y)
+                x, y = MR_GE_block(filters, conv_param_local, conv_param_global)(x, y)
             conv_param_global['dilation_rate'] = rate_list[-1]
-            x = MR_GE_block_merge(filters, conv_param_local,conv_param_global)(x, y)
+            x = MR_GE_block_merge(filters, conv_param_local, conv_param_global)(x, y)
             shortcuts.append(x)
             x = MaxPool3D()(x)
             filters = int(2 * filters)
@@ -68,11 +69,12 @@ class ModelSet:
             rate_list = [2 ** i for i in range(int(log2(l) + 1))]
             for rate in rate_list[:-1]:
                 conv_param_global['dilation_rate'] = rate
-                x, y = MR_GE_block(filters, conv_param_local,conv_param_global)(x, y)
+                x, y = MR_GE_block(filters, conv_param_local, conv_param_global)(x, y)
 
             conv_param_global['dilation_rate'] = rate_list[-1]
-            x = MR_GE_block_merge(filters, conv_param_local,conv_param_global)(x, y)
-            x = block(config['channel_label_num'], 1, 1, order=['b', 'r', 'c'], order_param=[None, None, conv_param_local])(x)
+            x = MR_GE_block_merge(filters, conv_param_local, conv_param_global)(x, y)
+            x = block(config['channel_label_num'], 1, 1, order=['b', 'r', 'c'],
+                      order_param=[None, None, conv_param_local])(x)
 
         out = Activation('softmax', name='output_Y')(x)
 
@@ -140,7 +142,8 @@ class ModelSet:
                 x = block(filters, 3, 2, order=['dc', 'r', 'b'], order_param=[conv_param_local, None, None])(x)
 
         x = block(filters, 3, 1, order=['c', 'r', 'b'], order_param=[conv_param_local, None, None])(x)
-        out = block(config['channel_label_num'], 1, 1, order=['c', 'b', 's'], order_param=[conv_param_local, None, None])(x)
+        out = block(config['channel_label_num'], 1, 1, order=['c', 'b', 's'],
+                    order_param=[conv_param_local, None, None])(x)
 
         if config['feed_pos']:
             return create_and_compile_model([inputs, in_pos], out, config)
@@ -154,8 +157,8 @@ class ModelSet:
         conv_param_local = copy.deepcopy(conv_param_global)
         conv_param_local['dilation_rate'] = 1
         in_pos = None
-        b_f=config['filters']
-        filters = [b_f, int(b_f*1.5), b_f*2, b_f*32, b_f*64]
+        b_f = config['filters']
+        filters = [b_f, int(b_f * 1.5), b_f * 2, b_f * 32, b_f * 64]
         input_shape = (*config['patch_size'],) + (config['channel_img_num'],)
         inputs = tf.keras.Input(shape=input_shape, name='inp1')
         shortcuts = []
@@ -175,7 +178,6 @@ class ModelSet:
             shortcuts.append(x)
             x = MaxPool3D()(x)
 
-
         filter = int(x.shape[-1])
         if config['feed_pos']:
             in_pos = Input(shape=(3,), name='input_position')
@@ -191,11 +193,11 @@ class ModelSet:
 
         x = block(filter, 3, 2, order=['dc'], order_param=[conv_param_local])(x)
         for index_, (max_dilate_rate, shortcut) in enumerate(reversed(list(zip(list_max_dilate_rate, shortcuts)))):
-            x = tf.concat([shortcut, x],axis=-1)
+            x = tf.concat([shortcut, x], axis=-1)
 
-            k=len(filters)-index_-2
-            if k <0:
-                k=0
+            k = len(filters) - index_ - 2
+            if k < 0:
+                k = 0
             dilate_rate = [2 ** i for i in range(int(log2(max_dilate_rate)) + 1)]
             x_list = [x]
             for rate in dilate_rate:
@@ -207,13 +209,13 @@ class ModelSet:
                 x = block(filters[k], 3, 2, order=['dc', 'r', 'b'], order_param=[conv_param_local, None, None])(x)
 
         x = block(filters[0], 3, 1, order=['c', 'r', 'b'], order_param=[conv_param_local, None, None])(x)
-        out = block(config['channel_label_num'], 1, 1, order=['c', 'b', 's'], order_param=[conv_param_local, None, None])(x)
+        out = block(config['channel_label_num'], 1, 1, order=['c', 'b', 's'],
+                    order_param=[conv_param_local, None, None])(x)
 
         if config['feed_pos']:
             return create_and_compile_model([inputs, in_pos], out, config)
         else:
             return create_and_compile_model(inputs, out, config)
-
 
     def model_U_net_old(self, config, depth=None):
 
@@ -359,6 +361,7 @@ class ModelSet:
             return create_and_compile_model([inputs, in_pos], out, config)
         else:
             return create_and_compile_model(inputs, out, config)
+
     # UNet with double decoder
 
     def model_U_net_double_decoder(self, config):
@@ -524,7 +527,6 @@ class ModelSet:
         x = block(filters[0] // 2, 4, 2, order=['dc', 'b', 'r'], order_param=[conv_param, None, None])(x)
         x = x + x_up
 
-
         skip_layer = []
         for index, f in enumerate(filters):
             conv_param['dilation_rate'] = 1
@@ -557,9 +559,6 @@ class ModelSet:
         else:
             return create_and_compile_model(inputs, out, config)
 
-
-
-
     def model_body_identification_hybrid(self, config):
         '''
         Model is build after Philip Wolfs (ISS master student) model
@@ -568,7 +567,6 @@ class ModelSet:
         inputs = Input(shape=config['patch_size'], name='input_layer')
         n_base_filter = 32
         reshaped = Reshape([config['patch_size'][1], config['patch_size'][2], 1])(inputs)
-
 
         in_pos = Input(shape=(3,), name='input_position')
         # Some convolutional layers
@@ -624,7 +622,8 @@ class ModelSet:
         # Here additional flattening layer to get right dimensionsionality
         flattening_1 = Flatten()(dense_2)
         dense_3 = Dense(config['body_identification_n_classes'], activation='relu')(flattening_1)
-        landmark_class_probability = Dense(config['body_identification_n_classes'], activation='softmax', name='class')(dense_3)
+        landmark_class_probability = Dense(config['body_identification_n_classes'], activation='softmax', name='class')(
+            dense_3)
         direct_regression = Dense(1, activation='linear', name='reg')(dense_3)
 
         # Wrap in a Model
@@ -696,8 +695,9 @@ class ModelSet:
 
         # Here additional flattening layer to get right dimensionsionality
         flattening_1 = Flatten()(dense_2)
-        dense_3 = Dense(config['body_identification_n_classes'], activation='relu',name='output_a')(flattening_1)
-        landmark_class_probability = Dense(config['body_identification_n_classes'], activation='softmax',name='output_b')(dense_3)
+        dense_3 = Dense(config['body_identification_n_classes'], activation='relu', name='output_a')(flattening_1)
+        landmark_class_probability = Dense(config['body_identification_n_classes'], activation='softmax',
+                                           name='output_b')(dense_3)
 
         # Wrap in a Model
         if config['feed_pos']:
@@ -705,15 +705,111 @@ class ModelSet:
         else:
             return create_and_compile_model(inputs, landmark_class_probability, config)
 
+    def model_U_Net_melanoma_segmentation(self, config):
+        ## is config the only parameter for the model?
+        '''
+        Model designed for melanom/methastases segmentation in PET/CT Images
+        This model is based on the following paper:
+        'https://arxiv.org/pdf/1706.00120.pdf'
+        as a copy of 3D UNet created by Tobias Hepp
+        '''
+
+        conv_param = config['convolution_parameter']
+        conv_param_dilated = copy.deepcopy(conv_param)
+
+        ## the input tensor of the application is generated
+        inputs = Input(shape=(*config['patch_size'],) + (config['channel_img_num'],), name='inp1')
+
+        x = inputs
+
+        ## we design a 5 levels in the encoder path according to the described paper
+        ## assume that config['filters'] is 32
+
+        f_maps = [config['filters'] * 2 ** i for i in range(config['number_of_fmaps'])]
+
+        ## config['number_of_fmaps'] is assumed to be in config file, it can be added there
+
+        ###-------------------------------------------------------------------------------------------------------
+        ##---------- first convolution before entering the U Net-------------------------------------------------
+
+        ## feature maps to decide
+
+        x = block(f=f_maps[0], k=(5, 5, 1), s=1, order=['c', 'b', 'r'], order_param=None, order_priority=False)(x)
+
+        ##--------------------------------------------------------------------------------------------------------
+        ##-------------------------------------------------------------------------------------------------------
+
+        ###-------------------------------------------------------------------------------------------------------
+        ##---------- U Net in encoder part ------------------------------------------------------------------------
+
+        # for this experiment, we can try with batch normalization
+
+        encoders = []
+
+        for i, out_feature_num in enumerate(f_maps):
+            if i == 0:
+                encoder = encoder_block(out_feature_num, conv_kernel_size=3, apply_pooling=False,
+                                        pool_kernel_size=(2, 2, 2), basic_block=block_ExtResNet,
+                                        conv_layer_order=['c', 'r', 'b'])
+            else:
+                encoder = encoder_block(out_channels=out_feature_num, conv_kernel_size=3,
+                                        apply_pooling=True, pool_kernel_size=(2, 2, 2), pool_type='mp',
+                                        basic_block=block_ExtResNet, conv_layer_order=['c', 'r', 'b'])
+            encoders.append(encoder)
+
+        ##--------------------------------------------------------------------------------------------------------
+        ##-------------------------------------------------------------------------------------------------------
+
+        ###-------------------------------------------------------------------------------------------------------
+        ##---------- U Net in decoder part ------------------------------------------------------------------------
+
+        ##---------------------------decoder part-----------------------------------------------
+        decoders = []
+        reversed_f_maps = list(reversed(f_maps))
+
+        for i in range(len(reversed_f_maps) - 1):
+            decoder = decoder_block(reversed_f_maps[i + 1], kernel_size=3,
+                                    scale_factor=(2, 2, 2), basic_module=block_ExtResNet, pool_type='up',
+                                    conv_layer_order=['dc', 'r', 'b'])
+            decoders.append(decoder)
+
+        ##--------------------------------------------------------------------------------------------------------
+        ##-------------------------------------------------------------------------------------------------------
+
+        # encoder part
+        encoders_features = []
+        for encoder in encoders:
+            x = encoder(x)
+            # reverse the encoder outputs to be aligned with the decoder
+            encoders_features.insert(0, x)
+
+        # remove the last encoder's output from the list
+        # !!remember: it's the 1st in the list
+        encoders_features = encoders_features[1:]
+
+        for decoder, encoder_feature in zip(self.decoders, encoders_features):
+            # pass the output from the corresponding encoder and the output
+            # of the previous decoder
+            x = decoder(x, encoder_feature)
+
+        ## we have another final convolution according to the architecture proposed
+        ##final_conv
+
+        x = block(f=config['number_of_fmaps'], k=(5, 5, 1), s=2,
+                  order_param=None, order_priority=False)(x)
+
+        #if config['feed_pos']:
+        #    return create_and_compile_model([inputs, in_pos], x, config)
+        #else:
+        return create_and_compile_model(inputs, x, config)
+
 
 """
 === end network models
 """
 
 
-
-
-def create_and_compile_model(inputs, outputs, config,premodel=None):
+def create_and_compile_model(inputs, outputs, config, premodel=None):
     """
     create and compile model
     :param inputs: type Tensor: input of the network
@@ -726,10 +822,11 @@ def create_and_compile_model(inputs, outputs, config,premodel=None):
         sum_ = 0
         if 'loss_functions' in config:
             for name_loss_function in config['loss_functions']:
-                loss_func = getattr(loss_function, name_loss_function)(y_true, y_pred,config=config)
+                loss_func = getattr(loss_function, name_loss_function)(y_true, y_pred, config=config)
                 weight = config['loss_functions'][name_loss_function]
                 sum_ = sum_ + weight * loss_func
         return sum_
+
     if premodel is None:
         if config['feed_pos']:
             assert (len(inputs) >= 2)
@@ -738,45 +835,46 @@ def create_and_compile_model(inputs, outputs, config,premodel=None):
         else:
             model = Model(inputs, outputs)
     else:
-        model=premodel
+        model = premodel
 
     if config['multi_gpu']:  model = multi_gpu_model(model, gpus=config['multi_gpu'])
     flatten = lambda x: [y for l in x for y in flatten(l)] if type(x) is list else [x]
 
     if premodel is None:
-        if isinstance(outputs,list):
-            custom_metrics=[]
+        if isinstance(outputs, list):
+            custom_metrics = []
             for output in outputs:
                 custom_metric = flatten(
                     [get_custom_metrics(output.shape[-1], m, config) for m in config['custom_metrics']])
                 custom_metrics.append(custom_metric)
-            custom_metrics=flatten(custom_metrics)
+            custom_metrics = flatten(custom_metrics)
         else:
-            custom_metrics = flatten([get_custom_metrics(outputs.shape[-1], m, config) for m in config['custom_metrics']])
+            custom_metrics = flatten(
+                [get_custom_metrics(outputs.shape[-1], m, config) for m in config['custom_metrics']])
 
     else:
-        custom_metrics = flatten([get_custom_metrics(outputs.output_shape[-1], m, config) for m in config['custom_metrics']])
+        custom_metrics = flatten(
+            [get_custom_metrics(outputs.output_shape[-1], m, config) for m in config['custom_metrics']])
     list_metric_name = config['tensorflow_metrics'] + [m.__name__ for m in custom_metrics]
     optimizer_func = convert_tf_optimizer(config)
 
     if custom_metrics is None:
-        custom_metrics_list=config['tensorflow_metrics']
+        custom_metrics_list = config['tensorflow_metrics']
     else:
-        custom_metrics_list = config['tensorflow_metrics']+ custom_metrics
+        custom_metrics_list = config['tensorflow_metrics'] + custom_metrics
 
     if config['use_multiple_loss_function']:
         #  Multiple network output
-        loss_func_dict= config['multiple_loss_function']
+        loss_func_dict = config['multiple_loss_function']
         for key in loss_func_dict.keys():
-            if loss_func_dict[key]=='loss_function':
-                loss_func_dict[key]=loss_func
+            if loss_func_dict[key] == 'loss_function':
+                loss_func_dict[key] = loss_func
     else:
         #  Single network output
-        loss_func_dict=loss_func
+        loss_func_dict = loss_func
 
     model.compile(loss=loss_func_dict,
                   optimizer=optimizer_func,
                   metrics=custom_metrics_list)
-
 
     return model, list_metric_name

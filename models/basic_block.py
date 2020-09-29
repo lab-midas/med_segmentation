@@ -88,7 +88,7 @@ def block(f=64, k=3, s=2, order=None, order_param=None, order_priority=False):
             elif item == 's':
                 x = Softmax()(x)
             elif item == 't':
-                x=tanh()(x)
+                x = tanh()(x)
 
             # Pooling#
             elif item == 'ap': # average pooling
@@ -97,7 +97,7 @@ def block(f=64, k=3, s=2, order=None, order_param=None, order_priority=False):
                     # :param item_param: dict, parameter for configuring average pooling
                     ps, st, p, df = item_param['pool_size'], item_param['strides'], item_param[
                         'padding'], item_param['data_format']
-                x = AveragePooling3D(ps, st, p, df)(x) if len(x.shape) == 5 else AveragePooling2D(ps, st, p, df)(x)
+                    x = AveragePooling3D(ps, st, p, df)(x) if len(x.shape) == 5 else AveragePooling2D(ps, st, p, df)(x)
 
             elif item == 'mp': # max pooling
                 ps, st, p, df = (2,) * (len(x.shape) - 2), None, 'valid', None

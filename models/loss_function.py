@@ -36,15 +36,16 @@ def dice_loss(y_true, y_pred,config):
     smooth = K.epsilon()
     sum_loss,weight_sum=0,0
     for class_index in range(config['channel_label_num']):
-        y_t=y_true[...,class_index]
-        y_p=y_pred[...,class_index]
+        y_t = y_true[..., class_index]
+        y_p = y_pred[..., class_index]
         intersection = K.sum(K.abs(y_t * y_p), axis=-1)
         loss =1 - (2. * intersection + smooth) / (K.sum(K.square(y_t), -1) + K.sum(K.square(y_p), -1) + smooth)
         sum_loss+=loss*config['loss_channel_weight'][class_index]
         weight_sum+=config['loss_channel_weight'][class_index]
     return sum_loss/(weight_sum+smooth)
 
-def dice_coefficient_loss(y_true, y_pred,config, smooth=K.epsilon(), axis=None):
+
+def dice_coefficient_loss(y_true, y_pred, config, smooth=K.epsilon(), axis=None):
     """ Dice coefficient along specific axis (same as  1+dice_loss() if axis=None)
             y_true: true targets tensor.
             y_pred: predictions tensor.
@@ -53,6 +54,7 @@ def dice_coefficient_loss(y_true, y_pred,config, smooth=K.epsilon(), axis=None):
     """
     intersection = K.sum(K.abs(y_true * y_pred), axis=axis)
     return -(2. * intersection + smooth) / (K.sum(K.abs(y_true), axis=axis) + K.sum(K.abs(y_pred), axis=axis) + smooth)
+
 
 def dice_loss_v2(y_true, y_pred,config):
     smooth = 1E-16
