@@ -798,6 +798,10 @@ class ModelSet:
         x = block(f=config['number_of_fmaps'], k=(5, 5, 1), s=2,
                   order_param=None, order_priority=False)(x)
 
+        ## here should be the softmax activation function
+
+        x = block(order=['s'])
+
         #if config['feed_pos']:
         #    return create_and_compile_model([inputs, in_pos], x, config)
         #else:
