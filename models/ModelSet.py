@@ -705,7 +705,7 @@ class ModelSet:
         else:
             return create_and_compile_model(inputs, landmark_class_probability, config)
 
-    def model_U_Net_melanoma_segmentation(self, config):
+    def model_U_net_melanoma(self, config):
         ## is config the only parameter for the model?
         '''
         Model designed for melanom/methastases segmentation in PET/CT Images
