@@ -40,6 +40,6 @@ call_model = getattr(Premodel_Set, name_model_1)
 model_1, _ = call_model(self=Premodel_Set, config=config)
 model_1.summary()
 # Loading untrained model from scratch as done in train.py
-call_model = getattr(ModelSet, config['model'])
+call_model = getattr(ModelSet, name_model_2)
 model_2, _ = call_model(self=ModelSet, config=config)
 model_2.summary()
