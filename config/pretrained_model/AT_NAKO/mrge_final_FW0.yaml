@@ -3,8 +3,9 @@
 
 # Name of the data
 # Choose the data for the whole project.
-dataset : [NAKO_AT] # either known database [NAKO_AT,DIXON,TULIP1_5T,TULIP3T,NAKO,KORA]
-    #(i.e. converting and loading as TFRecords) or leave empty (only test/prediction) -> direct loading from Nifty, information specified in PREDICTION
+# either known database [NAKO_AT,DIXON,TULIP1_5T,TULIP3T,NAKO,KORA]
+#(i.e. converting and loading as TFRecords) or leave empty (only test/prediction) -> direct loading from Nifty, information specified in PREDICTION
+dataset: [NAKO] 
 project: NORA  # project name
 exp_name: exp0  # experiment name (used for storage)
 
@@ -34,8 +35,8 @@ rootdir_raw_data_label:
     DIXON: /mnt/data/rawdata/mMR_DIXON
     TULIP1_5T: /mnt/data/rawdata/TULIP_PLIS/1_5T
     TULIP3T: /mnt/data/rawdata/TULIP_PLIS/3T
-   NAKO: /mnt/data/projects/Segmentation/NAKO_labels
-    KORA:  /mnt/data/rawdata/KORA
+    NAKO: /mnt/data/projects/Segmentation/NAKO_labels
+    KORA: /mnt/data/rawdata/KORA
 # root directory of saving tfrecord files
 rootdir_tfrec:
     NAKO_AT: ../data/tfrecords/NAKO_AT
