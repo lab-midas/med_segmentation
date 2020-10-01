@@ -14,7 +14,7 @@ weights = '/' + os.path.join('mnt','data', 'projects', 'Segmentation',
 config = {
     'convolution_parameter': {'padding': 'same',
                               'num_parallel_calls': 1,
-                              'kernel_regularizer': ['l2', 0.01],
+                              'kernel_regularizer': 'l2',
                               'dilation_rate': 1,
                               'kernel_initializer': 'he_normal'},
     'filters': 8,
