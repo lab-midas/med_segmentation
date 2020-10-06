@@ -135,8 +135,8 @@ def plot_mosaic(config, mask, slice_dim=2, colormap=None, vspace=2, hspace=2, co
     else:
         h, w, slices = mask_shape[1], mask_shape[2], mask_shape[0]
 
-    if rotate_k==1 or rotate_k==3 or rotate_k==-1 or rotate_k==-3:
-        h,w=w,h
+    if rotate_k == 1 or rotate_k == 3 or rotate_k == -1 or rotate_k == -3:
+        h, w = w, h
 
     num_category = len(np.unique(mask))
     colormap = color_set(num_categories=num_category, costum_colormap=colormap)
