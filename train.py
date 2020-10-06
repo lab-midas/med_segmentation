@@ -159,8 +159,7 @@ def train_config_setting(config, dataset):
     # Get the amount of input and output channel
     # config[channel_img]: channel amount of model input, config[channel_label]: channel amount of model output
     config['channel_img_num'], config['channel_label_num'] = config['max_shape']['image'][-1], \
-                                                             config['max_shape']['label'][
-                                                                 -1]
+                                                             config['max_shape']['label'][-1]
     if config['input_channel'][dataset] is not None:
         config['channel_img_num'] = len(config['input_channel'][dataset])
 

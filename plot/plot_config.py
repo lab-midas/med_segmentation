@@ -20,7 +20,7 @@ def plot_figures_single(config, dict_data, dataset='0', name_ID='0', client_save
     elif isinstance(config['plot_figure'], str):
         config['plot_figure'] = [config['plot_figure']]
 
-    for figure_name in config['plot_figure']: # figure_name can be plot_mosaic, plot_by_slice,plot_area_ratio
+    for figure_name in config['plot_figure']:  # figure_name can be plot_mosaic, plot_by_slice,plot_area_ratio
 
         img_data = dict_data['original_image']
         if figure_name == 'plot_mosaic':
@@ -50,7 +50,6 @@ def plot_figures_single(config, dict_data, dataset='0', name_ID='0', client_save
                 config['plot_by_slice']['origin_image'] = img_data[..., config['display_origin_image_channel']]
             config['plot_by_slice']['dataset'] = dataset
             config['plot_by_slice']['name_ID'] = name_ID
-
 
             input_img_list = [dict_data[select_img] for select_img in config['select_image']['plot_by_slice']]
 

@@ -203,9 +203,8 @@ def channel_config(config, dataset, evaluate=False):
             config['max_shape'] = pickle.load(fp)
 
         # Read num of channels of images and labels from the file 'max_shape.pickle'.
-        config['channel_img_num'], config['channel_label_num'] = config['max_shape']['image'][-1], \
-                                                                 config['max_shape']['label'][
-                                                                     -1]
+        config['channel_img_num'], config['channel_label_num'] = config['max_shape']['image'][-1],\
+                                                                 config['max_shape']['label'][-1]
 
     # Get the total num of input and output channel of the model
     if config['input_channel'][dataset] is not None:
@@ -364,7 +363,7 @@ def convert_result(config, predict_img, label_data_onehot=None, predict_class_nu
         predict_img_onehot = convert_integers_to_onehot(predict_img_integers, num_classes=predict_class_num)
 
     # add background on label
-    channel_label_num=config['channel_label_num']
+    channel_label_num = config['channel_label_num']
     if label_data_onehot is not None:
         if config['label_add_background_output']:
             label_data_integers = convert_onehot_to_integers_add_bg(label_data_onehot)

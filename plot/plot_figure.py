@@ -105,25 +105,25 @@ def color_set(num_categories, costum_colormap=None, random_colormap=False, costu
 
 
 def plot_mosaic(config, mask, slice_dim=2, colormap=None, vspace=2, hspace=2, col=5, rotate_k=None, flip_axis=None,
-                origin_image=None, alpha_origin=0.3, dataset='0', name_ID='0',client_save_rootdir=None,image_type='predict'):
-    """
- Plot the result of 3D category map or 3D grey image, layout in mosaic style.
-    :param config: type dict: config parameter
-    :param mask:  type ndarray: the 3D label or the predict data (category map, not one-hot).
+                origin_image=None, alpha_origin=0.3, dataset='0', name_ID='0',
+                client_save_rootdir=None, image_type='predict'):
+    """ Plot the result of 3D category map or 3D grey image, layout in mosaic style.
+        :param config: type dict: config parameter
+        :param mask:  type ndarray: the 3D label or the predict data (category map, not one-hot).
 
-    :param slice_dim: type int: dimension index of slicing.
-            For 3D, 0 for Sagittal plain, 1 for Coronal plane, 2 for Axial plane.
+        :param slice_dim: type int: dimension index of slicing.
+                For 3D, 0 for Sagittal plain, 1 for Coronal plane, 2 for Axial plane.
 
-    :param colormap: type list of list of 3 floats: color value of each category from :param: mask
-    :param vspace: type int, vertical interval between each mosaic sub-figure. vspace=0 if no space between them.
-    :param hspace: type int, horizontal interval between each mosaic sub-figure. vspace=0 if no space between them.
-    :param col: type int: the column of mosaic figure
-    :param origin_image: type ndarray: original 3D image (input image) with specified channel
-    :param alpha_origin:   type float in [0,1]: transparency of :param: origin_image
-    :param dataset: type str: name of the dataset
-    :param name_ID: type str: name ID of the plotted image
-    :return:
+        :param colormap: type list of list of 3 floats: color value of each category from :param: mask
+        :param vspace: type int, vertical interval between each mosaic sub-figure. vspace=0 if no space between them.
+        :param hspace: type int, horizontal interval between each mosaic sub-figure. vspace=0 if no space between them.
+        :param col: type int: the column of mosaic figure
+        :param origin_image: type ndarray: original 3D image (input image) with specified channel
+        :param alpha_origin:   type float in [0,1]: transparency of :param: origin_image
+        :param dataset: type str: name of the dataset
+        :param name_ID: type str: name ID of the plotted image
 
+        :return:
     """
     # Define variable h(height), w(width), and slices
     mask_shape = mask.shape[:3]
@@ -185,10 +185,13 @@ def plot_mosaic(config, mask, slice_dim=2, colormap=None, vspace=2, hspace=2, co
 
     dir_figures = config['result_rootdir'] + '/' + config['model'] + '/figures/plot_mosaic/' + dataset + '/' + name_ID
     if client_save_rootdir is not None:
-        dir_figures=client_save_rootdir+'/'+dir_figures
+        dir_figures = client_save_rootdir + '/' + dir_figures
     if not os.path.exists(dir_figures): os.makedirs(dir_figures)
-    path_figures = dir_figures + '/mosaic_'+image_type+'_' + config[
-        'model'] + '_' + dataset + '_' + name_ID + '_' + 'slice_dim_' + str(slice_dim) + '.png'
+    path_figures = dir_figures + '/' + '_'.join(['mosaic', image_type, config['model'],
+                                                 dataset
+                                                 name_ID,
+                                                 'slice_dim',
+                                                 str(slice_dim)]) + '.png'
     figure.save(path_figures)
 
 
@@ -353,8 +356,6 @@ def plot_area_ratio(config, list_images_series, slice_dim=2, merge_channel_plot=
             path_figures = path_dir + '/area_ratio_merged_plot_channel_' + str(ch) + '.png'
             plt.savefig(path_figures)
             plt.close(ch)
-
-
 
 
 def plot_combine(image, heatmap, alpha=0.4, display=False, save_path=None,  verbose=False,
