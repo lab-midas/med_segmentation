@@ -12,15 +12,15 @@ from plot.plot_config import plot_figures_single
 os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 gpus = tf.config.experimental.list_physical_devices('GPU')
 if gpus:
-  try:
-    # Currently, memory growth needs to be the same across GPUs
-    for gpu in gpus:
-      tf.config.experimental.set_memory_growth(gpu, True)
-    logical_gpus = tf.config.experimental.list_logical_devices('GPU')
-    print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
-  except RuntimeError as e:
-    # Memory growth must be set before GPUs have been initialized
-    print(e)
+    try:
+        # Currently, memory growth needs to be the same across GPUs
+        for gpu in gpus:
+        tf.config.experimental.set_memory_growth(gpu, True)
+        logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+        print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+    except RuntimeError as e:
+        # Memory growth must be set before GPUs have been initialized
+        print(e)
 
 name_model_1 = 'premodel_MRGE'
 weights = '/' + os.path.join('mnt','data', 'projects', 'Segmentation',
@@ -107,5 +107,4 @@ for patient in os.listdir(path_input_data):
                  'label_onehot': None,
                  'original_image': img_combined,
                  'without_mask': np.zeros(predict_img_integers.shape)}
-    plot_figures_single(config, dict_data, name_ID=patient)
-
+    plot_figures_single(config, dict_data, name_id=patient)
