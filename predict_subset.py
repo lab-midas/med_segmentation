@@ -55,6 +55,19 @@ config = {
     'plot_figure': ['plot_mosaic', 'plot_area_ratio'],
     'result_root_dir': '/mnt/share/rahauei1/NAKO_300_NIFTI/Results',
     'model': 'pretrained_thomas_fw',
+    'colormap': [[0, 0, 0.1], [0, 0.2, 0.8], [0, 1, 0.5], [0.8, 0.8, 0.8], [0.2, 0.1, 0.8], [0.8, 0.2, 0.1]],
+    'display_origin_image_channel': 0,
+    'plot_mosaic': {'slice_dim': 0,
+                    'vspace': 2,
+                    'hspace': 2,
+                    'col': 5,
+                    'alpha_origin': 0.6},
+    'plot_area_ratio': {'slice_dim': 0,
+                        'merge_channel_plot': False,
+                        'plot_label_series': ['predict', 'label'],
+                        'fig_size': [20, 40]},
+    'select_image': {'plot_mosaic': ['predict_integers', 'label_integers'],
+                     'plot_area_ratio': ['predict', 'label']},
 
     }
 
