@@ -2,7 +2,7 @@ from .plot_figure import *
 import numpy as np
 
 
-def plot_figures_single(config, dict_data, dataset='0', name_ID='0', client_save_rootdir=None):
+def plot_figures_single(config, dict_data, dataset='0', name_id='0', client_save_rootdir=None):
     """
     Plot figure configuration of a single patient.
     :param config: type dict: config parameter
@@ -19,9 +19,7 @@ def plot_figures_single(config, dict_data, dataset='0', name_ID='0', client_save
     # config 'plot figure', str->list
     elif isinstance(config['plot_figure'], str):
         config['plot_figure'] = [config['plot_figure']]
-
-    for figure_name in config['plot_figure']:  # figure_name can be plot_mosaic, plot_by_slice,plot_area_ratio
-
+    for figure_name in config['plot_figure']:  # figure_name can be plot_mosaic, plot_by_slice, plot_area_ratio
         img_data = dict_data['original_image']
         if figure_name == 'plot_mosaic':
             # mosaic plot settings
@@ -31,9 +29,9 @@ def plot_figures_single(config, dict_data, dataset='0', name_ID='0', client_save
                 config['plot_mosaic']['origin_image'] = img_data[..., config['display_origin_image_channel']]
 
             config['plot_mosaic']['dataset'] = dataset
-            config['plot_mosaic']['name_ID'] = name_ID
+            config['plot_mosaic']['name_ID'] = name_id
 
-            if isinstance(config['select_image']['plot_mosaic'],str):
+            if isinstance(config['select_image']['plot_mosaic'], str):
                 plot_mosaic(config, dict_data[config['select_image']['plot_mosaic']],
                             image_type=config['select_image']['plot_mosaic'],
                             client_save_rootdir=client_save_rootdir, **config['plot_mosaic'])
@@ -42,33 +40,31 @@ def plot_figures_single(config, dict_data, dataset='0', name_ID='0', client_save
                     plot_mosaic(config, dict_data[name],
                                 image_type=name,
                                 client_save_rootdir=client_save_rootdir, **config['plot_mosaic'])
-
         elif figure_name == 'plot_by_slice':
             if config['colormap'] is not None:
                 config['plot_by_slice']['colormap'] = (np.array(config['colormap']) * 255).astype('int32')
             if config['display_origin_image_channel'] is not None:
                 config['plot_by_slice']['origin_image'] = img_data[..., config['display_origin_image_channel']]
             config['plot_by_slice']['dataset'] = dataset
-            config['plot_by_slice']['name_ID'] = name_ID
+            config['plot_by_slice']['name_ID'] = name_id
 
             input_img_list = [dict_data[select_img] for select_img in config['select_image']['plot_by_slice']]
 
             for img in input_img_list:
                 if None is img:
-                    raise ValueError('Nonetype can not be appeared in input_img_list! ')
+                    raise ValueError('NoneType can not be appeared in input_img_list! ')
             if not isinstance(config['plot_by_slice']['slice_'], int):  # a list of slices
                 slices = config['plot_by_slice']['slice_']
-                for slice in slices:
-                    config['plot_by_slice']['slice_'] = slice
+                for slc in slices:
+                    config['plot_by_slice']['slice_'] = slc
                     plot_by_slice(config, input_img_list, client_save_rootdir=client_save_rootdir,
-                                          **config['plot_by_slice'])
+                                  **config['plot_by_slice'])
             else:
                 plot_by_slice(config, input_img_list, client_save_rootdir=client_save_rootdir,
-                                  **config['plot_by_slice'])
+                              **config['plot_by_slice'])
         else:
             # add figure config here if more figure methods are added.
             pass
-    return
 
 
 def plot_figures_dataset(config, dict_data, dataset='0', client_save_rootdir=None):
@@ -95,10 +91,10 @@ def plot_figures_dataset(config, dict_data, dataset='0', client_save_rootdir=Non
             #  in the config.yaml)
             for img in input_img_list:
                 if isinstance( img , list):
-                    for  im in img:
+                    for im in img:
                         if im is None:
                             raise ValueError('Nonetype can not be appeared in input_img_list! ')
-                if img==None:
+                if img == None:
                     raise ValueError('Nonetype can not be appeared in input_img_list! ')
             config['plot_area_ratio']['dataset'] = dataset
 

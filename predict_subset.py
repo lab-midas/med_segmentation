@@ -66,8 +66,8 @@ config = {
                         'merge_channel_plot': False,
                         'plot_label_series': ['predict', 'label'],
                         'fig_size': [20, 40]},
-    'select_image': {'plot_mosaic': ['predict_integers', 'label_integers'],
-                     'plot_area_ratio': ['predict', 'label']},
+    'select_image': {'plot_mosaic': 'predict_integers',
+                     'plot_area_ratio': 'predict'},
 
     }
 
