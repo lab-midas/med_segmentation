@@ -53,7 +53,7 @@ config = {
     'multiple_loss_function': {'class': 'loss_function',
                                'reg': 'binary_crossentropy'},
     'plot_figure': ['plot_mosaic', 'plot_area_ratio'],
-    'result_root_dir': '/mnt/share/rahauei1/NAKO_300_NIFTI/Results',
+    'result_rootdir': '/mnt/share/rahauei1/NAKO_300_NIFTI/Results',
     'model': 'pretrained_thomas_fw',
     'colormap': [[0, 0, 0.1], [0, 0.2, 0.8], [0, 1, 0.5], [0.8, 0.8, 0.8], [0.2, 0.1, 0.8], [0.8, 0.2, 0.1]],
     'display_origin_image_channel': 0,
