@@ -6,6 +6,8 @@ import nibabel as nib
 
 from models.Premodel_Set import Premodel_Set
 from med_io.get_pad_and_patch import get_predict_patches_index, unpatch_predict_image
+from util import convert_integers_to_onehot, convert_onehot_to_integers
+from plot.plot_config import plot_figures_single
 
 os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 gpus = tf.config.experimental.list_physical_devices('GPU')
@@ -50,6 +52,10 @@ config = {
     'use_multiple_loss_function': False,
     'multiple_loss_function': {'class': 'loss_function',
                                'reg': 'binary_crossentropy'},
+    'plot_figure': ['plot_mosaic', 'plot_area_ratio'],
+    'result_root_dir': '/mnt/share/rahauei1/NAKO_300_NIFTI/Results',
+    'model': 'pretrained_thomas_fw',
+
     }
 
 # Loading pretrained model from file as done in train.py
@@ -75,6 +81,16 @@ for patient in os.listdir(path_input_data):
     prediction_patched = model_1.predict(x=(img_patched, index_list_scaled), batch_size=1, verbose=1)
     # Unpatch prediction result
     prediction = unpatch_predict_image(prediction_patched, index_list, config['patch_size'], threshold=0.01)
-    # Convert result?
-
+    # Convert result as done in predict.py
+    # TODO: What happens here - I do not get it
+    predict_img_integers = convert_onehot_to_integers(prediction)
+    predict_img_one_hot = convert_integers_to_onehot(predict_img_integers, num_classes=prediction.shape[-1])
+    # Plotting as done in predict.py
+    dict_data = {'predict_integers': predict_img_integers,
+                 'predict_onehot': predict_img_one_hot,
+                 'label_integers': None,
+                 'label_onehot': None,
+                 'original_image': img_combined,
+                 'without_mask': np.zeros(predict_img_integers.shape)}
+    plot_figures_single(config, dict_data, name_ID=patient)
 
