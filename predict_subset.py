@@ -90,7 +90,9 @@ for patient in os.listdir(path_input_data):
     img_combined = np.stack((img_fat, img_water), axis=-1)
     # Patch image tensor for prediction
     img_patched, index_list = get_predict_patches_index(img_combined, config['patch_size'], overlap_rate=0.0)
+    img_patched = np.array(img_patched)
     index_list_scaled = index_list / np.array([320, 260, 316])[..., 0]
+    print(img_patched.shape, len(index_list_scaled))
     prediction_patched = model_1.predict(x=(img_patched, index_list_scaled), batch_size=1, verbose=1)
     # Unpatch prediction result
     prediction = unpatch_predict_image(prediction_patched, index_list, config['patch_size'], threshold=0.01)
