@@ -18,7 +18,7 @@ labels_already_processed = ['_'.join(i.split('_')[1:3]) for i in os.listdir(path
 for subject in os.listdir(root_mat_files):
     if subject == '103828_30':
         continue
-    elif [subject for i in labels_already_processed if subject == i] is not None:
+    elif [subject for i in labels_already_processed if subject == i] is None:
         continue
     else:
         mat_content = loadmat(os.path.join(root_mat_files, subject, mat_file_name))
