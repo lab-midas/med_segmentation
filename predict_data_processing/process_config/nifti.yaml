@@ -1,6 +1,6 @@
 new_orientation: [P,L,S] # list of 3 characters, choose from ['L', 'R', 'P', 'A', 'I', 'S', None]
-rescale: 2  # postive int. rescale the image to [0, :param rescale]
-scale: # postive int. rescale the image to [0, old max value]*scale
+rescale: 2  # positive int. rescale the image to [0, :param rescale]
+scale: # positive int. rescale the image to [0, old max value]*scale
 
 dict_name_path: # dict : 'name'/'identifier', paths of nii file. The value is a list of str if each channel is saved in a single nii file, the value is path str if all channels are saved in one nii file
   '100104_30': ['\nifti\NIFTI\100104_30\3D_GRE_TRA_W_COMPOSED\fat\49_3d_gre_tra_w_composed_-39.nii',

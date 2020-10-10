@@ -233,7 +233,7 @@ train_steps_per_epoch: 40 #  steps per one training epoch
 val_steps_per_epoch: 3  # validation steps per epoch
 evaluate_step: 20  # evaluation steps per epoch
 save_training_model_period: 3 #  epoch for saving the model
-validation_freq: 1 # num epoch for one valiation process
+validation_freq: 1 # num epoch for one validation process
 
 # Verbose
 evaluate_verbose_mode: 1
@@ -259,7 +259,7 @@ loss_functions: # loss function of the network, must be chosen from models/loss_
 
     #dice_coefficient_loss: 0
     #sigmoid_focal_crossentropy: 0
-use_multiple_loss_function: False #  True if use multiple_loss_fuction for multiple network outputs, else loss_functions is applied on single output note.
+use_multiple_loss_function: False #  True if use multiple_loss_function for multiple network outputs, else loss_functions is applied on single output note.
 multiple_loss_function:
     # name of notes of neural network outputs, If  key loss_functions is applied on this note, write "loss_functions"
     # Example of network model_body_identification_hybrid
@@ -295,7 +295,7 @@ predict_data_dir_img: ./nifti/NIFTI # path of prediction image,  # paths of nift
 predict_load_label: False  # load label if predict data is available
 predict_data_dir_label: # path of prediction label
 path_yaml_file: # Path of additional yaml file
-    predict_nifti: ./medseg/predict_data_processing/process_config/nifti.yaml # Path of prediction nifti yaml file, which more info of nifti can be set (path, orientation etc.)
+    predict_nifti: ./predict_data_processing/process_config/nifti.yaml # Path of prediction nifti yaml file, which more info of nifti can be set (path, orientation etc.)
                                                                                            # path of pre-trained model for prediction is in item saved_premodels_path.
 
 
