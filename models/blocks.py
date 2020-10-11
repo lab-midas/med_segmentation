@@ -199,7 +199,7 @@ def res_block(filters, conv_param, scale=0.1):
 ##  https://arxiv.org/pdf/1706.00120.pdf
 
 
-def block_ExtResNet(out_channels, kernel_size=3, order=['c', 'r', 'b']):
+def block_ExtResNet(out_channels, kernel_size=3, order=['c', 'r', 'b'], name=None):
     def block_ExtResNet(x):
 
         ## we start at creating 2 and the second output is used as residual connection
@@ -232,7 +232,7 @@ def block_ExtResNet(out_channels, kernel_size=3, order=['c', 'r', 'b']):
                 n_order_act.remove(c)
 
         x = block(f=out_channels, k=kernel_size, s=2, order=n_order_act,
-                  order_param=None, order_priority=False)(res_connection)
+                  order_param=None, order_priority=False, name=name)(res_connection)
         return x
 
     return block_ExtResNet
@@ -240,7 +240,7 @@ def block_ExtResNet(out_channels, kernel_size=3, order=['c', 'r', 'b']):
 
 def encoder_block(out_channels, conv_kernel_size=3, apply_pooling=True,
                   pool_kernel_size=(2, 2, 2), pool_type='mp', basic_block=block_ExtResNet,
-                  conv_layer_order=['c', 'r', 'b']):
+                  conv_layer_order=['c', 'r', 'b'], name=None):
     def encoder_block(x):
 
         ## here is missing the pool_kernel_size
@@ -252,7 +252,7 @@ def encoder_block(out_channels, conv_kernel_size=3, apply_pooling=True,
                 x = block(order=pool_type)(x)
 
         x = basic_block(out_channels, kernel_size=conv_kernel_size,
-                        order=conv_layer_order)(x)
+                        order=conv_layer_order, name=name)(x)
 
         return x
 
@@ -265,7 +265,7 @@ def decoder_block(out_channels, kernel_size=3,
 
     def decoder_block(x, encoder_feature):
         ##x = Conv3DTranspose(out_channels, kernel_size=kernel_size, strides=scale_factor, padding='same')(x)
-        x = block(order=pool_type)(x)
+        #x = block(order=pool_type)(x)
         x = tf.concat([x, encoder_feature], axis=-1)
         x = basic_module(out_channels, kernel_size=kernel_size, order=conv_layer_order)(x)
 

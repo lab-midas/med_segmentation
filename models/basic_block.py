@@ -5,7 +5,7 @@ from tensorflow.keras.activations import tanh
 """basic network building blocks"""
 
 
-def block(f=64, k=3, s=2, order=None, order_param=None, order_priority=False):
+def block(f=64, k=3, s=2, order=None, order_param=None, order_priority=False, **kwargs):
 
     """
     A block with one or more sequence layers.
@@ -22,6 +22,7 @@ def block(f=64, k=3, s=2, order=None, order_param=None, order_priority=False):
     :param order_param: type dict of dict: Parameter of :param order
     :param order_priority : type bool: True if bypassing  :param f, :param k, and :param s  , which are already
                                         determined by convolution parameter in :param  order_param
+    **kwargs: supported parameters: name
     :return: func: Model function
     """
     if order_param is None:
@@ -29,6 +30,19 @@ def block(f=64, k=3, s=2, order=None, order_param=None, order_priority=False):
     if order is None:
         order = ['c', 'r', 'b']
     assert (len(order) == len(order_param))
+
+    name = None
+    dropout = None
+
+    for key in kwargs.keys():
+
+        if key == 'name':
+            name = kwargs[key]
+
+        if key == 'dropout':
+            order.append('d')
+            dropout_rate = kwargs[key]
+
 
     def func(x):
         """
@@ -110,6 +124,43 @@ def block(f=64, k=3, s=2, order=None, order_param=None, order_priority=False):
             elif item == 'up': # up sampling
                 x = UpSampling3D()(x) if len(x.shape) == 5 else UpSampling2D()(x)
 
+            elif item == 'd': # dropout
+                x = Dropout(dropout_rate)(x)
+
         return x
 
     return func
+
+## basic block for fully connected NN
+
+def block_FCN(hidden_layers=2, neurons_layer=[50, 100], activation=['r'], classification=True, classes=None):
+
+    assert hidden_layers!=len(neurons_layer), "Number of hidden neurons per layer should be equal to number" \
+                                              "of hidden layers"
+
+    def func(x):
+
+        if classification: ##if the network is used for classification
+
+            ## observe the one hot encoding for the different classes
+            for layer in range(hidden_layers):
+
+                x = Dense(neurons_layer[layer], input_shape=(x.shape()), activation=activation)(x)
+
+            ## now it is time to apply either softmax for multiclass
+
+            x = Dense(classes, input_shape=(x.shape()), activation='softmax')(x)
+
+            return x
+
+        else: ## for regression
+
+            ## observe the one hot encoding for the different classes
+            for layer in range(hidden_layers):
+                x = Dense(neurons_layer[layer], input_shape=(x.shape()), activation=activation)(x)
+
+            ## now it is time to apply either softmax for multiclass
+
+            x = Dense(1, input_shape=(x.shape()), activation=activation)(x)
+
+            return x

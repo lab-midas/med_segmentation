@@ -13,3 +13,4 @@ tensorflow
 SimpleITK
 nibabel
 opencv-python
+h5py

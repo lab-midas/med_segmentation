@@ -723,11 +723,12 @@ class ModelSet:
         x = inputs
 
         ## we design a 5 levels in the encoder path according to the described paper
-        ## assume that config['filters'] is 32
+        ## assume that config['filters_melanoma'] is 32 according to paper
 
-        f_maps = [config['filters'] * 2 ** i for i in range(config['number_of_fmaps'])]
+        f_maps = [config['filters_melanoma'] * 2 ** i for i in range(config['number_of_levels'])]
 
-        ## config['number_of_fmaps'] is assumed to be in config file, it can be added there
+        ## config['filters_melanoma'] is assumed to be in config file, it can be added there
+        ## config['number_of_levels'] are assumed to be in config file, it can be added there
 
         ###-------------------------------------------------------------------------------------------------------
         ##---------- first convolution before entering the U Net-------------------------------------------------
@@ -745,16 +746,27 @@ class ModelSet:
         # for this experiment, we can try with batch normalization
 
         encoders = []
+        list_f_maps = enumerate(f_maps)
 
-        for i, out_feature_num in enumerate(f_maps):
+        for i, out_feature_num in list_f_maps:
             if i == 0:
                 encoder = encoder_block(out_feature_num, conv_kernel_size=3, apply_pooling=False,
                                         pool_kernel_size=(2, 2, 2), basic_block=block_ExtResNet,
                                         conv_layer_order=['c', 'r', 'b'])
+
+            elif i == list(list_f_maps)[-1][0]: ## last layer in encoder / bottleneck
+
+                encoder = encoder_block(out_feature_num, conv_kernel_size=3, apply_pooling=False,
+                                        pool_kernel_size=(2, 2, 2), basic_block=block_ExtResNet,
+                                        conv_layer_order=['c', 'r', 'b'], name='bottleneck')
+
+                #write_latent_space(encoder.get_layer.output)
+
             else:
-                encoder = encoder_block(out_channels=out_feature_num, conv_kernel_size=3,
-                                        apply_pooling=True, pool_kernel_size=(2, 2, 2), pool_type='mp',
+                encoder = encoder_block(out_feature_num, conv_kernel_size=3, apply_pooling=True,
+                                        pool_kernel_size=(2, 2, 2), pool_type='mp',
                                         basic_block=block_ExtResNet, conv_layer_order=['c', 'r', 'b'])
+
             encoders.append(encoder)
 
         ##--------------------------------------------------------------------------------------------------------
@@ -795,16 +807,61 @@ class ModelSet:
         ## we have another final convolution according to the architecture proposed
         ##final_conv
 
-        x = block(f=config['number_of_fmaps'], k=(5, 5, 1), s=2,
+        x = block(f=config['filters_melanoma'], k=(5, 5, 1), s=2,
                   order_param=None, order_priority=False)(x)
 
         ## here should be the softmax activation function
 
         x = block(order=['s'])
 
-        #if config['feed_pos']:
+        # if config['feed_pos']:
         #    return create_and_compile_model([inputs, in_pos], x, config)
-        #else:
+        # else:
+        return create_and_compile_model(inputs, x, config)
+
+    def overall_survival_prediction(config, model_encoder):
+
+        ## assume that age, weight, sex are in the config file or
+        ## in the Patient class
+
+        ## we have to categorize the input sex
+        ##-----------------------------------------------
+        ##------------------------------------------------
+
+        ## join everything in order to start the fully connected network
+
+        ## x = .........
+        ## need to flatten the latent space in order to join or concatenate for new inputs
+
+        #latent_space_flatten = Flatten(latent_space)
+        inputs = tf.join(latent_space, Patient.height, Patient.weight, categorical(Patient.Sex))
+
+        x = block_FCN(hidden_layers=2, neurons_layer=[50, 100], activation='r',
+                      classification=False, classes=None)(x)
+
+
+        return create_and_compile_model(inputs, x, config)
+
+    def treatment_response(config, model_encoder):
+
+        ## assume that age, weight, sex are in the config file or
+        ## in the Patient class
+
+        ## we have to categorize the input sex
+        ##-----------------------------------------------
+        ##------------------------------------------------
+
+        ## join everything in order to start the fully connected network
+
+        ## x = .........
+        ## need to flatten the latent space in order to join or concatenate for new inputs
+
+        # latent_space_flatten = Flatten(latent_space)
+        inputs = tf.join(latent_space, Patient.height, Patient.weight, categorical(Patient.Sex))
+
+        x = block_FCN(hidden_layers=2, neurons_layer=[50, 100], activation='r',
+                      classification=True, classes=['responder', 'non-responder'])(x)
+
         return create_and_compile_model(inputs, x, config)
 
 
@@ -841,7 +898,8 @@ def create_and_compile_model(inputs, outputs, config, premodel=None):
     else:
         model = premodel
 
-    if config['multi_gpu']:  model = multi_gpu_model(model, gpus=config['multi_gpu'])
+    if config['multi_gpu']: model = multi_gpu_model(model, gpus=config['multi_gpu'])
+
     flatten = lambda x: [y for l in x for y in flatten(l)] if type(x) is list else [x]
 
     if premodel is None:

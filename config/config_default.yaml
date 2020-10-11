@@ -2,10 +2,10 @@
 
 # Name of the data
 # Choose the data for the whole project.
-dataset : [NAKO_AT] # either known database [NAKO_AT,DIXON,TULIP1_5T,TULIP3T,NAKO,KORA]
+dataset : [MELANOM] # either known database [NAKO_AT,DIXON,TULIP1_5T,TULIP3T,NAKO,KORA]
     #(i.e. converting and loading as TFRecords) or leave empty (only test/prediction) -> direct loading from Nifty, information specified in PREDICTION
-project: NORA  # project name
-exp_name: exp0  # experiment name (used for storage)
+project: MELANOM  # project name
+exp_name: exp1  # experiment name (used for storage)
 
 
 # Seed for fixing the random data
@@ -28,6 +28,7 @@ rootdir_raw_data_img:
     TULIP3T: /mnt/data/rawdata/TULIP_PLIS/3T
     NAKO: ../data/NAKO/img
     KORA:  /mnt/data/rawdata/KORA
+    MELANOM: /mnt/data/rawdata/Melanom/Tumorvolume
 
 rootdir_raw_data_label:
     NAKO_AT: /mnt/data/rawdata/NAKO/AT_NAKO/AT_NAKO
@@ -36,6 +37,7 @@ rootdir_raw_data_label:
     TULIP3T: /mnt/data/rawdata/TULIP_PLIS/3T
     NAKO: ../data/NAKO/label
     KORA:  /mnt/data/rawdata/KORA
+    MELANOM: /mnt/data/rawdata/Melanom/Tumorvolume
 
 # root directory of saving tfrecord files
 rootdir_tfrec:
@@ -45,6 +47,8 @@ rootdir_tfrec:
     TULIP3T: ../data/tfrecords/TULIP3T
     NAKO: ../data/tfrecords/NAKO
     KORA:  ../data/tfrecords/KORA
+    MELANOM: ../data/tfrecords/Melanom/Tumorvolume
+
 # root dir of creating and saving tfrecord data
 # filename of pickle files of storing the paths tfrecord data
 filename_tfrec_pickle:
@@ -54,6 +58,7 @@ filename_tfrec_pickle:
     TULIP3T: list_TULIP3T
     NAKO: list_NAKO
     KORA:  list_KORA
+    MELANOM:
 
 # filename of pickle files of storing the paths max shape
 filename_max_shape_pickle:
@@ -63,6 +68,7 @@ filename_max_shape_pickle:
     TULIP3T: TULIP3T_max_shape
     NAKO: NAKO_max_shape
     KORA:  KORA_max_shape
+    MELANOM:
 
 
 # Channel Configuration
@@ -74,6 +80,7 @@ name_input_channel:
     TULIP3T:   [img]
     NAKO:    [DIXF, DIXW, PFP/SAT_1.23, PFP/SAT_2.46]
     KORA:  [F, in, opp, W]
+    MELANOM: [channel, H, W, D]
 
 # Name of the output data channels, i.e. segmentation classes
 name_output_channel:
@@ -83,6 +90,8 @@ name_output_channel:
     TULIP3T:   [P_AT, P_BG, P_LT, P_VAT]
     NAKO:    [kidney_left, kidney_right, liver, pancreas, spleen]
     KORA:  [liver2d, spleen2d]
+    MELANOM: []
+
 channel_img_num:
 channel_label_num:
 # Input and Output channel selection
@@ -99,6 +108,7 @@ input_channel:
     TULIP3T:  [0,1]      # name of the channel : [img]
     NAKO:   [0,1]       # name of the channel:[DIXF, DIXW, PFP/SAT_1.23, PFP/SAT_2.46]
     KORA:   [0,3]     # name of the channel ['_iso_F_', '_iso_in_', '_iso_opp_', '_iso_W_']
+    MELANOM: []
 
 output_channel:
     NAKO_AT:  [0,1,2,3]      # name of the channel: [AT, BG, LT, VAT]
@@ -107,6 +117,7 @@ output_channel:
     TULIP3T: [0]       # name of the channel: [AT, BG, LT, VAT]
     NAKO: [1,2]    # name of the channel: ['kidney_left', 'kidney_right', 'liver', 'pancreas', 'spleen']
     KORA:   [0,1]        # name of the channel: ['liver2d', 'spleen2d']
+    MELANOM: []
 
 # Splitting data
 # Amount of fold of train/val data for each dataset. Leave empty if not use k fold for training of this dataset.
@@ -117,6 +128,7 @@ k_fold:
     TULIP3T:
     NAKO:
     KORA:
+    MELANOM:
 k_fold_merge_model: False
 
 # select a specific subject for testing. A list of integers pointing into the dataset_info/database_pickle dump . Leave empty to use a random splitting into train, val, test
@@ -127,6 +139,7 @@ test_subject:
     TULIP3T:
     NAKO:
     KORA:
+    MELANOM:
 
 #  Database for body_identification
 read_body_identification: True
@@ -364,11 +377,3 @@ plot_area_ratio:
 ##---------------
 ## END OUTPUTS ##
 ##----------------------------------------------------------------------------------------------------------------------
-
-
-
-
-
-
-
-

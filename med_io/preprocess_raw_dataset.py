@@ -8,7 +8,7 @@ from .read_nii import *
 from .write_tf_record import *
 from .read_and_save_datapath import *
 from .read_nrrd_path import *
-
+import h5py
 
 def preprocess_raw_dataset(config):
     """
@@ -101,8 +101,6 @@ def preprocess_raw_dataset(config):
         else:
             pickle_filename = config['dir_dataset_info'] + '/max_shape_' + dataset + '.pickle'
 
-
-
         pickle.dump(dictionary, open(pickle_filename, 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
 
     # if item in config are str, change them to list
@@ -113,7 +111,7 @@ def preprocess_raw_dataset(config):
         config['rootdir_raw_data_label']]
     if isinstance(config['rootdir_tfrec'], str): config['rootdir_tfrec'] = [config['rootdir_tfrec']]
 
-    # Keep the images shape coinstant with labels.
+    # Keep the images shape constant with labels.
     # image_reshape = lambda x: np.rollaxis(np.rollaxis(np.rollaxis(x, 0, 4), 0, 3), 0, 2)  # shape order(x,y,z,channel)
     image_reshape = lambda x: np.transpose(x, (3, 2, 1, 0))  # shape order(x,y,z,channel)
 
@@ -121,6 +119,7 @@ def preprocess_raw_dataset(config):
         max_shape_img, max_shape_label = None, None
 
         print('Start processing dataset: ', dataset, ' ...')
+
         # Adipose Tissue databases
 
         if dataset in ['TULIP1_5T', 'NAKO_AT', 'TULIP3T']:
@@ -451,6 +450,43 @@ def preprocess_raw_dataset(config):
                     write_tfrec_and_pickle(imgs_data, dir_tfrec_img, labels_data, dir_tfrec_label, infos,
                                            dir_tfrec_info)
                     save_max_shape(dataset, max_shape_img, max_shape_label)
+
+        ## for Melanom dataset
+        elif dataset == 'MELANOM':
+
+            ##directories in server for the HD5F files
+            root_dir_img = config['rootdir_raw_data_img'][dataset]
+            rootdir_label = config['rootdir_raw_data_label'][dataset]
+            rootdir_tfrec = config['rootdir_tfrec'][dataset]
+
+            ## each dataset has keys 'image', 'mask', 'mask_iso'
+            ## we take the file to the no padded dataset
+            #make a generator able to have the ids of the images
+            # this will improve memory usage
+            ## this dataset contains 2 channels, PET, CT channel
+
+            files_dir = list(file for file in os.listdir(root_dir_img))
+            file_images = files_dir[1]  ## we take the case without padding
+            img = h5py.File(file_images, 'r')
+            img_IDs = iter(image_key for image_key in img['image'].keys())
+
+            ## iterate over the generator in order to save each image as tfrecord
+            for img_ID in img_IDs:
+
+                max_shape_img = calculate_max_shape(max_shape_img, img['image'][img_ID])
+                max_shape_mask = calculate_max_shape(max_shape_label, img['mask'][img_ID])
+                max_shape_mask_iso = calculate_max_shape(max_shape_label, img['mask_iso'][img_ID])
+                img_normalized = normalize(img['image'][img_ID]).astype(np.float32)
+                labels_data = img['mask'][img_ID]
+
+                ## create tfrecord directory
+                dir_tfrec_img, dir_tfrec_label, dir_tfrec_info = create_tfrec_dir(dir_file=root_dir_img + '/' + img_ID,
+                                                                                  rootdir=root_dir_img,
+                                                                                  rootdir_tfrec=rootdir_tfrec)
+                ## write tfrec in pickle file
+                write_tfrec_and_pickle(img_normalized, dir_tfrec_img, labels_data, dir_tfrec_label)
+                ##save the max shape
+                save_max_shape(dataset, max_shape_img, max_shape_mask)
 
         # read all paths of tfrecords and save into the pickle files
         read_and_save_tfrec_path(config, rootdir_tfrec,
