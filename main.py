@@ -16,28 +16,38 @@ import argparse
 
 def args_argument():
     parser = argparse.ArgumentParser(prog='MedSeg')
-    parser.add_argument('-e', '--exp_name', type=str, default='exp0', help='Name of experiment (subfolder in result_rootdir)')
-    
-    parser.add_argument('--preprocess', type=bool, default=False, help='Preprocess the data')
-    parser.add_argument('--train', type=bool, default=True, help='Train the model')
-    parser.add_argument('--evaluate', type=bool, default=False, help='Evaluate the model')
-    parser.add_argument('--predict', type=bool, default=True, help='Predict the model')
-    parser.add_argument('--restore', type=bool, default=False, help='Restore the unfinished trained model')
-    #parser.add_argument('-c', '--config_path', type=str, default='./config/bi.yaml', help='Configuration file of the project')
-    parser.add_argument('-c', '--config_path', type=str, default='./config/config1.yaml', help='Configuration file of the project')
-    #parser.add_argument('-c', '--config_path', type=str, default='./config/nifti_AT.yaml', help='Configuration file of the project')
-
-    parser.add_argument("--gpu", type=int, default=0, help="Specify the GPU to use")
-    parser.add_argument('--gpu_memory', type=float, default=None, help='Set GPU allocation. (in GB) ')
+    parser.add_argument('-e', '--exp_name', type=str, default='exp0',
+                        help='Name of experiment (subfolder in result_rootdir)')
+    parser.add_argument('--preprocess', type=bool, default=False,
+                        help='Preprocess the data')
+    parser.add_argument('--train', type=bool, default=False,
+                        help='Train the model')
+    parser.add_argument('--evaluate', type=bool, default=False,
+                        help='Evaluate the model')
+    parser.add_argument('--predict', type=bool, default=False,
+                        help='Predict the model')
+    parser.add_argument('--restore', type=bool, default=False,
+                        help='Restore the unfinished trained model')
+    parser.add_argument('-c', '--config_path', type=str, default='./config/config1.yaml',
+                        help='Configuration file of the project')
+    parser.add_argument("--gpu", type=int, default=0,
+                        help="Specify the GPU to use")
+    parser.add_argument('--gpu_memory', type=float, default=None,
+                        help='Set GPU allocation. (in GB) ')
     parser.add_argument('--calculate_max_shape_only', type=bool, default=False,
                         help='Only calculate the max shape of each dataset')
     parser.add_argument('--split_only', type=bool, default=False,
                         help='Only split the whole dataset to train, validation, and test dataset')
-    parser.add_argument('--train_epoch', type=int, default=None, help='Modify the train epoch in yaml file')
-    parser.add_argument('--filters', type=int, default=None, help='Modify the base filters in yaml file')
-    parser.add_argument('--model_name', type=str, default=None, help='Modify the models in yaml file')
-    parser.add_argument('--train_batch', type=int, default=None, help='Modify the batch in yaml file')
-    parser.add_argument('--dataset', type=str, default=None, help='Modify the dataset in yaml file')
+    parser.add_argument('--train_epoch', type=int, default=None,
+                        help='Modify the train epoch in yaml file')
+    parser.add_argument('--filters', type=int, default=None,
+                        help='Modify the base filters in yaml file')
+    parser.add_argument('--model_name', type=str, default=None,
+                        help='Modify the models in yaml file')
+    parser.add_argument('--train_batch', type=int, default=None,
+                        help='Modify the batch in yaml file')
+    parser.add_argument('--dataset', type=str, default=None,
+                        help='Modify the dataset in yaml file')
 
     a = parser.parse_args()
     return a
@@ -48,8 +58,8 @@ def main(args):
     os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
     # I will limit the gpu by allocating the specific GPU memory
     # limit the gpu by allocating the specific GPU memory
+    gpus = tf.config.experimental.list_physical_devices('GPU')
     if args.gpu_memory is not None:
-        gpus = tf.config.experimental.list_physical_devices('GPU')
         if gpus:
             try:
                 tf.config.experimental.set_virtual_device_configuration(
@@ -57,13 +67,19 @@ def main(args):
             except RuntimeError as e:
                 print(e)
     else:  # allocate dynamic growth
-        config = tf.ConfigProto()
-        config.gpu_options.allow_growth = True
-        tf.set_session(tf.Session(config=config))
-
+        if gpus:
+            try:
+                # Currently, memory growth needs to be the same across GPUs
+                for gpu in gpus:
+                    tf.config.experimental.set_memory_growth(gpu, True)
+                    logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+                    print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+            except RuntimeError as e:
+                # Memory growth must be set before GPUs have been initialized
+                print(e)
 
     with open(args.config_path, "r") as yaml_file:
-        config = yaml.load(yaml_file.read())
+        config = yaml.safe_load(yaml_file.read())
         config = convert_yaml_config(config)
 
     # set random seed to fix the randomness in training
@@ -73,10 +89,8 @@ def main(args):
         np.random.seed(config['numpy_seed'])
     if config['random_seed']:
         random.seed(config['random_seed'])
-
     if args.exp_name:
         config['exp_name']=args.exp_name
-
     if args.train_epoch:
         config['epoch'] = args.train_epoch
     if args.filters:
@@ -85,7 +99,6 @@ def main(args):
         config['batch'] = args.train_batch
     if args.dataset:
         config['dataset'] = [args.dataset]
-
 
     # preprocess and convert input to TFRecords
     if args.preprocess:
@@ -99,7 +112,6 @@ def main(args):
     if args.split_only:
         split(config)  # split into train, validation and test set
 
-
     if args.train:  # train the model
         train(config, args.restore)
         print("Training finished for %s" % (config['dir_model_checkpoint']+os.sep+config['exp_name']))
@@ -109,6 +121,7 @@ def main(args):
     if args.predict:  # predict and generate output masks of a trained model
         predict(config, datasets=config['dataset'], save_predict_data=config['save_predict_data'])
         print("Prediction finished for %s" % (config['result_rootdir']+os.sep+config['exp_name']))
+
 
 if __name__ == '__main__':
     main(args_argument())

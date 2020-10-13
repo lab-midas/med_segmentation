@@ -14,7 +14,6 @@ from med_io.get_pad_and_patch import *
 from plot.plot_figure import *
 from plot.plot_config import *
 from models.Premodel_Custom_Class import *
-#import cv2
 from models.load_model import load_model_file
 from med_io.read_mat import read_mat_file
 from med_io.read_dicom import read_dicom_dir
@@ -107,24 +106,19 @@ def predict(config, datasets=None, save_predict_data=False, name_ID=None):
             print('Predict data ', dataset, 'is finished.')
     else:
         # Load dataset not from tfrecords. e.g. from nifti
-
         if datasets is None or datasets == []:
             datasets = ['New_predict_image']
         for dataset in datasets:
             config = channel_config(config, dataset)
-
             # Choose and create the model which is the same with the saved model.
             model = load_model_file(config, dataset)
-
             collect_predict, collect_label = [], []
             data_dir_img = config['predict_data_dir_img']  # get the image dir
-
             # If predict dataset has label
             if config['predict_load_label']:
                 data_dir_label = config['predict_data_dir_label']
                 for index, (dir_name_img, dir_name_label) in \
                         enumerate((os.listdir(data_dir_img), os.listdir(data_dir_label))):
-
                     data_path_img = os.path.join(config['predict_data_dir_img'], dir_name_img).replace('\\', '/')
                     data_path_label = os.path.join(config['predict_data_dir_label'], dir_name_label).replace('\\', '/')
                     img_data, label_data = read_predict_file(config, data_path_img, data_path_label)
@@ -137,7 +131,6 @@ def predict(config, datasets=None, save_predict_data=False, name_ID=None):
                     predict_img_integers, predict_img_onehot, label_data_integers, label_data_onehot \
                         = convert_result(config, predict_img, label_data_onehot=label_data)
                     name_ID = dir_name_img
-
                     # Get data of one patient for plot
                     dict_data = {'predict_integers': predict_img_integers,
                                  'predict_onehot': predict_img_onehot,
@@ -145,19 +138,16 @@ def predict(config, datasets=None, save_predict_data=False, name_ID=None):
                                  'label_onehot': label_data_onehot,
                                  'original_image': img_data,
                                  'without_mask': np.zeros(predict_img_integers.shape)}
-
                     if config['plot_figure']:
-                        plot_figures_single(config, dict_data, dataset=dataset, name_ID=name_ID)
+                        plot_figures_single(config, dict_data, dataset=dataset, name_id=name_ID)
                     if save_predict_data:
                         save_img_mat(config, dataset, name_ID, 'predict_image', predict_img_integers)
                     # Collect the image for plot.
                     collect_predict.append(predict_img_onehot)
                     collect_label.append(label_data_onehot)
-
             else:
                 # Load dataset not from tfrecords. e.g. from nifti, and have no labels
                 for name_ID in os.listdir(data_dir_img):
-
                     data_path_img = os.path.join(data_dir_img, name_ID).replace('\\', '/')
                     img_data = read_predict_file(config, data_path_img, name_ID=name_ID)
                     img_data = image_transform(config, img_data)
@@ -174,7 +164,7 @@ def predict(config, datasets=None, save_predict_data=False, name_ID=None):
                                  'without_mask': np.zeros(predict_img_integers.shape)}
                     # Plot single figure
                     if config['plot_figure']:
-                        plot_figures_single(config, dict_data, dataset=dataset, name_ID=name_ID)
+                        plot_figures_single(config, dict_data, dataset=dataset, name_id=name_ID)
                     if save_predict_data:
                         save_img_mat(config, dataset, name_ID, 'predict_image', predict_img_integers)
                     # Collect the image for plot.
@@ -184,8 +174,7 @@ def predict(config, datasets=None, save_predict_data=False, name_ID=None):
                 list_images_series = {'predict': collect_predict, 'label': collect_label}
                 if config['plot_figure']:
                     plot_figures_dataset(config, list_images_series, dataset=dataset)
-
-                print('Predict data ', dataset, 'is finished.')
+                print('Predict data', dataset, 'is finished.')
 
 
 def channel_config(config, dataset, evaluate=False):
@@ -205,22 +194,18 @@ def channel_config(config, dataset, evaluate=False):
         # Read num of channels of images and labels from the file 'max_shape.pickle'.
         config['channel_img_num'], config['channel_label_num'] = config['max_shape']['image'][-1],\
                                                                  config['max_shape']['label'][-1]
-
     # Get the total num of input and output channel of the model
     if config['input_channel'][dataset] is not None:
         config['channel_img_num'] = len(config['input_channel'][dataset])
     if config['output_channel'][dataset] is not None:
         config['channel_label_num'] = len(config['output_channel'][dataset])
-
     print(config['channel_img_num'], config['channel_label_num'])
     if (not config['load_predict_from_tfrecords']) and (not evaluate) and (
             (not config['input_channel'][dataset]) or (not config['output_channel'][dataset])):
         raise ValueError('channel_label must be valued.')
-
     # If add background channel in model in prediction
     if config['model_add_background_output']:
         config['channel_label_num'] += 1
-
     print('Input channels amount: ', config['channel_img_num'], 'Output channels amount:',
           config['channel_label_num'])
 
@@ -235,10 +220,8 @@ def image_transform(config, img_data, label_data_onehot=None):
     :param label_data_onehot: type ndarray,  one hot label of the :param img_data
     :return: img_data, label_data_onehot
     """
-
     if config['predict_image_scale']:
         img_data = img_data * config['predict_image_scale']
-
     if config['transpose_permute'] is not None:
         img_data = np.transpose(img_data, tuple(config['transpose_permute']))
         if label_data_onehot is not None:
@@ -278,21 +261,15 @@ def predict_image(config, dataset, model, patch_imgs, indice_list, img_data_shap
     # Select the input channels, which are correspondent to model input channels
     if config['input_channel'][dataset] is not None:
         patch_imgs = patch_imgs[..., config['input_channel'][dataset]]
-
-    print('283', patch_imgs.shape)
     indice_list_model = indice_list
     if config['regularize_indice_list']['max_shape']:
-
         indice_list_model = np.float32(np.array(indice_list)) / np.array(config['max_shape']['image'])[..., 0]
-
     elif config['regularize_indice_list']['image_shape']:
         indice_list_model = np.float32(np.array(indice_list)) / np.array(
             img_data_shape)[:-1]
-
     elif config['regularize_indice_list']['custom_specified']:
         indice_list_model = np.float32(np.array(indice_list)) / np.array(
             config['regularize_indice_list']['custom_specified'])
-
     # Predict the test data by given trained model
     try:
         predict_patch_imgs = model.predict(x=(patch_imgs, indice_list_model), batch_size=1, verbose=1)
@@ -301,15 +278,11 @@ def predict_image(config, dataset, model, patch_imgs, indice_list, img_data_shap
         config['load_weights_only']= False
         model = load_model_file(config, dataset)
         predict_patch_imgs = model.predict(x=(patch_imgs, indice_list_model), batch_size=1, verbose=1)
-
-    print('298',predict_patch_imgs.shape)
     # patch images-> whole image
     predict_img = unpatch_predict_image(predict_patch_imgs, indice_list, config['patch_size'],
                                         output_patch_size=config['model_output_size'],
                                         set_zero_by_threshold=config['set_zero_by_threshold'],
                                         threshold=config['unpatch_start_threshold'])
-    print('308', predict_img.shape)
-
     # Adjust model output channel order
     if config['predict_output_channel_order']:
         channel_stack = []
@@ -356,12 +329,9 @@ def convert_result(config, predict_img, label_data_onehot=None, predict_class_nu
     else:
         predict_img_integers = convert_onehot_to_integers(predict_img)
     if predict_class_num is None:
-        print(np.max(predict_img_integers))
         predict_img_onehot = convert_integers_to_onehot(predict_img_integers, num_classes=predict_img.shape[-1])
-        print('line357', predict_img_onehot.shape)
     else:
         predict_img_onehot = convert_integers_to_onehot(predict_img_integers, num_classes=predict_class_num)
-
     # add background on label
     channel_label_num = config['channel_label_num']
     if label_data_onehot is not None:
@@ -373,11 +343,9 @@ def convert_result(config, predict_img, label_data_onehot=None, predict_class_nu
         # recreate one hot predict image and label from the integers maps
         label_data_onehot = convert_integers_to_onehot(label_data_integers,
                                                        num_classes=channel_label_num)
-
         if (not predict_class_num) and (predict_img.shape[-1] != config['channel_label_num']):
             print('Warning! The channels of predict image and label are not equal! Predict:',
                   predict_img.shape[-1], 'Label:', channel_label_num)
-
         return predict_img_integers, predict_img_onehot, label_data_integers, label_data_onehot
     else:
         return predict_img_integers, predict_img_onehot
@@ -416,7 +384,6 @@ def read_predict_file(config, data_path_img=None, data_path_label=None, name_ID=
             img_data = read_nifti(config, name_ID)
             pass
     if data_path_label:
-
         datatype = config['predict_label_datatype']
         if datatype == 'nii':
             label_data = read_dicom_dir(data_path_img)

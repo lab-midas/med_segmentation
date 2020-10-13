@@ -1,0 +1,53 @@
+new_orientation: [P,L,S] # list of 3 characters, choose from ['L', 'R', 'P', 'A', 'I', 'S', None]
+rescale: 2  # postive int. rescale the image to [0, :param rescale]
+scale: # postive int. rescale the image to [0, old max value]*scale
+
+# dict : 'name',: paths of nii file
+# The value is list if each channel is saved in a single nii file
+# The value is str of path if all channels saved in one nii file
+dict_name_path:
+  '100104': ['/mnt/data/projects/Segmentation/Nora/NAKO_308_NIFTI/100104/fat/100104_fat.nii.gz',
+             '/mnt/data/projects/Segmentation/Nora/NAKO_308_NIFTI/100104/water/100104_water.nii.gz',
+              '/mnt/data/projects/Segmentation/Nora/NAKO_308_NIFTI/100104/in/100104_in.nii.gz',
+             '/mnt/data/projects/Segmentation/Nora/NAKO_308_NIFTI/100104/opp/100104_opp.nii.gz']
+  '100479': ['/mnt/data/projects/Segmentation/Nora/NAKO_308_NIFTI/100479/fat/100479_fat.nii.gz',
+           '/mnt/data/projects/Segmentation/Nora/NAKO_308_NIFTI/100479/water/100479_water.nii.gz',
+            '/mnt/data/projects/Segmentation/Nora/NAKO_308_NIFTI/100479/in/100479_in.nii.gz',
+           '/mnt/data/projects/Segmentation/Nora/NAKO_308_NIFTI/100479/opp/100479_opp.nii.gz']
+  '100521': ['/mnt/data/projects/Segmentation/Nora/NAKO_308_NIFTI/100521/fat/100521_fat.nii.gz',
+             '/mnt/data/projects/Segmentation/Nora/NAKO_308_NIFTI/100521/water/100521_water.nii.gz',
+             '/mnt/data/projects/Segmentation/Nora/NAKO_308_NIFTI/100521/in/100521_in.nii.gz',
+             '/mnt/data/projects/Segmentation/Nora/NAKO_308_NIFTI/100521/opp/100521_opp.nii.gz']
+  '100576': ['/mnt/data/projects/Segmentation/Nora/NAKO_308_NIFTI/100576/fat/100576_fat.nii.gz',
+             '/mnt/data/projects/Segmentation/Nora/NAKO_308_NIFTI/100576/water/100576_water.nii.gz',
+             '/mnt/data/projects/Segmentation/Nora/NAKO_308_NIFTI/100576/in/100576_in.nii.gz',
+             '/mnt/data/projects/Segmentation/Nora/NAKO_308_NIFTI/100576/opp/100576_opp.nii.gz']
+  '100752': ['/mnt/data/projects/Segmentation/Nora/NAKO_308_NIFTI/100752/fat/100752_fat.nii.gz',
+             '/mnt/data/projects/Segmentation/Nora/NAKO_308_NIFTI/100752/water/100752_water.nii.gz',
+             '/mnt/data/projects/Segmentation/Nora/NAKO_308_NIFTI/100752/in/100752_in.nii.gz',
+             '/mnt/data/projects/Segmentation/Nora/NAKO_308_NIFTI/100752/opp/100752_opp.nii.gz']
+  '100877': ['/mnt/data/projects/Segmentation/Nora/NAKO_308_NIFTI/100877/fat/100877_fat.nii.gz',
+             '/mnt/data/projects/Segmentation/Nora/NAKO_308_NIFTI/100877/water/100877_water.nii.gz',
+             '/mnt/data/projects/Segmentation/Nora/NAKO_308_NIFTI/100877/in/100877_in.nii.gz',
+             '/mnt/data/projects/Segmentation/Nora/NAKO_308_NIFTI/100877/opp/100877_opp.nii.gz']
+  '101039': ['/mnt/data/projects/Segmentation/Nora/NAKO_308_NIFTI/101039/fat/101039_fat.nii.gz',
+             '/mnt/data/projects/Segmentation/Nora/NAKO_308_NIFTI/101039/water/101039_water.nii.gz',
+             '/mnt/data/projects/Segmentation/Nora/NAKO_308_NIFTI/101039/in/101039_in.nii.gz',
+             '/mnt/data/projects/Segmentation/Nora/NAKO_308_NIFTI/101039/opp/101039_opp.nii.gz']
+  '101074': ['/mnt/data/projects/Segmentation/Nora/NAKO_308_NIFTI/101074/fat/101074_fat.nii.gz',
+             '/mnt/data/projects/Segmentation/Nora/NAKO_308_NIFTI/101074/water/101074_water.nii.gz',
+             '/mnt/data/projects/Segmentation/Nora/NAKO_308_NIFTI/101074/in/101074_in.nii.gz',
+             '/mnt/data/projects/Segmentation/Nora/NAKO_308_NIFTI/101074/opp/101074_opp.nii.gz']
+  '101371': ['/mnt/data/projects/Segmentation/Nora/NAKO_308_NIFTI/101371/fat/101371_fat.nii.gz',
+             '/mnt/data/projects/Segmentation/Nora/NAKO_308_NIFTI/101371/water/101371_water.nii.gz',
+             '/mnt/data/projects/Segmentation/Nora/NAKO_308_NIFTI/101371/in/101371_in.nii.gz',
+             '/mnt/data/projects/Segmentation/Nora/NAKO_308_NIFTI/101371/opp/101371_opp.nii.gz']
+  '101404': ['/mnt/data/projects/Segmentation/Nora/NAKO_308_NIFTI/101404/fat/101404_fat.nii.gz',
+             '/mnt/data/projects/Segmentation/Nora/NAKO_308_NIFTI/101404/water/101404_water.nii.gz',
+             '/mnt/data/projects/Segmentation/Nora/NAKO_308_NIFTI/101404/in/101404_in.nii.gz',
+             '/mnt/data/projects/Segmentation/Nora/NAKO_308_NIFTI/101404/opp/101404_opp.nii.gz']
+
+img_path_per_channel: True  # True if each channel is saved in a single nii file, False if all channels saved in one nii file
+save_mat_dir:  # str, directory of mat file if save nii data in mat file, leave empty if not save
+save_nii_dir:  # str, directory of nii file if save nii data in  nii file,leave empty if not save
+save_numpy_dir: # str, directory of numpy file if save nii data in  numpy file, leave empty if not save

@@ -132,20 +132,24 @@ def get_predict_patches_index(data_img, patch_size, overlap_rate=0.5, start=None
     :param overlap_rate: type float or list of float in [0,1), overlape rate between two patches,
                           the list length must be equal to the length of :param: patch_size
     :param start: type int or list of int: start point of patching.
-                   The list length must be equal to the lengthj of :param: patch_size
-    :param output_patch_size： type list of int: Model output size.
+                   The list length must be equal to the length of :param: patch_size
+    :param output_patch_size： type list of int Model output size.
     :return: patch_img_collection:
     :return: index_list: type list of int. Position  of the patch.
     """
     dim = len(patch_size)
 
     if output_patch_size is not None:
-        for j in range(dim): assert patch_size[j] >= output_patch_size[j]
+        for j in range(dim):
+            assert patch_size[j] >= output_patch_size[j]
 
     data_size = np.array(data_img).shape
-    if isinstance(overlap_rate, float): overlap_rate = np.array([overlap_rate] * dim)
-    if start is None: start = np.array([0] * dim)
+    if isinstance(overlap_rate, float):
+        overlap_rate = np.array([overlap_rate] * dim)
+    if start is None:
+        start = np.array([0] * dim)
     assert (len(patch_size) == len(start) == len(overlap_rate) == dim)
+
     patch_size = [min(data_size[i], patch_size[i]) for i in range(dim)]
     if output_patch_size is None:
         step = patch_size - np.round(overlap_rate * patch_size)
