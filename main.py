@@ -57,9 +57,9 @@ def main(args):
             except RuntimeError as e:
                 print(e)
     else:  # allocate dynamic growth
-        config = tf.ConfigProto()
+        config = tf.compat.v1.ConfigProto()
         config.gpu_options.allow_growth = True
-        tf.set_session(tf.Session(config=config))
+        tf.compat.v1.keras.backend.set_session(tf.compat.v1.Session(config=config))
 
 
     with open(args.config_path, "r") as yaml_file:

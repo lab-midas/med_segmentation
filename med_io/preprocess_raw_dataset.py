@@ -475,7 +475,7 @@ def preprocess_raw_dataset(config):
 
                 max_shape_img = calculate_max_shape(max_shape_img, img['image'][img_ID])
                 max_shape_mask = calculate_max_shape(max_shape_label, img['mask'][img_ID])
-                max_shape_mask_iso = calculate_max_shape(max_shape_label, img['mask_iso'][img_ID])
+                #max_shape_mask_iso = calculate_max_shape(max_shape_label, img['mask_iso'][img_ID])
                 img_normalized = normalize(img['image'][img_ID]).astype(np.float32)
                 labels_data = img['mask'][img_ID]
 

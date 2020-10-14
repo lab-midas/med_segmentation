@@ -198,7 +198,7 @@ patch_probability_distribution:
 ## MODEL ##
 ##---------
 # Model (to train, evaluate, test)
-model: model_MRGE # model_U_net_double_decoder # model name, must be chosen from class ModelSet in models/ModelSet.py
+model: model_U_net_melanoma # model_U_net_double_decoder # model name, must be chosen from class ModelSet in models/ModelSet.py
                       # or premodel name, (can be chosen from class Premodel_Set in models/Premodel_Set.py)
 filters: 8 #  base number of filters of the model
 feed_pos: False  # True if the position of the patches is input to the model
