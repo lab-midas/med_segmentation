@@ -10,6 +10,7 @@ import numpy as np
 import random
 from Patient.Patient import *
 import os
+from packaging import version
 
 import argparse
 
@@ -57,9 +58,15 @@ def main(args):
             except RuntimeError as e:
                 print(e)
     else:  # allocate dynamic growth
-        config = tf.compat.v1.ConfigProto()
-        config.gpu_options.allow_growth = True
-        tf.compat.v1.keras.backend.set_session(tf.compat.v1.Session(config=config))
+
+        if version.parse(tf.__version__) >= version.parse('2.0'):
+            config = tf.compat.v1.ConfigProto()
+            config.gpu_options.allow_growth = True
+            tf.compat.v1.keras.backend.set_session(tf.compat.v1.Session(config=config))
+        else:
+            config = tf.ConfigProto()
+            config.gpu_options.allow_growth = True
+            tf.set_session(tf.Session(config=config))
 
 
     with open(args.config_path, "r") as yaml_file:
