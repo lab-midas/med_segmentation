@@ -3,15 +3,15 @@ rescale: 2  # positive int. rescale the image to [0, :param rescale]
 scale: # positive int. rescale the image to [0, old max value]*scale
 
 dict_name_path: # dict : 'name'/'identifier', paths of nii file. The value is a list of str if each channel is saved in a single nii file, the value is path str if all channels are saved in one nii file
-  '100104_30': ['\nifti\NIFTI\100104_30\3D_GRE_TRA_W_COMPOSED\fat\49_3d_gre_tra_w_composed_-39.nii',
-                '\nifti\NIFTI\100104_30\3D_GRE_TRA_W_COMPOSED\water\49_3d_gre_tra_w_composed_-39.nii',
-                '\nifti\NIFTI\100104_30\3D_GRE_TRA_W_COMPOSED\in\49_3d_gre_tra_w_composed_-39.nii',
-                '\nifti\NIFTI\100104_30\3D_GRE_TRA_W_COMPOSED\opp\49_3d_gre_tra_w_composed_-39.nii']
+  '100104_30': ['/mnt/data/projects/Segmentation/Nora/NAKO_AT/NIFTI/100104_30/3D_GRE_TRA_W_COMPOSED/fat/49_3d_gre_tra_w_composed_-39.nii.gz',
+                '/mnt/data/projects/Segmentation/Nora/NAKO_AT/NIFTI/100104_30/3D_GRE_TRA_W_COMPOSED/water/49_3d_gre_tra_w_composed_-39.nii.gz',
+                '/mnt/data/projects/Segmentation/Nora/NAKO_AT/NIFTI/100104_30/3D_GRE_TRA_W_COMPOSED/in/49_3d_gre_tra_w_composed_-39.nii.gz',
+                '/mnt/data/projects/Segmentation/Nora/NAKO_AT/NIFTI/100104_30/3D_GRE_TRA_W_COMPOSED/opp/49_3d_gre_tra_w_composed_-39.nii.gz']
 
-  '100121_30': ['\nifti\NIFTI\100121_30\3D_GRE_TRA_W_COMPOSED\fat\49_3d_gre_tra_w_composed_-63.nii',
-                '\nifti\NIFTI\100121_30\3D_GRE_TRA_W_COMPOSED\water\49_3d_gre_tra_w_composed_-63.nii',
-                '\nifti\NIFTI\100121_30\3D_GRE_TRA_W_COMPOSED\in\49_3d_gre_tra_w_composed_-63.nii',
-                '\nifti\NIFTI\100121_30\3D_GRE_TRA_W_COMPOSED\opp\49_3d_gre_tra_w_composed_-63.nii']
+  '100121_30': ['/mnt/data/projects/Segmentation/Nora/NAKO_AT/NIFTI/100121_30/3D_GRE_TRA_W_COMPOSED/fat/49_3d_gre_tra_w_composed_-63.nii.gz',
+                '/mnt/data/projects/Segmentation/Nora/NAKO_AT/NIFTI/100121_30/3D_GRE_TRA_W_COMPOSED/water/49_3d_gre_tra_w_composed_-63.nii.gz',
+                '/mnt/data/projects/Segmentation/Nora/NAKO_AT/NIFTI/100121_30/3D_GRE_TRA_W_COMPOSED/in/49_3d_gre_tra_w_composed_-63.nii.gz',
+                '/mnt/data/projects/Segmentation/Nora/NAKO_AT/NIFTI/100121_30/3D_GRE_TRA_W_COMPOSED/opp/49_3d_gre_tra_w_composed_-63.nii.gz']
 
 img_path_per_channel: True  # True if each channel is saved in a single nii file, False if all channels are saved in one nii file
 save_mat_dir:  # str, directory of mat file if saving nii data in mat file, leave empty if not saved

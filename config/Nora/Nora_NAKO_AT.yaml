@@ -205,7 +205,7 @@ train_premodel: True # True if continue training the pre-trained model
 
 load_weights_only: True #( False: dilated_densenet,Exp_DenseNet_feedpos2-loaded, .., others are True.)
 load_premodel:  True
-saved_premodels_path:  /weights_pretrained_models/AT_NAKO/mrge_final_40.hdf5
+saved_premodels_path:  /mnt/data/projects/Segmentation/cnn_segmentation_results/weights_pretrained_models/AT_NAKO/mrge_final_40.hdf5
 # /weights_pretrained_models/AT_NAKO/mrge_final_40.hdf5
 
 select_premodel_output_channel:       # Sometimes the premodel output channels are not corresponded to channels in labels.
@@ -291,7 +291,7 @@ optimizer:
 load_predict_from_tfrecords: False # If load nifti, write False, True if loaded from tfrecords.
 
 # Without tfrecords
-predict_data_dir_img: ./nifti/NIFTI # path of prediction image,  # paths of nifti file which are defined in nifti yaml file can be leave empty here.
+predict_data_dir_img: /mnt/data/projects/Segmentation/Nora/NAKO_AT/NIFTI # path of prediction image,  # paths of nifti file which are defined in nifti yaml file can be leave empty here.
 predict_load_label: False  # load label if predict data is available
 predict_data_dir_label: # path of prediction label
 path_yaml_file: # Path of additional yaml file
