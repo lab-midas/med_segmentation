@@ -3,7 +3,7 @@
 
 # Name of the data
 # Choose the data for the whole project.
-dataset : [NAKO_AT] # either known database [NAKO_AT,DIXON,TULIP1_5T,TULIP3T,NAKO,KORA]
+dataset : [TULIP1_5T] # either known database [NAKO_AT,DIXON,TULIP1_5T,TULIP3T,NAKO,KORA]
     #(i.e. converting and loading as TFRecords) or leave empty (only test/prediction) -> direct loading from Nifty, information specified in PREDICTION
 project: NORA  # project name
 exp_name: exp0  # experiment name (used for storage)
@@ -95,16 +95,16 @@ channel_label_num:
 input_channel:
     NAKO_AT:  [0,1,2,3]       # name of the channel: [F, W, in, opp]
     DIXON:       # name of the channel: ['f', 'umap', 'w']
-    TULIP1_5T:      # name of the channel : [img]
-    TULIP3T:        # name of the channel : [img]
+    TULIP1_5T: [0]     # name of the channel : [img]
+    TULIP3T: [0]       # name of the channel : [img]
     NAKO:          # name of the channel:[DIXF, DIXW, PFP/SAT_1.23, PFP/SAT_2.46]
     KORA:        # name of the channel ['_iso_F_', '_iso_in_', '_iso_opp_', '_iso_W_']
 
 output_channel:
     NAKO_AT:  [0,1,2,3]      # name of the channel: [AT, BG, LT, VAT]
     DIXON:          # name of the channel: ['f', 'l', 'w']
-    TULIP1_5T:      # name of the channel: [AT, BG, LT, VAT]
-    TULIP3T:         # name of the channel: [AT, BG, LT, VAT]
+    TULIP1_5T:  [0,1,2,3]     # name of the channel: [AT, BG, LT, VAT]
+    TULIP3T: [0,1,2,3]       # name of the channel: [AT, BG, LT, VAT]
     NAKO:             # name of the channel: ['kidney_left', 'kidney_right', 'liver', 'pancreas', 'spleen']
     KORA:           # name of the channel: ['liver2d', 'spleen2d']
 
@@ -205,8 +205,8 @@ train_premodel: True # True if continue training the pre-trained model
 
 load_weights_only: True #( False: dilated_densenet,Exp_DenseNet_feedpos2-loaded, .., others are True.)
 load_premodel:  True
-saved_premodels_path:  /mnt/data/projects/Segmentation/cnn_segmentation_results/weights_pretrained_models/AT_NAKO/mrge_final_40.hdf5
-# /weights_pretrained_models/AT_NAKO/mrge_final_40.hdf5
+saved_premodels_path: /mnt/data/projects/Segmentation/cnn_segmentation_results/weights_pretrained_models/AT_MRGEN_MIX/MRGEN_MIX_0.hdf5
+
 
 select_premodel_output_channel:       # Sometimes the premodel output channels are not corresponded to channels in labels.
                                           # It must be  set to be the same amount channels as the labels
@@ -291,11 +291,11 @@ optimizer:
 load_predict_from_tfrecords: False # If load nifti, write False, True if loaded from tfrecords.
 
 # Without tfrecords
-predict_data_dir_img: /mnt/data/projects/Segmentation/Nora/NAKO_AT/NIFTI # path of prediction image,  # paths of nifti file which are defined in nifti yaml file can be leave empty here.
+predict_data_dir_img: /mnt/data/projects/Segmentation/Nora/TULIP_PLIS/NIFTI/1_5T # path of prediction image,  # paths of nifti file which are defined in nifti yaml file can be leave empty here.
 predict_load_label: False  # load label if predict data is available
 predict_data_dir_label: # path of prediction label
 path_yaml_file: # Path of additional yaml file
-    predict_nifti: ./predict_data_processing/process_config/nifti.yaml # Path of prediction nifti yaml file, which more info of nifti can be set (path, orientation etc.)
+    predict_nifti: ./predict_data_processing/process_config/nifti_TULIP1_5T.yaml # Path of prediction nifti yaml file, which more info of nifti can be set (path, orientation etc.)
                                                                                            # path of pre-trained model for prediction is in item saved_premodels_path.
 
 

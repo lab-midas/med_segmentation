@@ -1,0 +1,13 @@
+new_orientation: [P,L,S] # list of 3 characters, choose from ['L', 'R', 'P', 'A', 'I', 'S', None]
+rescale: 2  # positive int. rescale the image to [0, :param rescale]
+scale: # positive int. rescale the image to [0, old max value]*scale
+
+dict_name_path: # dict : 'name'/'identifier', paths of nii file. The value is a list of str if each channel is saved in a single nii file, the value is path str if all channels are saved in one nii file
+  'PLIS20_3566_SS': ['/mnt/data/projects/Segmentation/Nora/TULIP_PLIS/NIFTI/3T/PLIS20_3566_SS/plis20_3566_ss.nii.gz']
+
+  'PLIS20_3662_WG': ['/mnt/data/projects/Segmentation/Nora/TULIP_PLIS/NIFTI/3T/PLIS20_3662_WG/plis20_3662_wg.nii.gz']
+
+img_path_per_channel: True  # True if each channel is saved in a single nii file, False if all channels are saved in one nii file
+save_mat_dir:  # str, directory of mat file if saving nii data in mat file, leave empty if not saved
+save_nii_dir:  # str, directory of nii file if saving nii data in nii file, leave empty if not saved
+save_numpy_dir: # str, directory of numpy file if saving nii data in numpy file, leave empty if not saved
