@@ -12,3 +12,4 @@ tensorflow
 SimpleITK
 nibabel
 opencv-python
+PIL
