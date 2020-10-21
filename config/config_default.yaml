@@ -5,7 +5,7 @@
 dataset : [MELANOM] # either known database [NAKO_AT,DIXON,TULIP1_5T,TULIP3T,NAKO,KORA]
     #(i.e. converting and loading as TFRecords) or leave empty (only test/prediction) -> direct loading from Nifty, information specified in PREDICTION
 project: MELANOM  # project name
-exp_name: exp1  # experiment name (used for storage)
+exp_name: exp_Melanom  # experiment name (used for storage)
 
 
 # Seed for fixing the random data
@@ -58,7 +58,7 @@ filename_tfrec_pickle:
     TULIP3T: list_TULIP3T
     NAKO: list_NAKO
     KORA:  list_KORA
-    MELANOM:
+    MELANOM: list_MELANOM
 
 # filename of pickle files of storing the paths max shape
 filename_max_shape_pickle:
@@ -68,7 +68,7 @@ filename_max_shape_pickle:
     TULIP3T: TULIP3T_max_shape
     NAKO: NAKO_max_shape
     KORA:  KORA_max_shape
-    MELANOM:
+    MELANOM: MELANOM_max_shape
 
 
 # Channel Configuration
@@ -80,7 +80,7 @@ name_input_channel:
     TULIP3T:   [img]
     NAKO:    [DIXF, DIXW, PFP/SAT_1.23, PFP/SAT_2.46]
     KORA:  [F, in, opp, W]
-    MELANOM: [channel, H, W, D]
+    MELANOM: [PET, CT]
 
 # Name of the output data channels, i.e. segmentation classes
 name_output_channel:
@@ -90,7 +90,7 @@ name_output_channel:
     TULIP3T:   [P_AT, P_BG, P_LT, P_VAT]
     NAKO:    [kidney_left, kidney_right, liver, pancreas, spleen]
     KORA:  [liver2d, spleen2d]
-    MELANOM: []
+    MELANOM: [PET, CT]
 
 channel_img_num:
 channel_label_num:

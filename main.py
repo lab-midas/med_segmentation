@@ -25,7 +25,7 @@ def args_argument():
     parser.add_argument('--predict', type=bool, default=True, help='Predict the model')
     parser.add_argument('--restore', type=bool, default=False, help='Restore the unfinished trained model')
     #parser.add_argument('-c', '--config_path', type=str, default='./config/bi.yaml', help='Configuration file of the project')
-    parser.add_argument('-c', '--config_path', type=str, default='./config/config1.yaml', help='Configuration file of the project')
+    parser.add_argument('-c', '--config_path', type=str, default='/config/config_default.yaml', help='Configuration file of the project')
     #parser.add_argument('-c', '--config_path', type=str, default='./config/nifti_AT.yaml', help='Configuration file of the project')
 
     parser.add_argument("--gpu", type=int, default=0, help="Specify the GPU to use")
@@ -68,9 +68,10 @@ def main(args):
             config.gpu_options.allow_growth = True
             tf.set_session(tf.Session(config=config))
 
-
-    with open(args.config_path, "r") as yaml_file:
-        config = yaml.load(yaml_file.read())
+    path_main = os.getcwd()
+    config_path = path_main + args.config_path
+    with open(config_path, "r") as yaml_file:
+        config = yaml.load(yaml_file.read(), Loader=yaml.FullLoader)
         config = convert_yaml_config(config)
 
     # set random seed to fix the randomness in training

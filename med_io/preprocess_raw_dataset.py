@@ -5,6 +5,7 @@ import os
 from .read_mat import *
 from .read_dicom import *
 from .read_nii import *
+from .read_HD5F import *
 from .write_tf_record import *
 from .read_and_save_datapath import *
 from .read_nrrd_path import *
@@ -57,27 +58,63 @@ def preprocess_raw_dataset(config):
         """
         if imgs_data is not None:
             write_tfrecord(imgs_data, path=dir_tfrec_img + '/'+img_tf_name+'.tfrecords')
+            print("Image succesfully written")
+
         if labels_data is not None:
             write_tfrecord(labels_data, path=dir_tfrec_label + '/'+label_tf_name+'.tfrecords')
+            print("Mask succesfully written")
+
         if info is not None:
             pickle.dump(info, open(dir_tfrec_info + '/'+info_name+'.pickle', 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
 
-    def normalize(img, globalscale=False):
+    def normalize(img, globalscale=False, channel_at_beginning=False):
         """
         Change pixel values in img to (0,1)
         :param img: type ndarray: input images
         :param globalscale: type boolean: (True) perform normalization on whole 2D/3D image, (False) axis independent normalization
+        :param channel_at_beginning: type boolean: channels are at the beginning of input shape
         :return:img: type ndarray
         """
-        if globalscale:
-            maxval = np.amax(img)
-            minval = np.amin(img)
-            img = (img - minval) / (maxval - minval + 1E-16)
+
+        print("Shape to normalizeis: ", img.shape)
+
+        if not channel_at_beginning:
+
+            if globalscale:
+                maxval = np.amax(img)
+                minval = np.amin(img)
+                img = (img - minval) / (maxval - minval + 1E-16)
 
 
-        else:
-            img = [(img[..., i] - np.min(img[..., i])) / (np.ptp(img[..., i]) + 1E-16) for i in range(img.shape[-1])]
-        img = np.rollaxis(np.float32(np.array(img)), 0, 4)
+            else:
+                img = [(img[..., i] - np.min(img[..., i])) / (np.ptp(img[..., i]) + 1E-16) for i in
+                       range(img.shape[-1])]
+            img = np.rollaxis(np.float32(np.array(img)), 0, 4)
+
+        else: # this means that the channel is on the first position (channels, x, y, z)
+
+            num_channels = img.shape[0]
+            img = np.rollaxis(np.float32(np.array(img)), 0, 4) # changes the channel axis to the end
+            print("Shape before normalization: ", img.shape)
+
+            if globalscale:
+                maxval = np.amax(img)
+                minval = np.amin(img)
+                img = (img - minval) / (maxval - minval + 1E-16)
+
+
+            else:
+                img = [(img[..., i] - np.min(img[..., i])) / (np.ptp(img[..., i]) + 1E-16) for i in
+                       range(img.shape[-1])]
+
+            img = np.rollaxis(np.float32(np.array(img)), 0, 4)
+            print("Shape after normalization: ", img.shape)
+
+            assert num_channels == img.shape[-1], "normalization was not good performed"
+
+        print("Final Shape: ", img.shape)
+
+
         return img
 
     def calculate_max_shape(max_shape, img_data):
@@ -454,42 +491,59 @@ def preprocess_raw_dataset(config):
         ## for Melanom dataset
         elif dataset == 'MELANOM':
 
-            ##directories in server for the HD5F files
+            # directories in server for the HD5F files
             root_dir_img = config['rootdir_raw_data_img'][dataset]
+            #print(root_dir_img)
             rootdir_label = config['rootdir_raw_data_label'][dataset]
+            #print(root_dir_label)
             rootdir_tfrec = config['rootdir_tfrec'][dataset]
+            #print(root_dir_tfrec)
 
-            ## each dataset has keys 'image', 'mask', 'mask_iso'
-            ## we take the file to the no padded dataset
-            #make a generator able to have the ids of the images
-            # this will improve memory usage
-            ## this dataset contains 2 channels, PET, CT channel
-
-            files_dir = list(file for file in os.listdir(root_dir_img))
-            file_images = files_dir[1]  ## we take the case without padding
-            img = h5py.File(file_images, 'r')
-            img_IDs = iter(image_key for image_key in img['image'].keys())
+            img_IDs, file, file_keys = read_HD5F(config, dataset, root_dir_img)
 
             ## iterate over the generator in order to save each image as tfrecord
             for img_ID in img_IDs:
 
-                max_shape_img = calculate_max_shape(max_shape_img, img['image'][img_ID])
-                max_shape_mask = calculate_max_shape(max_shape_label, img['mask'][img_ID])
+                #num_channels = file[file_keys[0]][img_ID].shape[0]
+
+                #assert num_channels == 2, "the file has more than 2 channels"
+
+                #for channel in range(num_channels): # (PET, CT)
+
+                img_h5 = file[file_keys[0]][img_ID]
+                #print("Shape of the image is: ", img_h5.shape)
+
+                # the form of the images are  (channel, H, W, D)
+                # we have
+
+                mask_h5 = file[file_keys[1]][img_ID]
+                #print("Shape of the mask_h5 is: ", mask_h5.shape)
+
+                max_shape_img = calculate_max_shape(max_shape_img, img_h5)
+                print("MaxShape of the image is: ", max_shape_img)
+                max_shape_mask = calculate_max_shape(max_shape_label, mask_h5)
+                print("MaxShape of the mask is: ", max_shape_mask)
                 #max_shape_mask_iso = calculate_max_shape(max_shape_label, img['mask_iso'][img_ID])
-                img_normalized = normalize(img['image'][img_ID]).astype(np.float32)
-                labels_data = img['mask'][img_ID]
+                img_normalized = normalize(img_h5, channel_at_beginning=True).astype(np.float32)
+                #print("The normalized shape is: ", img_normalized.shape)
+
+                mask_array = np.rollaxis(np.float32(np.array(mask_h5)), 0, 4)
+                #print("Shape of the mask ARRAY is: ", mask_array.shape)
 
                 ## create tfrecord directory
                 dir_tfrec_img, dir_tfrec_label, dir_tfrec_info = create_tfrec_dir(dir_file=root_dir_img + '/' + img_ID,
-                                                                                  rootdir=root_dir_img,
-                                                                                  rootdir_tfrec=rootdir_tfrec)
+                                                                                      rootdir=root_dir_img,
+                                                                                      rootdir_tfrec=rootdir_tfrec)
                 ## write tfrec in pickle file
-                write_tfrec_and_pickle(img_normalized, dir_tfrec_img, labels_data, dir_tfrec_label)
+                #print("Type of image is: ", type(img_normalized))
+                #print("Type of mask is: ", type(mask_h5))
+                write_tfrec_and_pickle(img_normalized, dir_tfrec_img, mask_array, dir_tfrec_label)
                 ##save the max shape
                 save_max_shape(dataset, max_shape_img, max_shape_mask)
+
+            print("Melanom Dataset preprocessed")
 
         # read all paths of tfrecords and save into the pickle files
         read_and_save_tfrec_path(config, rootdir_tfrec,
                                  filename_tfrec_pickle=config['filename_tfrec_pickle'][dataset],
                                  dataset=dataset)
-
