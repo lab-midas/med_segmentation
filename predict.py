@@ -14,7 +14,7 @@ from med_io.get_pad_and_patch import *
 from plot.plot_figure import *
 from plot.plot_config import *
 from models.Premodel_Custom_Class import *
-#import cv2
+# import cv2
 from models.load_model import load_model_file
 from med_io.read_mat import read_mat_file
 from med_io.read_dicom import read_dicom_dir
@@ -22,6 +22,7 @@ from med_io.read_nii import read_nii_path
 from predict_data_processing.nifti_process import read_nifti
 import scipy.io as sio
 import numpy as np
+import nibabel as nib
 
 
 def predict(config, datasets=None, save_predict_data=False, name_ID=None):
@@ -74,7 +75,7 @@ def predict(config, datasets=None, save_predict_data=False, name_ID=None):
                 img_data, label_data_onehot = image_transform(config, img_data, label_data_onehot)
                 # Patch the image
                 patch_imgs, indice_list = patch_image(config, img_data)
-                print('76',patch_imgs.shape)
+                print('76', patch_imgs.shape)
                 predict_img = predict_image(config, dataset, model, patch_imgs, indice_list)
                 predict_img, label_data_onehot = select_output_channel(config, dataset, predict_img, label_data_onehot)
                 predict_img_integers, predict_img_onehot, label_data_integers, label_data_onehot = convert_result(
@@ -299,11 +300,11 @@ def predict_image(config, dataset, model, patch_imgs, indice_list, img_data_shap
         predict_patch_imgs = model.predict(x=(patch_imgs, indice_list_model), batch_size=1, verbose=1)
     except:
         print('Predict by model with load_weights_only=True Failed, Try rebuild model with load_weights_only=False...')
-        config['load_weights_only']= False
+        config['load_weights_only'] = False
         model = load_model_file(config, dataset)
         predict_patch_imgs = model.predict(x=(patch_imgs, indice_list_model), batch_size=1, verbose=1)
 
-    print('298',predict_patch_imgs.shape)
+    print('298', predict_patch_imgs.shape)
     # patch images-> whole image
     predict_img = unpatch_predict_image(predict_patch_imgs, indice_list, config['patch_size'],
                                         output_patch_size=config['model_output_size'],
@@ -364,7 +365,7 @@ def convert_result(config, predict_img, label_data_onehot=None, predict_class_nu
         predict_img_onehot = convert_integers_to_onehot(predict_img_integers, num_classes=predict_class_num)
 
     # add background on label
-    channel_label_num=config['channel_label_num']
+    channel_label_num = config['channel_label_num']
     if label_data_onehot is not None:
         if config['label_add_background_output']:
             label_data_integers = convert_onehot_to_integers_add_bg(label_data_onehot)
@@ -385,15 +386,32 @@ def convert_result(config, predict_img, label_data_onehot=None, predict_class_nu
 
 
 def save_img_mat(config, dataset, name_ID, item, data):
+    """
+    save the image data, format specified in config
+    :param config: dictionary with config parameters
+    :param dataset: name of dataset
+    :param name_ID:
+    :param item: key, for saving as mat file
+    :param data: image data
+    """
     # Config experiment
     save_predict_data_dir = config['result_rootdir'] + '/' + config['exp_name'] + '/' + config[
         'model'] + '/predict_result/' + dataset + '/' + name_ID
     if not os.path.exists(save_predict_data_dir): os.makedirs(save_predict_data_dir)
-    save_path = save_predict_data_dir + '/' + 'predict_' + config[
-        'model'] + '_' + dataset + '_' + name_ID + '.mat'
+    if config.get('save_predict_img_datatype', 'mat') == 'mat':
+        # Save the predict data in .mat file.
+        save_path = save_predict_data_dir + '/' + 'predict_' + config['model'] \
+                    + '_' + dataset + '_' + name_ID + '.mat'
+        sio.savemat(save_path, {item: data})
 
-    # Save the predict data in .mat file.
-    sio.savemat(save_path, {item: data})
+    elif config['save_predict_img_datatype'] == 'nii':
+        # Save the predict data in .nii file (with identity matrix as affine)
+        save_path = save_predict_data_dir + '/' + 'predict_' + config['model'] \
+                    + '_' + dataset + '_' + name_ID + '.nii.gz'
+        nifti_img = nib.Nifti1Image(data, np.eye(4))
+        nib.save(nifti_img, save_path)
+    else:
+        raise Exception('Unknown dataformat for save_predict_img_datatype')
 
 
 def read_predict_file(config, data_path_img=None, data_path_label=None, name_ID=None):

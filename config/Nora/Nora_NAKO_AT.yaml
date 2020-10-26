@@ -311,6 +311,7 @@ label_add_background_output: False #  True if adding background channel in the l
 
 predict_label_datatype: nii
 predict_img_datatype: nii  # string: file type of prediction image (before conversion), 'dicom' or 'mat' or 'nii'
+save_predict_img_datatype: nii # datatype in which prediction gets saved, 'mat' or 'nii' (default mat if empty)
 regularize_indice_list:
     max_shape:   # Bool, scale by max shape, for loading tfrecords dataset.
     image_shape: True # Bool, scale by current image shape, not for loading tfrecords dataset.
@@ -332,7 +333,7 @@ regularize_indice_list:
 # For data which has only images and without labels, any 'label_integers','label', 'label_onehot' should be deleted.
 
 # Save predict data
-save_predict_data: False
+save_predict_data: True
 
 # Plot image
 # name of the plotting figure by predicting the dataset. If multiple plots are needed. write: [plot_name_A, plot_name_B ...]
