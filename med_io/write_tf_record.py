@@ -15,7 +15,7 @@ def write_tfrecord(data, path):
 
     with tf.io.TFRecordWriter(path) as writer:
             example = tf.train.Example(features=tf.train.Features(feature={
-                "image": tf.train.Feature(bytes_list=tf.train.BytesList(value=[data.tobytes()])),
+                'image': tf.train.Feature(bytes_list=tf.train.BytesList(value=[data.tobytes()])),
                 'image_shape': tf.train.Feature(bytes_list=tf.train.BytesList(value=[np.int32(np.array(data.shape)).tobytes()])),
             }))
             writer.write(example.SerializeToString())

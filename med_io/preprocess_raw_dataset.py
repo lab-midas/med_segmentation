@@ -492,16 +492,24 @@ def preprocess_raw_dataset(config):
         elif dataset == 'MELANOM':
 
             # directories in server for the HD5F files
-            root_dir_img = config['rootdir_raw_data_img'][dataset]
+            # directory of images and masks are the same
+            rootdir_file = config['rootdir_raw_data_img'][dataset]
             #print(root_dir_img)
-            rootdir_label = config['rootdir_raw_data_label'][dataset]
+            #rootdir_label = config['rootdir_raw_data_label'][dataset]
             #print(root_dir_label)
             rootdir_tfrec = config['rootdir_tfrec'][dataset]
             #print(root_dir_tfrec)
 
-            img_IDs, file, file_keys = read_HD5F(config, dataset, root_dir_img)
+            #dir_patterns = {'images': '/*/image', 'mask': '/*/mask'}
 
-            ## iterate over the generator in order to save each image as tfrecord
+            #we get the img_IDs from images, the HD5F file, the keys from file
+            #img_IDs, file, file_keys = read_HD5F(dataset, rootdir_file, padded=False)
+            Data_Reader = HD5F_Reader(dataset, rootdir_file)
+
+            img_IDs = Data_Reader.img_IDs
+            file_keys = Data_Reader.file_keys
+
+            ## iterate over the IDs in order to save each image as tfrecord
             for img_ID in img_IDs:
 
                 #num_channels = file[file_keys[0]][img_ID].shape[0]
@@ -510,13 +518,11 @@ def preprocess_raw_dataset(config):
 
                 #for channel in range(num_channels): # (PET, CT)
 
-                img_h5 = file[file_keys[0]][img_ID]
+                img_h5 = Data_Reader.file[file_keys[0]][img_ID]
                 #print("Shape of the image is: ", img_h5.shape)
-
                 # the form of the images are  (channel, H, W, D)
-                # we have
 
-                mask_h5 = file[file_keys[1]][img_ID]
+                mask_h5 = Data_Reader.file[file_keys[1]][img_ID] # mask or label
                 #print("Shape of the mask_h5 is: ", mask_h5.shape)
 
                 max_shape_img = calculate_max_shape(max_shape_img, img_h5)
@@ -530,20 +536,30 @@ def preprocess_raw_dataset(config):
                 mask_array = np.rollaxis(np.float32(np.array(mask_h5)), 0, 4)
                 #print("Shape of the mask ARRAY is: ", mask_array.shape)
 
+                infos = {'name_ID': img_ID,
+                         'info_patient': "info",
+                         'name_input_channel': config['name_input_channel'][dataset],
+                         'name_output_channel': config['name_output_channel'][dataset]}
+                print(img_ID, ': image shape:', img_normalized.shape, ' labels shape:', mask_array.shape)
+
                 ## create tfrecord directory
-                dir_tfrec_img, dir_tfrec_label, dir_tfrec_info = create_tfrec_dir(dir_file=root_dir_img + '/' + img_ID,
-                                                                                      rootdir=root_dir_img,
-                                                                                      rootdir_tfrec=rootdir_tfrec)
+                dir_tfrec_img, dir_tfrec_label, dir_tfrec_info = create_tfrec_dir(
+                    dir_file=rootdir_file + '/' + img_ID,
+                    rootdir=rootdir_file,
+                    rootdir_tfrec=rootdir_tfrec)
+
                 ## write tfrec in pickle file
                 #print("Type of image is: ", type(img_normalized))
                 #print("Type of mask is: ", type(mask_h5))
-                write_tfrec_and_pickle(img_normalized, dir_tfrec_img, mask_array, dir_tfrec_label)
+                write_tfrec_and_pickle(img_normalized, dir_tfrec_img, mask_array, dir_tfrec_label, infos,
+                                       dir_tfrec_info)
                 ##save the max shape
                 save_max_shape(dataset, max_shape_img, max_shape_mask)
 
             print("Melanom Dataset preprocessed")
 
         # read all paths of tfrecords and save into the pickle files
+        print(rootdir_tfrec)
         read_and_save_tfrec_path(config, rootdir_tfrec,
                                  filename_tfrec_pickle=config['filename_tfrec_pickle'][dataset],
                                  dataset=dataset)

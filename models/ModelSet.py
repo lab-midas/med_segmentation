@@ -721,53 +721,69 @@ class ModelSet:
         inputs = Input(shape=(*config['patch_size'],) + (config['channel_img_num'],), name='inp1')
 
         x = inputs
+        print("Input shape of the network: ", x.shape)
 
         ## we design a 5 levels in the encoder path according to the described paper
         ## assume that config['filters_melanoma'] is 32 according to paper
 
         f_maps = [config['filters_melanoma'] * 2 ** i for i in range(config['number_of_levels'])]
+        #print("number of f maps used: ", f_maps)
 
         ## config['filters_melanoma'] is assumed to be in config file, it can be added there
         ## config['number_of_levels'] are assumed to be in config file, it can be added there
 
         ###-------------------------------------------------------------------------------------------------------
-        ##---------- first convolution before entering the U Net-------------------------------------------------
+        ##---------- first convolution for entering the U Net-------------------------------------------------
 
-        ## feature maps to decide
+        ## feature maps at the end of convolution should be 32, according to paper
 
-        x = block(f=f_maps[0], k=(5, 5, 1), s=1, order=['c', 'b', 'r'], order_param=None, order_priority=False)(x)
+        #x = block(f=f_maps[0], k=(5, 5, 1), s=1, order=['c', 'b', 'r'],
+                        #order_param=None, order_priority=False)(x)
 
+        #print("shape after first convolution, the first encoder: ", x.shape)
         ##--------------------------------------------------------------------------------------------------------
         ##-------------------------------------------------------------------------------------------------------
-
         ###-------------------------------------------------------------------------------------------------------
         ##---------- U Net in encoder part ------------------------------------------------------------------------
 
         # for this experiment, we can try with batch normalization
 
         encoders = []
-        list_f_maps = enumerate(f_maps)
+        f_maps_it = f_maps + [f_maps[-1]]
+        #print("number of f maps used: ", f_maps_it)
+        list_f_maps = enumerate(f_maps_it)
+
+        #the encoder parths are created and added to encoders list
+        # An external Residual block is consider in the last encoder
+        #without pooling, this is done to keep latent space
+        # at the bottom for other networks
 
         for i, out_feature_num in list_f_maps:
             if i == 0:
-                encoder = encoder_block(out_feature_num, conv_kernel_size=3, apply_pooling=False,
-                                        pool_kernel_size=(2, 2, 2), basic_block=block_ExtResNet,
-                                        conv_layer_order=['c', 'r', 'b'])
+                ## feature maps at the end of convolution should be 32, according to paper
+                encoder = block(f=out_feature_num, k=(5, 5, 1), s=1, order=['c', 'b', 'r'],
+                                order_param=None, order_priority=False)
+                #print("init: ", i)
+                #encoder = encoder_block(out_feature_num, conv_kernel_size=3, apply_pooling=False,
+                                        #pool_kernel_size=(2, 2, 2), basic_block=block,
+                                        #conv_layer_order=['c', 'r', 'b'])
 
-            elif i == list(list_f_maps)[-1][0]: ## last layer in encoder / bottleneck
+            elif i == len(f_maps_it)-1: ## last layer in encoder / bottleneck
 
                 encoder = encoder_block(out_feature_num, conv_kernel_size=3, apply_pooling=False,
                                         pool_kernel_size=(2, 2, 2), basic_block=block_ExtResNet,
                                         conv_layer_order=['c', 'r', 'b'], name='bottleneck')
-
+                #print("last: ", i)
                 #write_latent_space(encoder.get_layer.output)
 
             else:
                 encoder = encoder_block(out_feature_num, conv_kernel_size=3, apply_pooling=True,
                                         pool_kernel_size=(2, 2, 2), pool_type='mp',
                                         basic_block=block_ExtResNet, conv_layer_order=['c', 'r', 'b'])
-
+                #print("middle: ", i)
             encoders.append(encoder)
+
+        print("number of encoder paths: ", len(encoders))
 
         ##--------------------------------------------------------------------------------------------------------
         ##-------------------------------------------------------------------------------------------------------
@@ -780,35 +796,50 @@ class ModelSet:
         reversed_f_maps = list(reversed(f_maps))
 
         for i in range(len(reversed_f_maps) - 1):
-            decoder = decoder_block(reversed_f_maps[i + 1], kernel_size=3,
-                                    scale_factor=(2, 2, 2), basic_module=block_ExtResNet, pool_type='up',
-                                    conv_layer_order=['dc', 'r', 'b'])
+
+            if i == len(f_maps_it)-1: ## last decoder
+                decoder = decoder_block(reversed_f_maps[i + 1], kernel_size=3,
+                                        scale_factor=(2, 2, 2), basic_module=block_ExtResNet,
+                                        conv_layer_order=['dc', 'r', 'b'], last_decoder=True)
+
+            else:
+                decoder = decoder_block(reversed_f_maps[i + 1], kernel_size=3,
+                                        scale_factor=(2, 2, 2), basic_module=block_ExtResNet,
+                                        conv_layer_order=['dc', 'r', 'b'])
             decoders.append(decoder)
+
+        print("number of decoder paths: ", len(decoders))
 
         ##--------------------------------------------------------------------------------------------------------
         ##-------------------------------------------------------------------------------------------------------
 
         # encoder part
         encoders_features = []
+        num_encoder = 1
         for encoder in encoders:
+            print("encoder num: ", num_encoder)
             x = encoder(x)
             # reverse the encoder outputs to be aligned with the decoder
             encoders_features.insert(0, x)
+            num_encoder = num_encoder+1
 
-        # remove the last encoder's output from the list
-        # !!remember: it's the 1st in the list
-        encoders_features = encoders_features[1:]
+        # remove the last 2 encoder's output from the list
+        # !!remember: they are the first 2 in the list
+        encoders_features = encoders_features[2:]
 
-        for decoder, encoder_feature in zip(self.decoders, encoders_features):
+        num_decoder = 1
+        for decoder, encoder_feature in zip(decoders, encoders_features):
             # pass the output from the corresponding encoder and the output
             # of the previous decoder
+            print("decoder num: ", num_decoder)
             x = decoder(x, encoder_feature)
+            num_decoder = num_decoder + 1
 
         ## we have another final convolution according to the architecture proposed
         ##final_conv
 
-        x = block(f=config['filters_melanoma'], k=(5, 5, 1), s=2,
-                  order_param=None, order_priority=False)(x)
+        #x = block(f=config['filters_melanoma'], k=(5, 5, 1), s=2,
+                  #order_param=None, order_priority=False)(x)
 
         ## here should be the softmax activation function
 

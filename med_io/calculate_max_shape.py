@@ -37,10 +37,12 @@ def calculate_max_shape(config):
         dataset_ = list_image_TFRecordDataset.map(parser)
         img_shape = np.array([elem[1].numpy() for elem in dataset_]) # 0 for data, 1 for data shape
         print('Now calculating max shape of ',dataset)
+        print("Image shape: ", img_shape.shape)
         img_shape = [max(img_shape[:, i]) for i in range(img_shape.shape[1])]
 
         dataset_ = list_label_TFRecordDataset.map(parser)
         label_shape = np.array([elem[1].numpy() for elem in dataset_])
+        print("Label shape: ", label_shape.shape)
         label_shape = [max(label_shape[:, i]) for i in range(label_shape.shape[1])]
         print('Data ', dataset, ': max image shape:', img_shape, 'max label shape:', label_shape)
         dictionary={"image": img_shape, "label": label_shape,"dataset": dataset}

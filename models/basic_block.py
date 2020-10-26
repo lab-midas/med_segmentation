@@ -29,6 +29,15 @@ def block(f=64, k=3, s=2, order=None, order_param=None, order_priority=False, **
         order_param = [None] * 3
     if order is None:
         order = ['c', 'r', 'b']
+    #print("len order param: ", len(order_param))
+    #print("len order: ", len(order))
+    #assert (len(order) == len(order_param))
+    while len(order) < len(order_param):
+        new_elem = None
+        order.append(new_elem)
+        #print("new len order param: ", len(order_param))
+        #print("new len order: ", len(order))
+
     assert (len(order) == len(order_param))
 
     name = None

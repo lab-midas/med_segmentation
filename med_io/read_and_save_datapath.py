@@ -11,6 +11,7 @@ def read_and_save_tfrec_path(config, rootdir, filename_tfrec_pickle=None, datase
     :return:
     """
     dirs = os.listdir(rootdir)
+    #print(dirs)
     if dirs==[]:
         print('Failed saving tfrecords files: No directories in the tfrecords rootdir!')
         return None
@@ -25,8 +26,16 @@ def read_and_save_tfrec_path(config, rootdir, filename_tfrec_pickle=None, datase
     for d in dirs:
         dir_label = rootdir + dir_patterns['labels'].replace('*', d)
         dir_image = rootdir + dir_patterns['images'].replace('*', d)
-        if not os.path.exists(dir_label) or not os.path.exists(dir_image):
-            print(d, ' is not found in label dir or in image dir of tfrecords,this dataset is abandoned.')
+        #if not os.path.exists(dir_label) or not os.path.exists(dir_image):
+            #print(d, ' is not found in label dir or in image dir of tfrecords,this dataset is abandoned.')
+            #continue
+
+        if not os.path.exists(dir_label):
+            print(d, ' is not found in label dir of tfrecords,this dataset is abandoned.')
+            continue
+
+        if not os.path.exists(dir_image):
+            print(d, ' is not found in image dir of tfrecords,this dataset is abandoned.')
             continue
 
         lst_image.append([dir_image + '/' + filename_image for filename_image in os.listdir(dir_image)])

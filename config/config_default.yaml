@@ -108,7 +108,7 @@ input_channel:
     TULIP3T:  [0,1]      # name of the channel : [img]
     NAKO:   [0,1]       # name of the channel:[DIXF, DIXW, PFP/SAT_1.23, PFP/SAT_2.46]
     KORA:   [0,3]     # name of the channel ['_iso_F_', '_iso_in_', '_iso_opp_', '_iso_W_']
-    MELANOM: []
+    MELANOM:     #name of the channel ['PET', 'CT']
 
 output_channel:
     NAKO_AT:  [0,1,2,3]      # name of the channel: [AT, BG, LT, VAT]
@@ -117,7 +117,7 @@ output_channel:
     TULIP3T: [0]       # name of the channel: [AT, BG, LT, VAT]
     NAKO: [1,2]    # name of the channel: ['kidney_left', 'kidney_right', 'liver', 'pancreas', 'spleen']
     KORA:   [0,1]        # name of the channel: ['liver2d', 'spleen2d']
-    MELANOM: []
+    MELANOM:     #name of the channel ['PET', 'CT']
 
 # Splitting data
 # Amount of fold of train/val data for each dataset. Leave empty if not use k fold for training of this dataset.
@@ -142,7 +142,7 @@ test_subject:
     MELANOM:
 
 #  Database for body_identification
-read_body_identification: True
+read_body_identification: False
 body_identification_n_classes: 6
 #  Image transform for database-specific corrections
 transpose_permute:
@@ -277,6 +277,11 @@ optimizer:
     name: Adam
     args:
         learning_rate: 0.001
+
+# this parameters are for the Model UNet Melanoma
+
+filters_melanoma: 32 # number of feature maps or filters for starting the UNet Model
+number_of_levels: 5 # number of levels of the encoder-decoder part of the UNet Network
 
 ##-------------
 ## END MODEL ##
