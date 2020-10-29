@@ -843,7 +843,7 @@ class ModelSet:
 
         ## here should be the softmax activation function
 
-        x = block(order=['s'])
+        x = block(order=['s'])(x)
 
         # if config['feed_pos']:
         #    return create_and_compile_model([inputs, in_pos], x, config)
@@ -966,6 +966,7 @@ def create_and_compile_model(inputs, outputs, config, premodel=None):
         #  Single network output
         loss_func_dict = loss_func
 
+    print("Start compiling model")
     model.compile(loss=loss_func_dict,
                   optimizer=optimizer_func,
                   metrics=custom_metrics_list)

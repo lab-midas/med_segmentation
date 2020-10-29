@@ -127,20 +127,37 @@ def train_process(config, model, paths_train_img, paths_train_label, paths_val_i
 
     # Fit training & validation data into the model
 
-    if config['database'] == "MELANOM":
+    print(config['dataset'][0])
+    print(type(config['dataset'][0]))
 
-        ds_train_it = ds_train.make_initializable_iterator()
-        ds_train_it_next = ds_train_it.get_next()
+    if config['dataset'][0] == "MELANOM":
 
-        ds_validation_it = ds_validation.make_initializable_iterator()
-        ds_validation_it_next = ds_validation_it.get_next()
+        #ds_train_it = tf.compat.v1.data.Iterator.from_structure(ds_train.output_types,
+                                                                   #ds_train.output_shapes)
+        #next_elements_train = iterator_train.get_next()
 
-        history = model.fit(ds_train_it,
+        #ds_validation_it = tf.compat.v1.data.Iterator.from_structure(ds_validation.output_types,
+                                                       #ds_validation.output_shapes)
+        #next_elements_train = iterator_train.get_next()
+        #next_elements_val = iterator_val.get_next()
+
+        #training_init_op = ds_train_it.make_initializer(ds_train, name="training_init_op")
+        #validation_init_op = ds_validation_it.make_initializer(ds_validation, name="validation_init_op")
+
+        #ds_train_it = next_elements_train
+        #ds_validation_it = next_elements_val
+        ds_train_it = iter(ds_train)
+        # ds_train_it_next = ds_train_it.get_next()
+
+        ds_validation_it = iter(ds_validation)
+        # ds_validation_it_next = ds_validation_it.get_next()
+
+        history = model.fit(ds_train_it.get_next(),
                             epochs=config['epochs'] + init_epoch,
                             steps_per_epoch=config['train_steps_per_epoch'],
                             callbacks=[cp_callback, saver1],
                             initial_epoch=init_epoch,
-                            validation_data=ds_validation_it,
+                            validation_data=ds_validation_it.get_next(),
                             validation_steps=config['val_steps_per_epoch'],
                             validation_freq=config['validation_freq'],
                             verbose=config['train_verbose_mode'])
@@ -230,17 +247,17 @@ def k_fold_train_process(config, model, k_fold, paths, dataset, cp_callback, ini
 
             # train all k-fold on one model
             model, history_curr = train_process(config, model, paths_train_img, paths_train_label, paths_val_img,
-                                           paths_val_label, dataset, cp_callback,
-                                           saver1, k_fold_index=k,
-                                           init_epoch=k * config['epochs'] + init_epoch)
+                                                paths_val_label, dataset, cp_callback,
+                                                saver1, k_fold_index=k,
+                                                init_epoch=k * config['epochs'] + init_epoch)
             history.append(history_curr)
 
         else:
             # establish one new model at each fold.
             model, history_curr = train_process(config, model, paths_train_img, paths_train_label, paths_val_img,
-                                           paths_val_label, dataset, cp_callback,
-                                           saver1, k_fold_index=k,
-                                           init_epoch=init_epoch)
+                                                paths_val_label, dataset, cp_callback,
+                                                saver1, k_fold_index=k,
+                                                init_epoch=init_epoch)
 
             history.append(history_curr)
             # save model
