@@ -82,4 +82,4 @@ raw = nib.load(os.path.join(path_raw_data, raw_images[0]))
 raw = np.array(raw.get_fdata())
 path_save = os.path.join(path_dir_save, validation_images[0].split('.')[0] + '.png')
 plot_mosaic(pred, raw, path_save)
->>>>>>> fd1d47f2dcb643ea082abd08cbc39262636be036
+
