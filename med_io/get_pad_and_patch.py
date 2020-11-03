@@ -48,7 +48,7 @@ def pad_img_label(config, max_data_size, images_data, images_shape, labels_data=
         return images_data
 
 
-def get_fixed_patches_index(config, max_fix_img_size, patch_size, overlap_rate=0.5, start=None, end=None, shuffle=True,
+def get_fixed_patches_index(config, max_fix_img_size, patch_size, overlap_rate=0.5, start=None, end=None, shuffle=False,
                             max_patch_num=None):
     """
     Get fixed patches position list by given image size
