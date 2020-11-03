@@ -25,11 +25,7 @@ def args_argument():
     parser.add_argument('--evaluate', type=bool, default=False, help='Evaluate the model')
     parser.add_argument('--predict', type=bool, default=True, help='Predict the model')
     parser.add_argument('--restore', type=bool, default=False, help='Restore the unfinished trained model')
-    # parser.add_argument('-c', '--config_path', type=str, default='./config/bi.yaml', help='Configuration file of the project')
-    # parser.add_argument('-c', '--config_path', type=str, default='./config/config1.yaml', help='Configuration file of the project')
-    # parser.add_argument('-c', '--config_path', type=str, default='./config/nifti_AT.yaml', help='Configuration file of the project')
-    parser.add_argument('-c', '--config_path', type=str, default='./config/new/config_body_ident.yaml',
-                        help='Configuration file of the project')
+    parser.add_argument('-c', '--config_path', type=str, default='./config/config_default.yaml', help='Configuration file of the project')
 
     parser.add_argument("--gpu", type=int, default=0, help="Specify the GPU to use")
     parser.add_argument('--gpu_memory', type=float, default=None, help='Set GPU allocation. (in GB) ')
@@ -50,7 +46,6 @@ def args_argument():
 def main(args):
     # set GPU
     os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
-    # I will limit the gpu by allocating the specific GPU memory
     # limit the gpu by allocating the specific GPU memory
     if args.gpu_memory is not None:
         gpus = tf.config.experimental.list_physical_devices('GPU')
