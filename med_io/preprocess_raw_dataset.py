@@ -204,7 +204,6 @@ def preprocess_raw_dataset(config):
 
 
         # KORA
-
         elif dataset == 'KORA':
             rootdir_img = config['rootdir_raw_data_img'][dataset]
             rootdir_label = config['rootdir_raw_data_label'][dataset]
@@ -300,7 +299,6 @@ def preprocess_raw_dataset(config):
 
 
         # mMR Attenuation masks
-
         elif dataset == 'DIXON':
             rootdir_img = config['rootdir_raw_data_img'][dataset]
             rootdir_label = config['rootdir_raw_data_label'][dataset]
@@ -377,8 +375,7 @@ def preprocess_raw_dataset(config):
                     del labels_data
                     del infos
 
-                    # NAKO
-
+        # NAKO
         elif dataset == 'NAKO':
 
             rootdir_img = config['rootdir_raw_data_img'][dataset]
