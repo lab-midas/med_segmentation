@@ -21,6 +21,9 @@ def train(config, restore=False):
     :return: histories type list of of list of float, metrics evaluating value from each epoch.
     """
     models, histories = [], []
+
+    print("database: ", config['dataset'])
+    print("type database: ", type(config['dataset']))
     for pickle_path, pickle_max_shape, dataset in zip(config['filename_tfrec_pickle'],
                                                       config['filename_max_shape_pickle'],
                                                       config['dataset']):
@@ -120,17 +123,23 @@ def train_process(config, model, paths_train_img, paths_train_label, paths_val_i
     """Internal function"""
 
     # Building pipelines of training and validation Dataset.
-
+    print("reading pipeline")
     ds_train = pipeline(config, paths_train_img, paths_train_label, dataset=dataset)
-
+    print(ds_train)
+    print("reading pipeline")
+    ds_train_len = type(ds_train)
+    print(ds_train_len)
+    print(ds_train.cardinality().numpy())
+    #print("next element: ", next(ds_train).shape)
     ds_validation = pipeline(config, paths_val_img, paths_val_label, dataset=dataset)
-
+    print("Size of dataset training: ", len(ds_train))
+    print("Size of dataset validation: ", len(ds_validation))
     # Fit training & validation data into the model
 
     print(config['dataset'][0])
     print(type(config['dataset'][0]))
 
-    if config['dataset'][0] == "MELANOM":
+    if 3 == 4:#config['dataset'][0] == "MELANOM":
 
         #ds_train_it = tf.compat.v1.data.Iterator.from_structure(ds_train.output_types,
                                                                    #ds_train.output_shapes)

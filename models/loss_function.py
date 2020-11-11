@@ -45,6 +45,24 @@ def dice_loss(y_true, y_pred, config):
         weight_sum += config['loss_channel_weight'][class_index]
     return sum_loss / (weight_sum + smooth)
 
+def dice_loss_melanoma(y_true, y_pred, config):
+    """ Dice loss for Melanoma network
+            y_true: true targets tensor.
+            y_pred: predictions tensor.
+            Dice calculation with smoothing to avoid division by zero
+    """
+    # smooth = 1E-16
+    smooth = K.epsilon()
+    sum_loss, weight_sum = 0, 0
+    for class_index in range(config['channel_label_num']):
+        y_t = y_true[..., class_index]
+        y_p = y_pred[..., class_index]
+        intersection = K.sum(K.abs(y_t * y_p), axis=-1)
+        loss = 1 - (2. * intersection + smooth) / (K.sum(K.square(y_t), -1) + K.sum(K.square(y_p), -1) + smooth)
+        sum_loss += loss * config['loss_channel_weight'][class_index]
+        weight_sum += config['loss_channel_weight'][class_index]
+    return sum_loss / (weight_sum + smooth)
+
 
 def dice_coefficient_loss(y_true, y_pred, config, smooth=K.epsilon(), axis=None):
     """ Dice coefficient along specific axis (same as  1+dice_loss() if axis=None)

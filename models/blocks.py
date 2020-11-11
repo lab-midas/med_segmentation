@@ -199,49 +199,45 @@ def res_block(filters, conv_param, scale=0.1):
 ##  https://arxiv.org/pdf/1706.00120.pdf
 
 
-def block_ExtResNet(out_channels, kernel_size=3, order=['c', 'r', 'b'], name=None):
+def block_ExtResNet(out_channels, kernel_size=3, order=['c', 'b', 'r'], name=None):
     def block_ExtResNet(x):
 
-        print("dimension entering x is: ", x.shape)
+        #print("dimension entering x is: ", x.shape)
 
         ## we start at creating 2 and the second output is used as residual connection
-        conv1 = block(f=out_channels, k=kernel_size, s=1, order=['c', 'r', 'b'],
+        conv1 = block(f=out_channels, k=kernel_size, s=1, order=order,
                       order_param=None, order_priority=False)(x)
 
         #print("dimension after conv 1 is: ", conv1.shape)
 
         residual = conv1
 
-        conv2 = block(f=out_channels, k=kernel_size, s=1, order=['c', 'r', 'b'],
+        conv2 = block(f=out_channels, k=kernel_size, s=1, order=order,
                       order_param=None, order_priority=False)(conv1)
 
         #print("dimension after conv 2 is: ", conv2.shape)
 
         ## remove non-linearity from the 3rd convolution since it's going to be applied after adding the residual
         activation_order = ['r', 'l', 'p', 'e', 's', 't']
-        n_order = order
+        n_order = order.copy()
+        last_order = []
 
         for c in activation_order:
             if c in n_order:
                 n_order.remove(c)
+                last_order.append(c)
 
+        #print("new order: ", n_order)
         conv3 = block(f=out_channels, k=kernel_size, s=1, order=n_order, order_param=None, order_priority=False)(conv2)
 
         #print("dimension after conv 3 is: ", conv3.shape)
 
-        res_connection = tf.concat([conv3, residual], axis=-1)
+        res_connection = Add()([conv3, residual])#tf.concat([conv3, residual], axis=-1)
 
         #print("dimension after residual connection is: ", res_connection.shape)
 
-        ##now it is the non linearity applied
-        #activation_order = ['r', 'l', 'p', 'e', 's', 't']
-        n_order_act = order # default ['c', 'r', 'b']
-
-        for elem in activation_order:
-            if elem in n_order_act:
-                n_order_act.remove(elem)
-
-        x = block(f=out_channels, k=kernel_size, s=1, order=n_order_act,
+        #print("order after concat: ", last_order)
+        x = block(f=out_channels, k=kernel_size, s=1, order=last_order,
                   order_param=None, order_priority=False, name=name)(res_connection)
         return x
 
@@ -250,7 +246,7 @@ def block_ExtResNet(out_channels, kernel_size=3, order=['c', 'r', 'b'], name=Non
 
 def encoder_block(out_channels, conv_kernel_size=3, apply_pooling=True,
                   pool_kernel_size=(2, 2, 2), pool_type='mp', basic_block=block_ExtResNet,
-                  conv_layer_order=['c', 'r', 'b'], name=None):
+                  conv_layer_order=['c', 'b', 'r'], name=None):
     def encoder_block(x):
 
         ## here is missing the pool_kernel_size
@@ -274,17 +270,18 @@ def encoder_block(out_channels, conv_kernel_size=3, apply_pooling=True,
 
 def decoder_block(out_channels, kernel_size=3,
                   scale_factor=(2, 2, 2), basic_module=block_ExtResNet, pool_type='up',
-                  conv_layer_order=['dc', 'r', 'b'], last_decoder=False):
+                  conv_layer_order=['c', 'b', 'r'], last_decoder=False):
 
     def decoder_block(x, encoder_feature):
         ##x = Conv3DTranspose(out_channels, kernel_size=kernel_size, strides=scale_factor, padding='same')(x)
         if not last_decoder:
-            x = block(out_channels, kernel_size, s=2, order=conv_layer_order)(x)  # Deconvolution process
+            x = block(out_channels, kernel_size, s=2, order=['dc', 'b', 'r'])(x)  # Deconvolution process
             x = tf.concat([x, encoder_feature], axis=-1)  # Concatenation with encoder part
             x = basic_module(out_channels, kernel_size=kernel_size, order=conv_layer_order)(x)
 
         else:
-            x = block(out_channels, kernel_size, s=2, order=conv_layer_order)(x)  # Deconvolution process
+            print("last decoder x2")
+            x = block(out_channels, kernel_size, s=2, order=['dc', 'b', 'r'])(x)  # Deconvolution process
             x = tf.concat([x, encoder_feature], axis=-1)  # Concatenation with encoder part
             x = block(out_channels, (5, 5, 1), s=1, order=conv_layer_order)(x)
 

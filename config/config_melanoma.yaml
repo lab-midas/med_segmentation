@@ -12,7 +12,7 @@ exp_name: exp_Melanom  # experiment name (used for storage)
 tensorflow_seed: 1
 numpy_seed: 1
 random_seed: 1
-seed_random_split: 1 # random seed of splitting data
+seed_random_split: 42 # random seed of splitting data
 
 
 ##----------------------------------------------------------------------------------------------------------------------
@@ -108,7 +108,7 @@ input_channel:
     TULIP3T:  [0,1]      # name of the channel : [img]
     NAKO:   [0,1]       # name of the channel:[DIXF, DIXW, PFP/SAT_1.23, PFP/SAT_2.46]
     KORA:   [0,3]     # name of the channel ['_iso_F_', '_iso_in_', '_iso_opp_', '_iso_W_']
-    MELANOM:     #name of the channel ['PET', 'CT']
+    MELANOM:    #name of the channel ['PET', 'CT']
 
 output_channel:
     NAKO_AT:  [0,1,2,3]      # name of the channel: [AT, BG, LT, VAT]
@@ -117,7 +117,7 @@ output_channel:
     TULIP3T: [0]       # name of the channel: [AT, BG, LT, VAT]
     NAKO: [1,2]    # name of the channel: ['kidney_left', 'kidney_right', 'liver', 'pancreas', 'spleen']
     KORA:   [0,1]        # name of the channel: ['liver2d', 'spleen2d']
-    MELANOM:     #name of the channel ['PET', 'CT']
+    MELANOM:    #name of the channel ['PET', 'CT']
 
 # Splitting data
 # Amount of fold of train/val data for each dataset. Leave empty if not use k fold for training of this dataset.
@@ -230,7 +230,7 @@ model_add_background_output: False # Type bool, add one channel from the model o
 img_label_same_shape: False  # Type bool, repad to same shape
 
 # Epochs and steps
-epochs: 100 # total training epochs
+epochs: 120 # total training epochs
 train_steps_per_epoch: 40 #  steps per one training epoch
 val_steps_per_epoch: 3  # validation steps per epoch
 evaluate_step: 20  # evaluation steps per epoch
@@ -257,7 +257,8 @@ custom_metrics: [] #[recall_all,recall_per_class] # metric defined by custom, mu
 loss_functions: # loss function of the network, must be chosen from models/loss_function.py, if weight=0 or not specified it is not considered
     # loss function name: weight
     #jaccard_dist_loss: 1
-    dice_loss: 1
+    #dice_loss: 1
+    dice_loss_melanoma: 1
     #dice_coefficient_loss: 0
     #sigmoid_focal_crossentropy: 0
 use_multiple_loss_function: False #  True if use multiple_loss_fuction for multiple network outputs, else loss_functions is applied on single output note.
@@ -267,7 +268,7 @@ multiple_loss_function:
     class: loss_function # model_body_identification_hybrid output 1
     reg:  binary_crossentropy # model_body_identification_hybrid output 2
 
-loss_channel_weight: [1,5,8,2,6,3]  # loss weights for each output channel
+loss_channel_weight: [1.0,1.0]  # loss weights for each output channel
                                     # the length of loss_channel_weight must be greater or equal to the model output channel.
                                     # If length of loss_channel_weight is greater than model output channel, only the previous weights are adopted.
 
@@ -280,7 +281,7 @@ optimizer:
 
 # this parameters are for the Model UNet Melanoma
 
-filters_melanoma: 32 # number of feature maps or filters for starting the UNet Model
+filters_melanoma: 64 # number of feature maps or filters for starting the UNet Model
 number_of_levels: 5 # number of levels of the encoder-decoder part of the UNet Network
 
 ##-------------
@@ -298,7 +299,7 @@ load_predict_from_tfrecords: True  # True: load from pre-created TFRecords, Fals
 
 # Without tfrecords (directly from file)
 predict_data_dir_img: /nifti/NIFTI # path of prediction image OR paths to the nifti file: Nifty loading is further specified in nifti yaml file; can be left empty here.
-predict_load_label: False  # load label if predict data has one
+predict_load_label: True  # load label if predict data has one
 predict_data_dir_label: # path of prediction label
 path_yaml_file: # Path of additional yaml file for configuration
     predict_nifti: medseg/predict_data_processing/process_config/nifti.yaml # Path of prediction nifti yaml file, in which more info of nifti can be set (path, orientation etc.)

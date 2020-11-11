@@ -727,7 +727,7 @@ class ModelSet:
         ## assume that config['filters_melanoma'] is 32 according to paper
 
         f_maps = [config['filters_melanoma'] * 2 ** i for i in range(config['number_of_levels'])]
-        #print("number of f maps used: ", f_maps)
+        print("number of f maps used: ", f_maps)
 
         ## config['filters_melanoma'] is assumed to be in config file, it can be added there
         ## config['number_of_levels'] are assumed to be in config file, it can be added there
@@ -742,16 +742,15 @@ class ModelSet:
 
         #print("shape after first convolution, the first encoder: ", x.shape)
         ##--------------------------------------------------------------------------------------------------------
-        ##-------------------------------------------------------------------------------------------------------
-        ###-------------------------------------------------------------------------------------------------------
         ##---------- U Net in encoder part ------------------------------------------------------------------------
 
         # for this experiment, we can try with batch normalization
 
         encoders = []
-        f_maps_it = f_maps + [f_maps[-1]]
+        #f_maps_it = f_maps + [f_maps[-1]]
         #print("number of f maps used: ", f_maps_it)
-        list_f_maps = enumerate(f_maps_it)
+        #list_f_maps = enumerate(f_maps_it)
+        list_f_maps = enumerate(f_maps)
 
         #the encoder parths are created and added to encoders list
         # An external Residual block is consider in the last encoder
@@ -760,7 +759,7 @@ class ModelSet:
 
         for i, out_feature_num in list_f_maps:
             if i == 0:
-                ## feature maps at the end of convolution should be 32, according to paper
+                ## feature maps at the end of convolution should be equal according to torch implementation
                 encoder = block(f=out_feature_num, k=(5, 5, 1), s=1, order=['c', 'b', 'r'],
                                 order_param=None, order_priority=False)
                 #print("init: ", i)
@@ -768,26 +767,22 @@ class ModelSet:
                                         #pool_kernel_size=(2, 2, 2), basic_block=block,
                                         #conv_layer_order=['c', 'r', 'b'])
 
-            elif i == len(f_maps_it)-1: ## last layer in encoder / bottleneck
+            elif i == len(f_maps)-1: ## last layer in encoder / bottleneck
 
-                encoder = encoder_block(out_feature_num, conv_kernel_size=3, apply_pooling=False,
+                encoder = encoder_block(out_feature_num, conv_kernel_size=3, apply_pooling=True,
                                         pool_kernel_size=(2, 2, 2), basic_block=block_ExtResNet,
-                                        conv_layer_order=['c', 'r', 'b'], name='bottleneck')
-                #print("last: ", i)
+                                        conv_layer_order=['c', 'b', 'r'], name='bottleneck')
+                print("name: Bottleneck")
                 #write_latent_space(encoder.get_layer.output)
 
             else:
                 encoder = encoder_block(out_feature_num, conv_kernel_size=3, apply_pooling=True,
                                         pool_kernel_size=(2, 2, 2), pool_type='mp',
-                                        basic_block=block_ExtResNet, conv_layer_order=['c', 'r', 'b'])
+                                        basic_block=block_ExtResNet, conv_layer_order=['c', 'b', 'r'])
                 #print("middle: ", i)
             encoders.append(encoder)
 
         print("number of encoder paths: ", len(encoders))
-
-        ##--------------------------------------------------------------------------------------------------------
-        ##-------------------------------------------------------------------------------------------------------
-
         ###-------------------------------------------------------------------------------------------------------
         ##---------- U Net in decoder part ------------------------------------------------------------------------
 
@@ -797,15 +792,16 @@ class ModelSet:
 
         for i in range(len(reversed_f_maps) - 1):
 
-            if i == len(f_maps_it)-1: ## last decoder
+            if i == (len(reversed_f_maps) - 2): ## last decoder
+                print("last decoder")
                 decoder = decoder_block(reversed_f_maps[i + 1], kernel_size=3,
-                                        scale_factor=(2, 2, 2), basic_module=block_ExtResNet,
-                                        conv_layer_order=['dc', 'r', 'b'], last_decoder=True)
+                                        scale_factor=(2, 2, 2),
+                                        conv_layer_order=['c', 'b', 'r'], last_decoder=True)
 
             else:
                 decoder = decoder_block(reversed_f_maps[i + 1], kernel_size=3,
                                         scale_factor=(2, 2, 2), basic_module=block_ExtResNet,
-                                        conv_layer_order=['dc', 'r', 'b'])
+                                        conv_layer_order=['c', 'b', 'r'])
             decoders.append(decoder)
 
         print("number of decoder paths: ", len(decoders))
@@ -823,9 +819,9 @@ class ModelSet:
             encoders_features.insert(0, x)
             num_encoder = num_encoder+1
 
-        # remove the last 2 encoder's output from the list
-        # !!remember: they are the first 2 in the list
-        encoders_features = encoders_features[2:]
+        # remove the last encoder's output from the list
+        # !!remember: the first in the list
+        encoders_features = encoders_features[1:]
 
         num_decoder = 1
         for decoder, encoder_feature in zip(decoders, encoders_features):
@@ -915,6 +911,7 @@ def create_and_compile_model(inputs, outputs, config, premodel=None):
         if 'loss_functions' in config:
             for name_loss_function in config['loss_functions']:
                 loss_func = getattr(loss_function, name_loss_function)(y_true, y_pred, config=config)
+                print("Loss function used: ", name_loss_function)
                 weight = config['loss_functions'][name_loss_function]
                 sum_ = sum_ + weight * loss_func
         return sum_

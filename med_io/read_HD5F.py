@@ -3,13 +3,14 @@ import os
 
 class HD5F_Reader:
 
-    def __init__(self, dataset, rootdir_file):
+    def __init__(self, dataset, rootdir_file, padded=False):
         self.rootdir_file = rootdir_file
         self.dataset = dataset
         self.file = None
         self.img_IDs = []
         self.file_keys = []
         self.info_patient = {}
+        self.read_HD5F_file(padded=False)
 
     def read_HD5F_file(self, padded=False):
 

@@ -40,6 +40,8 @@ def evaluate(config, datasets=None):
         print('Now evaluating data ', dataset,' ...')
 
         # Fit training & validation data into the model
+        #print(ds_test[0].shape)
+        #print("Size of dataset: ", len(ds_test))
         list_loss_and_metrics = model.evaluate(ds_test,verbose=config['evaluate_verbose_mode'])
         lists_loss_and_metrics.append(list_loss_and_metrics)
 

@@ -18,12 +18,17 @@ def pipeline(config, dataset_image_path, dataset_label_path, dataset=None):
     :return: dataset: return tf.data.dataset: pipeline dataset
     """
     patch_size = config['patch_size']
+    print("patch size: ", patch_size)
     dim = len(patch_size)
+    print("dim: ", dim)
     # Read max data size of this dataset
     if not config['read_body_identification']:
         max_data_size = [max(config['max_shape']['image'][i], config['max_shape']['label'][i]) for i in range(dim)]
     else:
         max_data_size = [config['max_shape']['image'][i] for i in range(dim)]
+
+    print("printing max data size")
+    print(max_data_size)
 
     # Choose the channel of the dataset
     input_slice, output_slice = None, None

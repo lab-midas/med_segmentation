@@ -22,10 +22,10 @@ def args_argument():
     parser.add_argument('--preprocess', type=bool, default=False, help='Preprocess the data')
     parser.add_argument('--train', type=bool, default=True, help='Train the model')
     parser.add_argument('--evaluate', type=bool, default=False, help='Evaluate the model')
-    parser.add_argument('--predict', type=bool, default=True, help='Predict the model')
+    parser.add_argument('--predict', type=bool, default=False, help='Predict the model')
     parser.add_argument('--restore', type=bool, default=False, help='Restore the unfinished trained model')
     #parser.add_argument('-c', '--config_path', type=str, default='./config/bi.yaml', help='Configuration file of the project')
-    parser.add_argument('-c', '--config_path', type=str, default='/config/config_default.yaml', help='Configuration file of the project')
+    parser.add_argument('-c', '--config_path', type=str, default='/config/config_melanoma.yaml', help='Configuration file of the project')
     #parser.add_argument('-c', '--config_path', type=str, default='./config/nifti_AT.yaml', help='Configuration file of the project')
 
     parser.add_argument("--gpu", type=int, default=0, help="Specify the GPU to use")

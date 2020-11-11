@@ -213,7 +213,8 @@ def channel_config(config, dataset, evaluate=False):
     if config['output_channel'][dataset] is not None:
         config['channel_label_num'] = len(config['output_channel'][dataset])
 
-    print(config['channel_img_num'], config['channel_label_num'])
+    print("channel img num: ", config['channel_img_num'])
+    print("channel label num: ", config['channel_label_num'])
     if (not config['load_predict_from_tfrecords']) and (not evaluate) and (
             (not config['input_channel'][dataset]) or (not config['output_channel'][dataset])):
         raise ValueError('channel_label must be valued.')
@@ -357,7 +358,7 @@ def convert_result(config, predict_img, label_data_onehot=None, predict_class_nu
     else:
         predict_img_integers = convert_onehot_to_integers(predict_img)
     if predict_class_num is None:
-        print(np.max(predict_img_integers))
+        print("predict img integers: ", np.max(predict_img_integers))
         predict_img_onehot = convert_integers_to_onehot(predict_img_integers, num_classes=predict_img.shape[-1])
         print('line357', predict_img_onehot.shape)
     else:

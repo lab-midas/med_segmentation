@@ -76,7 +76,7 @@ def preprocess_raw_dataset(config):
         :return:img: type ndarray
         """
 
-        print("Shape to normalizeis: ", img.shape)
+        print("Shape to normalize is: ", img.shape)
 
         if not channel_at_beginning:
 
@@ -93,8 +93,8 @@ def preprocess_raw_dataset(config):
 
         else: # this means that the channel is on the first position (channels, x, y, z)
 
-            num_channels = img.shape[0]
-            img = np.rollaxis(np.float32(np.array(img)), 0, 4) # changes the channel axis to the end
+            num_channels = img.shape[3]
+            #img = np.rollaxis(np.float32(np.array(img)), 0, 4) # changes the channel axis to the end
             print("Shape before normalization: ", img.shape)
 
             if globalscale:
@@ -113,7 +113,6 @@ def preprocess_raw_dataset(config):
             assert num_channels == img.shape[-1], "normalization was not good performed"
 
         print("Final Shape: ", img.shape)
-
 
         return img
 
@@ -494,11 +493,11 @@ def preprocess_raw_dataset(config):
             # directories in server for the HD5F files
             # directory of images and masks are the same
             rootdir_file = config['rootdir_raw_data_img'][dataset]
-            #print(root_dir_img)
+            print("root dir from img and label is: ", rootdir_file)
             #rootdir_label = config['rootdir_raw_data_label'][dataset]
             #print(root_dir_label)
             rootdir_tfrec = config['rootdir_tfrec'][dataset]
-            #print(root_dir_tfrec)
+            print("root dir for tfrecords is: ", rootdir_tfrec)
 
             #dir_patterns = {'images': '/*/image', 'mask': '/*/mask'}
 
@@ -519,22 +518,29 @@ def preprocess_raw_dataset(config):
                 #for channel in range(num_channels): # (PET, CT)
 
                 img_h5 = Data_Reader.file[file_keys[0]][img_ID]
-                #print("Shape of the image is: ", img_h5.shape)
+                print("Shape of the image is: ", img_h5.shape)
                 # the form of the images are  (channel, H, W, D)
 
                 mask_h5 = Data_Reader.file[file_keys[1]][img_ID] # mask or label
-                #print("Shape of the mask_h5 is: ", mask_h5.shape)
+                print("Shape of the mask_h5 is: ", mask_h5.shape)
 
-                max_shape_img = calculate_max_shape(max_shape_img, img_h5)
-                print("MaxShape of the image is: ", max_shape_img)
-                max_shape_mask = calculate_max_shape(max_shape_label, mask_h5)
-                print("MaxShape of the mask is: ", max_shape_mask)
-                #max_shape_mask_iso = calculate_max_shape(max_shape_label, img['mask_iso'][img_ID])
-                img_normalized = normalize(img_h5, channel_at_beginning=True).astype(np.float32)
-                #print("The normalized shape is: ", img_normalized.shape)
+                img_array = np.rollaxis(np.float32(np.array(img_h5)), 0, 4)
+                print("Shape of the image ARRAY is: ", img_array.shape)
 
                 mask_array = np.rollaxis(np.float32(np.array(mask_h5)), 0, 4)
-                #print("Shape of the mask ARRAY is: ", mask_array.shape)
+                print("Shape of the mask ARRAY is: ", mask_array.shape)
+
+                max_shape_img = calculate_max_shape(max_shape_img, img_array)
+                print("MaxShape of the image is: ", max_shape_img)
+                max_shape_mask = calculate_max_shape(max_shape_label, mask_array)
+                print("MaxShape of the mask is: ", max_shape_mask)
+                #max_shape_mask_iso = calculate_max_shape(max_shape_label, img['mask_iso'][img_ID])
+                img_normalized = normalize(img_array, channel_at_beginning=True).astype(np.float32)
+                print("The normalized shape is: ", img_normalized.shape)
+
+
+
+                assert img_normalized.shape[:3] == mask_array.shape[:3], "Dimensions from image and mask do not match"
 
                 infos = {'name_ID': img_ID,
                          'info_patient': "info",
