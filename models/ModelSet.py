@@ -737,8 +737,8 @@ class ModelSet:
 
         ## feature maps at the end of convolution should be 32, according to paper
 
-        #x = block(f=f_maps[0], k=(5, 5, 1), s=1, order=['c', 'b', 'r'],
-                        #order_param=None, order_priority=False)(x)
+        x = block(f=f_maps[0], k=(5, 5, 1), s=1, order=['c', 'b', 'r'],
+                        order_param=None, order_priority=False)(x)
 
         #print("shape after first convolution, the first encoder: ", x.shape)
         ##--------------------------------------------------------------------------------------------------------
@@ -759,13 +759,13 @@ class ModelSet:
 
         for i, out_feature_num in list_f_maps:
             if i == 0:
-                ## feature maps at the end of convolution should be equal according to torch implementation
-                encoder = block(f=out_feature_num, k=(5, 5, 1), s=1, order=['c', 'b', 'r'],
-                                order_param=None, order_priority=False)
+                # feature maps at the end of convolution should be equal according to torch implementation
+                #encoder = block(f=out_feature_num, k=(5, 5, 1), s=1, order=['c', 'b', 'r'],
+                #                order_param=None, order_priority=False)
                 #print("init: ", i)
-                #encoder = encoder_block(out_feature_num, conv_kernel_size=3, apply_pooling=False,
-                                        #pool_kernel_size=(2, 2, 2), basic_block=block,
-                                        #conv_layer_order=['c', 'r', 'b'])
+                encoder = encoder_block(out_feature_num, conv_kernel_size=3, apply_pooling=False,
+                                        pool_kernel_size=(2, 2, 2), basic_block=block_ExtResNet,
+                                        conv_layer_order=['c', 'b', 'r'])
 
             elif i == len(f_maps)-1: ## last layer in encoder / bottleneck
 
@@ -834,8 +834,8 @@ class ModelSet:
         ## we have another final convolution according to the architecture proposed
         ##final_conv
 
-        #x = block(f=config['filters_melanoma'], k=(5, 5, 1), s=2,
-                  #order_param=None, order_priority=False)(x)
+        x = final_conv(f=(f_maps[0]//2), k=3, s=1,
+                  order_param=None, order_priority=False)(x)
 
         ## here should be the softmax activation function
 
