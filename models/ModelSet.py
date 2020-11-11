@@ -737,7 +737,7 @@ class ModelSet:
 
         ## feature maps at the end of convolution should be 32, according to paper
 
-        x = block(f=f_maps[0], k=(5, 5, 1), s=1, order=['c', 'b', 'r'],
+        x = block(f=f_maps[0], k=(5, 5, 5), s=1, order=['c', 'b', 'r'],
                         order_param=None, order_priority=False)(x)
 
         #print("shape after first convolution, the first encoder: ", x.shape)
@@ -834,7 +834,7 @@ class ModelSet:
         ## we have another final convolution according to the architecture proposed
         ##final_conv
 
-        x = final_conv(f=(f_maps[0]//2), k=3, s=1,
+        x = final_conv(f_maps[0]//2, k=3, s=1,
                   order_param=None, order_priority=False)(x)
 
         ## here should be the softmax activation function
