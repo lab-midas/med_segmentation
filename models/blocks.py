@@ -290,7 +290,7 @@ def decoder_block(out_channels, kernel_size=3,
 
     return decoder_block
 
-def final_conv(out_channels, kernel_size=3, scale_factor=(2, 2, 2),
+def final_conv(out_channels, kernel_size=3,
                conv_layer_order=['c', 'b', 'r']):
 
     def final_conv(x):
@@ -300,7 +300,7 @@ def final_conv(out_channels, kernel_size=3, scale_factor=(2, 2, 2),
 
         # print("dimension after conv 1 is: ", conv1.shape)
 
-        conv2 = block(f=1, k=1, s=1, order=conv_layer_order,
+        conv2 = block(f=2, k=(1, 1, 1), s=1, order=conv_layer_order,
                       order_param=None, order_priority=False)(conv1)
 
         # print("dimension after conv 1 is: ", conv1.shape)

@@ -834,8 +834,7 @@ class ModelSet:
         ## we have another final convolution according to the architecture proposed
         ##final_conv
 
-        x = final_conv(f_maps[0]//2, k=3, s=1,
-                  order_param=None, order_priority=False)(x)
+        x = final_conv(f_maps[0]//2, kernel_size=3, conv_layer_order=['c', 'b', 'r'])(x)
 
         ## here should be the softmax activation function
 
