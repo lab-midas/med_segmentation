@@ -13,3 +13,4 @@ tensorflow == 2.0.0
 SimpleITK == 1.2.4
 nibabel == 3.1.1
 opencv-python == 4.4.0.44
+h5py == 2.10.0
