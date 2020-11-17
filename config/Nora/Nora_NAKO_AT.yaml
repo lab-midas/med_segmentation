@@ -22,7 +22,7 @@ seed_random_split: 1 # random seed of splitting data
 #  Paths for database
 # root dir of data image and label, for more detailed configuration, please define them in med_io/preprocess_raw_dataset.py
 rootdir_raw_data_img:
-    NAKO_AT: /mnt/data/rawdata/NAKO/AT_NAKO/AT_NAKO
+    NAKO_AT: /mnt/data/rawdata/NAKO/AT_NAKO
     DIXON: /mnt/data/rawdata/mMR_DIXON
     TULIP1_5T: /mnt/data/rawdata/TULIP_PLIS/1_5T
     TULIP3T: /mnt/data/rawdata/TULIP_PLIS/3T
@@ -184,6 +184,10 @@ patch_probability_distribution:
         mu:     # list of 3 floats/integers
         sigma:  # list of 3 floats/integers
     uniform: #  True if use uniform distribution
+
+# Active Learning
+information_estimation: 'uncertainty'   # in which way information content of patches will be estimated
+                                        # choose one of: 'uncertainty'
 
 ##----------------------------------------------------------------------------------------------------------------------
 ## MODEL ##
