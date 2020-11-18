@@ -238,13 +238,6 @@ def preprocess_raw_dataset(config):
                                                dir_tfrec_info)
                         save_max_shape(dataset, max_shape_img, max_shape_label)
 
-
-
-
-
-
-
-
         # KORA
 
         elif dataset == 'KORA':
@@ -537,8 +530,6 @@ def preprocess_raw_dataset(config):
                 #max_shape_mask_iso = calculate_max_shape(max_shape_label, img['mask_iso'][img_ID])
                 img_normalized = normalize(img_array, channel_at_beginning=True).astype(np.float32)
                 print("The normalized shape is: ", img_normalized.shape)
-
-
 
                 assert img_normalized.shape[:3] == mask_array.shape[:3], "Dimensions from image and mask do not match"
 

@@ -12,7 +12,7 @@ exp_name: exp_Melanom  # experiment name (used for storage)
 tensorflow_seed: 1
 numpy_seed: 1
 random_seed: 1
-seed_random_split: 42 # random seed of splitting data
+seed_random_split: 1 # random seed of splitting data
 
 
 ##----------------------------------------------------------------------------------------------------------------------
@@ -94,6 +94,7 @@ name_output_channel:
 
 channel_img_num:
 channel_label_num:
+num_classes: 2
 # Input and Output channel selection
 # Choose the indices of the channels as format list,
 # for example, name of the channel [A, B, C, D]. if choose channel B and D, write:[1,3]
@@ -179,10 +180,10 @@ evaluate_batch_size: 1 # batch size of evaluating model
 predict_batch_size: 2 # batch size of predicting model
 
 # Patch
-patch_size: [32,32,32] # patch size of the model, Type list of n int, n=dimension. # body identification network :[1, X, Y]
+patch_size: [96, 96, 96] # patch size of the model, Type list of n int, n=dimension. # body identification network :[1, X, Y]
 patch_start:           # patch size of the model, Type list of n int, n=dimension.
 patch_end:            # patch size of the model, Type list of n int, n=dimension.
-patch_overlap_rate: 0.0 # value in [0,1)
+patch_overlap_rate: 0.26 # value in [0,1)
 squeeze_channel:  True # Type bool, extract the first channel from the input image to the model. (For model body identification=True,others=False)
 predict_patch_overlap_rate: 0.0 #value in [0,1)
 random_shift_patch: True  # shift the patch or not for augmentation
@@ -230,7 +231,7 @@ model_add_background_output: False # Type bool, add one channel from the model o
 img_label_same_shape: False  # Type bool, repad to same shape
 
 # Epochs and steps
-epochs: 120 # total training epochs
+epochs: 10 # total training epochs
 train_steps_per_epoch: 40 #  steps per one training epoch
 val_steps_per_epoch: 3  # validation steps per epoch
 evaluate_step: 20  # evaluation steps per epoch
@@ -251,8 +252,8 @@ convolution_parameter :
 
 # Compile model
 # Metrics of model
-tensorflow_metrics: [categorical_crossentropy] # metric defined in  https://www.tensorflow.org/api_docs/python/tf/keras/metrics
-custom_metrics: [] #[recall_all,recall_per_class] # metric defined by custom, must be chosen from models/loss_function.py/Metric()
+tensorflow_metrics: [accuracy] # metric defined in  https://www.tensorflow.org/api_docs/python/tf/keras/metrics
+custom_metrics: [dice_coef_all] #[recall_all,recall_per_class] # metric defined by custom, must be chosen from models/loss_function.py/Metric()
 # Loss
 loss_functions: # loss function of the network, must be chosen from models/loss_function.py, if weight=0 or not specified it is not considered
     # loss function name: weight
@@ -281,7 +282,7 @@ optimizer:
 
 # this parameters are for the Model UNet Melanoma
 
-filters_melanoma: 64 # number of feature maps or filters for starting the UNet Model
+filters_melanoma: 32 # number of feature maps or filters for starting the UNet Model
 number_of_levels: 5 # number of levels of the encoder-decoder part of the UNet Network
 
 ##-------------

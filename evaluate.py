@@ -44,6 +44,7 @@ def evaluate(config, datasets=None):
         #print("Size of dataset: ", len(ds_test))
         list_loss_and_metrics = model.evaluate(ds_test,verbose=config['evaluate_verbose_mode'])
         lists_loss_and_metrics.append(list_loss_and_metrics)
+        print(list_loss_and_metrics)
 
         path_pickle = config['result_rootdir'] +config['exp_name']+ '/'+config['model']+'/evaluate_loss_and_metrics/'
         if not os.path.exists(path_pickle): os.makedirs(path_pickle)

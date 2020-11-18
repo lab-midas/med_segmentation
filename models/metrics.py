@@ -82,6 +82,18 @@ class Metric:
         recall, precision = recall_func(self, y_true, y_pred, config), precision_func(self, y_true, y_pred, config)
         return (2 * recall * precision + smooth) / (recall + precision + smooth)
 
+    def dice_coef_all(self, y_true, y_pred, config):
+        """ Dice coefficient for Melanoma network
+                            y_true: true targets tensor.
+                            y_pred: predictions tensor.
+                            Dice calculation with smoothing to avoid division by zero
+                    """
+        smooth = K.epsilon()
+        y_pred = tf.one_hot(tf.argmax(y_pred, axis=-1), config['channel_label_num'])
+        intersection = K.sum(K.abs(y_true * y_pred), axis=-1)
+        #true_positive = K.sum(y_true * y_pred)
+        return (2. * intersection + smooth) / (K.sum(K.square(y_true), -1) + K.sum(K.square(y_pred), -1) + smooth)
+
 
 def get_custom_metrics(amount_classes, name_metric, config):
     """

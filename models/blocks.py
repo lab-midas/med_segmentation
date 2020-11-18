@@ -283,29 +283,36 @@ def decoder_block(out_channels, kernel_size=3,
             print("last decoder x2")
             x = block(out_channels, kernel_size, s=2, order=['dc', 'b', 'r'])(x)  # Deconvolution process
             x = tf.concat([x, encoder_feature], axis=-1)  # Concatenation with encoder part
-            x = block(out_channels, (5, 5, 1), s=1, order=conv_layer_order)(x)
+            #x = block(out_channels, (5, 5, 1), s=1, order=conv_layer_order)(x)
+            x = basic_module(out_channels, kernel_size=kernel_size, order=conv_layer_order)(x)
 
 
         return x
 
     return decoder_block
 
-def final_conv(out_channels, kernel_size=3,
+def final_conv(out_channels, kernel_size=(1,1,1),
                conv_layer_order=['c', 'b', 'r']):
 
     def final_conv(x):
 
-        conv1 = block(f=out_channels, k=kernel_size, s=1, order=conv_layer_order,
+        #conv1 = block(f=out_channels, k=kernel_size, s=1, order=conv_layer_order,
+                      #order_param=None, order_priority=False)(x)
+
+        # print("dimension after conv 1 is: ", conv1.shape)
+
+        #conv2 = block(f=2, k=(1, 1, 1), s=1, order=conv_layer_order,
+                      #order_param=None, order_priority=False)(conv1)
+
+        # print("dimension after conv 1 is: ", conv1.shape)
+
+        #x = conv2
+
+
+        x = block(f=out_channels, k=(1, 1, 1), s=1, order=conv_layer_order,
                       order_param=None, order_priority=False)(x)
 
-        # print("dimension after conv 1 is: ", conv1.shape)
-
-        conv2 = block(f=2, k=(1, 1, 1), s=1, order=conv_layer_order,
-                      order_param=None, order_priority=False)(conv1)
-
-        # print("dimension after conv 1 is: ", conv1.shape)
-
-        x = conv2
+        # print("dimension after 1x1x1 conv is: ", conv1.shape)
 
         return x
 

@@ -8,6 +8,10 @@ import models.loss_function as loss_function
 from .metrics import *
 from util import convert_tf_optimizer
 import copy
+import numpy as np
+from models.Model_Torch import *
+from models.pytorch2keras import *
+from torch.autograd import Variable
 
 
 class ModelSet:
@@ -737,8 +741,8 @@ class ModelSet:
 
         ## feature maps at the end of convolution should be 32, according to paper
 
-        x = block(f=f_maps[0], k=(5, 5, 5), s=1, order=['c', 'b', 'r'],
-                        order_param=None, order_priority=False)(x)
+        #x = block(f=f_maps[0], k=(5, 5, 5), s=1, order=['c', 'b', 'r'],
+                        #order_param=None, order_priority=False)(x)
 
         #print("shape after first convolution, the first encoder: ", x.shape)
         ##--------------------------------------------------------------------------------------------------------
@@ -760,10 +764,10 @@ class ModelSet:
         for i, out_feature_num in list_f_maps:
             if i == 0:
                 # feature maps at the end of convolution should be equal according to torch implementation
-                #encoder = block(f=out_feature_num, k=(5, 5, 1), s=1, order=['c', 'b', 'r'],
-                #                order_param=None, order_priority=False)
+                #encoder = block(f=out_feature_num, k=(3, 3, 3), s=1, order=['c', 'b', 'r'],
+                                #order_param=None, order_priority=False)
                 #print("init: ", i)
-                encoder = encoder_block(out_feature_num, conv_kernel_size=3, apply_pooling=False,
+                encoder = encoder_block(out_feature_num, conv_kernel_size=(3,3,3), apply_pooling=False,
                                         pool_kernel_size=(2, 2, 2), basic_block=block_ExtResNet,
                                         conv_layer_order=['c', 'b', 'r'])
 
@@ -834,7 +838,9 @@ class ModelSet:
         ## we have another final convolution according to the architecture proposed
         ##final_conv
 
-        x = final_conv(f_maps[0]//2, kernel_size=3, conv_layer_order=['c', 'b', 'r'])(x)
+        #x = final_conv(f_maps[0]//2, kernel_size=3, conv_layer_order=['c', 'b', 'r'])(x)
+        #print("number of labels: ", config['channel_label_num'])
+        x = final_conv(2)(x)
 
         ## here should be the softmax activation function
 
@@ -843,6 +849,24 @@ class ModelSet:
         # if config['feed_pos']:
         #    return create_and_compile_model([inputs, in_pos], x, config)
         # else:
+        return create_and_compile_model(inputs, x, config)
+
+    def ResidualUNet3D_melanom(self, config):
+
+        model = ResidualUNet3D(in_channels=2, out_channels=2, final_sigmoid=False,
+                               f_maps=32, conv_layer_order='cge', num_groups=8,
+                               skip_final_activation=False)
+        ## the input tensor of the application is generated
+        inputs = Input(shape=(*config['patch_size'],) + (config['channel_img_num'],), name='inp1')
+
+        x = inputs
+        input_np = np.random.uniform(0, 1, (*config['patch_size'],) + (config['channel_img_num'],))
+        in_dummy = Variable(torch.FloatTensor(input_np))
+
+        k_model = pytorch_to_keras(model, args=in_dummy, input_shapes=x, verbose=True, name_policy='short')
+
+        x = k_model(x)
+
         return create_and_compile_model(inputs, x, config)
 
     def overall_survival_prediction(config, model_encoder):

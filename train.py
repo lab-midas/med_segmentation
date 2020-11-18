@@ -1,5 +1,6 @@
 import tensorflow as tf
 from med_io.pipeline import *
+from med_io.pipeline_melanom import *
 from models.ModelSet import *
 from sklearn.model_selection import train_test_split
 from util import *
@@ -122,24 +123,9 @@ def train_process(config, model, paths_train_img, paths_train_label, paths_val_i
                   saver1, k_fold_index=0, init_epoch=0):
     """Internal function"""
 
-    # Building pipelines of training and validation Dataset.
-    print("reading pipeline")
-    ds_train = pipeline(config, paths_train_img, paths_train_label, dataset=dataset)
-    print(ds_train)
-    print("reading pipeline")
-    ds_train_len = type(ds_train)
-    print(ds_train_len)
-    print(ds_train.cardinality().numpy())
-    #print("next element: ", next(ds_train).shape)
-    ds_validation = pipeline(config, paths_val_img, paths_val_label, dataset=dataset)
-    print("Size of dataset training: ", len(ds_train))
-    print("Size of dataset validation: ", len(ds_validation))
-    # Fit training & validation data into the model
+    if config['dataset'][0] == "MELANOM":
 
-    print(config['dataset'][0])
-    print(type(config['dataset'][0]))
-
-    if 3 == 4:#config['dataset'][0] == "MELANOM":
+        print("reading pipeline for Melanom dataset")
 
         #ds_train_it = tf.compat.v1.data.Iterator.from_structure(ds_train.output_types,
                                                                    #ds_train.output_shapes)
@@ -155,24 +141,41 @@ def train_process(config, model, paths_train_img, paths_train_label, paths_val_i
 
         #ds_train_it = next_elements_train
         #ds_validation_it = next_elements_val
-        ds_train_it = iter(ds_train)
+        #ds_train_it = iter(ds_train)
         # ds_train_it_next = ds_train_it.get_next()
 
-        ds_validation_it = iter(ds_validation)
+        #ds_validation_it = iter(ds_validation)
+
+        ds_train = pipeline_melanom(config, paths_train_img, paths_train_label, dataset=dataset)
+
+        ds_validation = pipeline_melanom(config, paths_val_img, paths_val_label, dataset=dataset)
+
+        # Fit training & validation data into the model
         # ds_validation_it_next = ds_validation_it.get_next()
 
-        history = model.fit(ds_train_it.get_next(),
+        history = model.fit(ds_train,
                             epochs=config['epochs'] + init_epoch,
                             steps_per_epoch=config['train_steps_per_epoch'],
                             callbacks=[cp_callback, saver1],
                             initial_epoch=init_epoch,
-                            validation_data=ds_validation_it.get_next(),
+                            validation_data=ds_validation,
                             validation_steps=config['val_steps_per_epoch'],
                             validation_freq=config['validation_freq'],
                             verbose=config['train_verbose_mode'])
         print(history.history)
 
     else:
+
+        # Building pipelines of training and validation Dataset.
+        print("reading pipeline")
+        ds_train = pipeline(config, paths_train_img, paths_train_label, dataset=dataset)
+
+        ds_validation = pipeline(config, paths_val_img, paths_val_label, dataset=dataset)
+
+        # Fit training & validation data into the model
+
+        print(config['dataset'][0])
+        print(type(config['dataset'][0]))
 
         history = model.fit(ds_train,
                             epochs=config['epochs'] + init_epoch,
@@ -203,6 +206,9 @@ def train_config_setting(config, dataset):
         filename_max_shape = config['dir_dataset_info'] + '/max_shape_' + dataset + '.pickle'
     with open(filename_max_shape, 'rb') as fp:
         config['max_shape'] = pickle.load(fp)
+
+    print("max shape image: ", config['max_shape']['image'])
+    print("max shape label: ", config['max_shape']['label'])
     # Get the amount of input and output channel
     # config[channel_img]: channel amount of model input, config[channel_label]: channel amount of model output
     config['channel_img_num'], config['channel_label_num'] = config['max_shape']['image'][-1], \

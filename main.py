@@ -28,8 +28,8 @@ def args_argument():
     parser.add_argument('-c', '--config_path', type=str, default='/config/config_melanoma.yaml', help='Configuration file of the project')
     #parser.add_argument('-c', '--config_path', type=str, default='./config/nifti_AT.yaml', help='Configuration file of the project')
 
-    parser.add_argument("--gpu", type=int, default=0, help="Specify the GPU to use")
-    parser.add_argument('--gpu_memory', type=float, default=None, help='Set GPU allocation. (in GB) ')
+    parser.add_argument("--gpu", type=int, default=1, help="Specify the GPU to use")
+    parser.add_argument('--gpu_memory', type=float, default=20, help='Set GPU allocation. (in GB) ')
     parser.add_argument('--calculate_max_shape_only', type=bool, default=False,
                         help='Only calculate the max shape of each dataset')
     parser.add_argument('--split_only', type=bool, default=False,
