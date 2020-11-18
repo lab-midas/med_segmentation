@@ -9,12 +9,13 @@ from .generate_label import *
 import pickle
 
 
-def pipeline(config, dataset_image_path, dataset_label_path, dataset=None):
+def pipeline(config, dataset_image_path, dataset_label_path, dataset=None, active_learning=False):
     """
     Pipeline of tf.data for importing the data
     :param config: type dict,config parameter
     :param dataset_image_path: type str: dataset image path
     :param dataset_label_path: type str: dataset label path
+    :param active_learning: type bool: train on most effective data first
     :return: dataset: return tf.data.dataset: pipeline dataset
     """
     patch_size = config['patch_size']
