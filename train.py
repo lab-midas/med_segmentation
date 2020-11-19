@@ -117,16 +117,28 @@ def train(config, restore=False):
 
 def train_process(config, model, paths_train_img, paths_train_label, paths_val_img, paths_val_label, dataset,
                   cp_callback,
-                  saver1, k_fold_index=0, init_epoch=0, AL_iterations=1):
+                  saver1, k_fold_index=0, init_epoch=0, active_learning=True):
     """Internal function"""
 
     # Building pipeline for validation Dataset.
     ds_validation = pipeline(config, paths_val_img, paths_val_label, dataset=dataset)
 
-    # Normal training (without active learning selection)
-    if AL_iterations == None:
-        # Building pipeline for prediction Dataset.
-        ds_train = pipeline(config, paths_train_img, paths_train_label, dataset=dataset, active_learning=True)
+    if active_learning:
+        AL_iterations = config['AL_iterations']
+    else:
+        AL_iterations = 1
+
+    # Active learning iterations
+    for n_AL in range(AL_iterations):
+        if active_learning:
+            # predict data-patches
+            # calculate value of the patches for training
+            # select the best n for training
+            query_training_patches(config, paths_train_img, model)
+
+        # build for selected patches the training pipeline and fit model
+        ds_train = pipeline(config, paths_train_img, paths_train_label,
+                            dataset=dataset, active_learning=active_learning)
 
         # Fit training & validation data into the model
         history = model.fit(ds_train,
@@ -138,28 +150,6 @@ def train_process(config, model, paths_train_img, paths_train_label, paths_val_i
                             validation_steps=config['val_steps_per_epoch'],
                             validation_freq=config['validation_freq'],
                             verbose=config['train_verbose_mode'])
-
-    # Active learning iterations
-    else:
-        for n_AL in range(AL_iterations):
-            # predict data-patches
-            # calculate value of the patches for training
-            # select the best n for training
-            query_training_patches(config, paths_train_img, model)
-
-            # build for selected patches the training pipeline and fit model
-            ds_train = pipeline(config, paths_train_img, paths_train_label, dataset=dataset, active_learning=True)
-
-            # Fit training & validation data into the model
-            history = model.fit(ds_train,
-                                epochs=config['epochs'] + init_epoch,
-                                steps_per_epoch=config['train_steps_per_epoch'],
-                                callbacks=[cp_callback, saver1],
-                                initial_epoch=init_epoch,
-                                validation_data=ds_validation,
-                                validation_steps=config['val_steps_per_epoch'],
-                                validation_freq=config['validation_freq'],
-                                verbose=config['train_verbose_mode'])
 # !!! save history in for loop?
     print(history.history)
     # Save the histories and plot figures
