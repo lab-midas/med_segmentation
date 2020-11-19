@@ -5,6 +5,7 @@ from sklearn.model_selection import train_test_split
 from util import *
 from plot.plot_figure import *
 from tensorflow.keras.models import load_model
+from med_io.active_learning import *
 from models.load_model import load_model_file
 import pickle
 import datetime
@@ -116,7 +117,7 @@ def train(config, restore=False):
 
 def train_process(config, model, paths_train_img, paths_train_label, paths_val_img, paths_val_label, dataset,
                   cp_callback,
-                  saver1, k_fold_index=0, init_epoch=0, AL_iterations=None):
+                  saver1, k_fold_index=0, init_epoch=0, AL_iterations=1):
     """Internal function"""
 
     # Building pipeline for validation Dataset.
@@ -144,6 +145,8 @@ def train_process(config, model, paths_train_img, paths_train_label, paths_val_i
             # predict data-patches
             # calculate value of the patches for training
             # select the best n for training
+            query_training_patches(config, paths_train_img, model)
+
             # build for selected patches the training pipeline and fit model
             ds_train = pipeline(config, paths_train_img, paths_train_label, dataset=dataset, active_learning=True)
 
