@@ -30,18 +30,20 @@ def query_training_patches(config, dataset_image_path, model, dataset=None):
         input_slice = config['input_channel'][dataset]
 
     for index, image_TFRecordDataset in enumerate(list_image_TFRecordDataset):
+#       img_data, img_shape = image_TFRecordDataset.map(parser)
+#       img_data = img_data.numpy()
         dataset_image = image_TFRecordDataset.map(parser)
         img_data = [elem[0].numpy() for elem in dataset_image][0]
-        
-#         # bis hier aus predict.py ab hier aus pipeline
-#         # patch the image
-#         patch_size = config['patch_size']
-#         dim = len(patch_size)
-#         max_data_size = [config['max_shape']['image'][i] for i in range(dim)]
+        img_shape = [elem[1].numpy() for elem in dataset_image][0]
+        images_data = pad_img_label(config, max_data_size, img_data, img_shape)
 
-    # predict data-patches
+        patchs_imgs, index_list = get_patches_data(max_data_size, patch_size, images_data,
+                                                                  patches_indices, slice_channel_img=input_slice,
+                                                                  output_patch_size=config['model_output_size'])
 
-    # calculate value of the patches for training
+        # predict data-patches
+
+        # calculate value of the patches for training
 
     # select the best n for training
 

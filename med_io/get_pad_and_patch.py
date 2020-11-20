@@ -236,7 +236,7 @@ def unpatch_predict_image(data_patches, indice_list, patch_size, unpatch_data_si
     return unpatch_img
 
 
-def get_patches_data(data_size, patch_size, data_img, data_label, index_list, random_rate=0.3,
+def get_patches_data(data_size, patch_size, data_img, index_list, data_label=None, random_rate=0.3,
                      slice_channel_img=None, slice_channel_label=None, output_patch_size=None, random_shift_patch=True,
                      squeeze_channel=False):
     """
@@ -322,4 +322,7 @@ def get_patches_data(data_size, patch_size, data_img, data_label, index_list, ra
         # Select the label channel for patching
         patch_label_collection = [tf.stack([label[..., i] for i in slice_channel_label], axis=-1) for label in
                                   patch_label_collection]
-    return patch_img_collection, patch_label_collection, index_list
+    if data_label is None and slice_channel_label is None:
+        return patch_img_collection, index_list
+    else:
+        return patch_img_collection, patch_label_collection, index_list
