@@ -29,19 +29,22 @@ def query_training_patches(config, dataset_image_path, model, dataset=None):
     if config['input_channel'][dataset] is not None:
         input_slice = config['input_channel'][dataset]
 
-    for index, image_TFRecordDataset in enumerate(list_image_TFRecordDataset):
+    # for every image, get patches and determine each ones uncertainty value
+    for image_index, image_TFRecordDataset in enumerate(list_image_TFRecordDataset):
 #       img_data, img_shape = image_TFRecordDataset.map(parser)
 #       img_data = img_data.numpy()
         dataset_image = image_TFRecordDataset.map(parser)
         img_data = [elem[0].numpy() for elem in dataset_image][0]
         img_shape = [elem[1].numpy() for elem in dataset_image][0]
-        images_data = pad_img_label(config, max_data_size, img_data, img_shape)
+        img_data = pad_img_label(config, max_data_size, img_data, img_shape)
 
-        patchs_imgs, index_list = get_patches_data(max_data_size, patch_size, images_data,
-                                                                  patches_indices, slice_channel_img=input_slice,
-                                                                  output_patch_size=config['model_output_size'])
+        patch_imgs, patches_indices = get_patches_data(max_data_size, patch_size, img_data, patches_indices,
+                                                  slice_channel_img=input_slice,
+                                                  output_patch_size=config['model_output_size'],
+                                                  random_shift_patch=False)
 
         # predict data-patches
+        predict_patch_imgs = model.predict(x=(patch_imgs, patches_indices), batch_size=1, verbose=1)
 
         # calculate value of the patches for training
 
