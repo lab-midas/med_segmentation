@@ -1,4 +1,5 @@
 import tensorflow as tf
+import numpy as np
 from med_io.parser_tfrec import parser
 from med_io.get_pad_and_patch import get_fixed_patches_index, pad_img_label, get_patches_data
 
@@ -7,7 +8,7 @@ Active learning parts for pipeline
 """
 
 
-def query_training_patches(config, dataset_image_path, model, dataset=None):
+def query_training_patches(config, dataset_image_path, model, dataset=None, remaining_indices=None, train_num=10):
     '''Load patch and predict data (exact docstring TBD)'''
     # Data loading inspired by predict.py
 
@@ -29,24 +30,30 @@ def query_training_patches(config, dataset_image_path, model, dataset=None):
     if config['input_channel'][dataset] is not None:
         input_slice = config['input_channel'][dataset]
 
+    # Initialize dictionary that stores the uncertainty values
+    uncertainties = {}
+    selection = []
+
     # for every image, get patches and determine each ones uncertainty value
-    for image_index, image_TFRecordDataset in enumerate(list_image_TFRecordDataset):
-#       img_data, img_shape = image_TFRecordDataset.map(parser)
-#       img_data = img_data.numpy()
+    for image_number, image_TFRecordDataset in enumerate(list_image_TFRecordDataset):
+        #       img_data, img_shape = image_TFRecordDataset.map(parser)
+        #       img_data = img_data.numpy()
         dataset_image = image_TFRecordDataset.map(parser)
         img_data = [elem[0].numpy() for elem in dataset_image][0]
         img_shape = [elem[1].numpy() for elem in dataset_image][0]
         img_data = pad_img_label(config, max_data_size, img_data, img_shape)
 
         patch_imgs, patches_indices = get_patches_data(max_data_size, patch_size, img_data, patches_indices,
-                                                  slice_channel_img=input_slice,
-                                                  output_patch_size=config['model_output_size'],
-                                                  random_shift_patch=False)
+                                                       slice_channel_img=input_slice,
+                                                       output_patch_size=config['model_output_size'],
+                                                       random_shift_patch=False)
 
         # predict data-patches
-        predict_patch_imgs = model.predict(x=(patch_imgs, patches_indices), batch_size=1, verbose=1)
+        predict_patch_imgs = model.predict(x=(patch_imgs, np.float32(patches_indices)), batch_size=1, verbose=1)
 
         # calculate value of the patches for training
+        for predict_patch, patch_index in zip(predict_patch_imgs, patches_indices):
+            uncertainties[(image_number, tuple(patch_index))] = uncertainty_sampling(predict_patch)
 
     # select the best n for training
 
