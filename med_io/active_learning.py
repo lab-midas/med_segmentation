@@ -54,10 +54,18 @@ def query_training_patches(config, dataset_image_path, model, dataset=None, rema
         # calculate value of the patches for training
         for predict_patch, patch_index in zip(predict_patch_imgs, patches_indices):
             uncertainties[(image_number, tuple(patch_index))] = uncertainty_sampling(predict_patch)
+        print(image_number)
+        # only for debugging
+        if image_number >= 2:
+            break
 
     # select the best n for training
-
-    return 'hier liste mit ausgewählten patches?'
+    for n in range(train_num):
+        most_uncertain = max(uncertainties, key=lambda x: uncertainties[x])
+        selection.append(most_uncertain)
+        uncertainties.pop(most_uncertain)
+    remaining = list(uncertainties.keys())
+    return selection, remaining
 
 
 def uncertainty_sampling(prediction, computation='entropy'):

@@ -131,10 +131,7 @@ def train_process(config, model, paths_train_img, paths_train_label, paths_val_i
     # Active learning iterations
     for n_AL in range(AL_iterations):
         if active_learning:
-            # predict data-patches
-            # calculate value of the patches for training
-            # select the best n for training
-            query_training_patches(config, paths_train_img, model, dataset=dataset)
+            patch_selection, patch_remaining = query_training_patches(config, paths_train_img, model, dataset=dataset)
 
         # build for selected patches the training pipeline and fit model
         ds_train = pipeline(config, paths_train_img, paths_train_label,
