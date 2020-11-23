@@ -49,7 +49,7 @@ def query_training_patches(config, dataset_image_path, model, dataset=None, rema
                                                        random_shift_patch=False)
 
         # predict data-patches
-        predict_patch_imgs = model.predict(x=(patch_imgs, np.float32(patches_indices)), batch_size=1, verbose=1)
+        predict_patch_imgs = predict(config, model, patch_imgs, patches_indices)
 
         # calculate value of the patches for training
         for predict_patch, patch_index in zip(predict_patch_imgs, patches_indices):
@@ -68,6 +68,25 @@ def query_training_patches(config, dataset_image_path, model, dataset=None, rema
     return selection, remaining
 
 
+def predict(config, model, patch_imgs, patches_indices, img_data_shape=None):
+    # reformat list of indices (inspired by predict.py line 184)
+    indice_list_model = np.float32(patches_indices)
+    if config['regularize_indice_list']['max_shape']:
+        indice_list_model = np.float32(np.array(patches_indices)) / np.array(
+            config['max_shape']['image'])[..., 0]
+    elif config['regularize_indice_list']['image_shape']:
+        indice_list_model = np.float32(np.array(patches_indices)) / np.array(
+            img_data_shape)[:-1] # !not yet fully implemented
+    elif config['regularize_indice_list']['custom_specified']:
+        indice_list_model = np.float32(np.array(patches_indices)) / np.array(
+            config['regularize_indice_list']['custom_specified'])
+
+    # predict data
+    predict_patch_imgs = model.predict(x=(patch_imgs, np.float32(patches_indices)),
+                                       batch_size=1, verbose=1)
+    return predict_patch_imgs
+
+
 def uncertainty_sampling(prediction, computation='entropy'):
     """
         Calculate an estimation of uncertainty for the prediction and return
@@ -82,7 +101,7 @@ def uncertainty_sampling(prediction, computation='entropy'):
         # calculate the Shannon Entropy for every pixel as uncertainty value
         probs_log = tf.math.log(prediction)
         weighted_probs_log = tf.math.multiply(prediction, probs_log)
-        uncertainty_field = tf.math.reduce_sum(weighted_probs_log, axis=-1)
+        uncertainty_field = tf.math.reduce_sum(tf.math.negative(weighted_probs_log), axis=-1)
     elif computation == 'least_confident':
         # pick the probability of the most likely class as uncertainty value
         uncertainty_field = tf.reduce_max(prediction, axis=-1)

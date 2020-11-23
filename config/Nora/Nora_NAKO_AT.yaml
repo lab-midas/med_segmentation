@@ -319,7 +319,7 @@ predict_img_datatype: nii  # string: file type of prediction image (before conve
 save_predict_img_datatype: nii # datatype in which prediction gets saved, 'mat' or 'nii' (default mat if empty)
 regularize_indice_list:
     max_shape:   # Bool, scale by max shape, for loading tfrecords dataset.
-    image_shape: True # Bool, scale by current image shape, not for loading tfrecords dataset.
+    image_shape:  # Bool, scale by current image shape, not for loading tfrecords dataset.
     custom_specified: # list of 3 integers, custom scaling
 
 
