@@ -8,7 +8,7 @@ Active learning parts for pipeline
 """
 
 
-def query_training_patches(config, dataset_image_path, model, dataset=None, remaining_indices=None, train_num=10):
+def query_training_patches(config, dataset_image_path, model, pool):
     '''Load patch and predict data (exact docstring TBD)'''
     # Data loading inspired by predict.py
 
@@ -16,19 +16,6 @@ def query_training_patches(config, dataset_image_path, model, dataset=None, rema
     # Reformat data path list: [[path1],[path2], ...] ->[[path1, path2, ...]]
     data_path_image_list = [t[i] for t in dataset_image_path for i in range(len(dataset_image_path[0]))]
     list_image_TFRecordDataset = [tf.data.TFRecordDataset(i) for i in data_path_image_list]
-
-    # determine patch indices
-    assert not config['patch_probability_distribution']['use']  # make sure tiling method is used
-    patch_size = config['patch_size']
-    dim = len(patch_size)
-    max_data_size = [config['max_shape']['image'][i] for i in range(dim)]
-    patches_indices = get_fixed_patches_index(config, max_data_size, patch_size,
-                                              overlap_rate=config['patch_overlap_rate'],
-                                              start=config['patch_start'],
-                                              end=config['patch_end'])
-    # check what input channels are used (for creation of patches)
-    if config['input_channel'][dataset] is not None:
-        input_slice = config['input_channel'][dataset]
 
     # Initialize dictionary that stores the uncertainty values
     uncertainties = {}
@@ -41,10 +28,11 @@ def query_training_patches(config, dataset_image_path, model, dataset=None, rema
         dataset_image = image_TFRecordDataset.map(parser)
         img_data = [elem[0].numpy() for elem in dataset_image][0]
         img_shape = [elem[1].numpy() for elem in dataset_image][0]
-        img_data = pad_img_label(config, max_data_size, img_data, img_shape)
+        img_data = pad_img_label(config, pool.max_data_size, img_data, img_shape)
 
-        patch_imgs, patches_indices = get_patches_data(max_data_size, patch_size, img_data, patches_indices,
-                                                       slice_channel_img=input_slice,
+        patch_imgs, patches_indices = get_patches_data(pool.max_data_size, pool.patch_size, img_data,
+                                                       pool.get_unused_patches_indices(image_number),
+                                                       slice_channel_img=pool.input_slice,
                                                        output_patch_size=config['model_output_size'],
                                                        random_shift_patch=False)
 
@@ -60,7 +48,7 @@ def query_training_patches(config, dataset_image_path, model, dataset=None, rema
             break
 
     # select the best n for training
-    for n in range(train_num):
+    for n in range(pool.batch_size):
         most_uncertain = max(uncertainties, key=lambda x: uncertainties[x])
         selection.append(most_uncertain)
         uncertainties.pop(most_uncertain)
@@ -76,13 +64,13 @@ def predict(config, model, patch_imgs, patches_indices, img_data_shape=None):
             config['max_shape']['image'])[..., 0]
     elif config['regularize_indice_list']['image_shape']:
         indice_list_model = np.float32(np.array(patches_indices)) / np.array(
-            img_data_shape)[:-1] # !not yet fully implemented
+            img_data_shape)[:-1]  # !not yet fully implemented
     elif config['regularize_indice_list']['custom_specified']:
         indice_list_model = np.float32(np.array(patches_indices)) / np.array(
             config['regularize_indice_list']['custom_specified'])
 
     # predict data
-    predict_patch_imgs = model.predict(x=(patch_imgs, np.float32(patches_indices)),
+    predict_patch_imgs = model.predict(x=(patch_imgs, indice_list_model),
                                        batch_size=1, verbose=1)
     return predict_patch_imgs
 
@@ -111,3 +99,54 @@ def uncertainty_sampling(prediction, computation='entropy'):
     # Average the values to get an average uncertainty for the entire prediction
     uncertainty = tf.math.reduce_mean(uncertainty_field)
     return uncertainty
+
+
+# Define classes to manage patch selection
+class PatchPool:
+    def __init__(self, config, dataset, num_of_imgs, batch_size=20):
+        self.batch_size = batch_size
+        self.dataset = dataset
+
+        # determine general patch indices and parameters for patching
+        assert not config['patch_probability_distribution']['use']  # make sure tiling method is used
+        self.patch_size = config['patch_size']
+        self.dim = len(self.patch_size)
+        self.max_data_size = [config['max_shape']['image'][i] for i in range(self.dim)]
+        # general patch locations for max size image
+        self.patches_indices = get_fixed_patches_index(config, self.max_data_size, self.patch_size,
+                                                       overlap_rate=config['patch_overlap_rate'],
+                                                       start=config['patch_start'],
+                                                       end=config['patch_end'])
+        # check what input channels are used (for creation of patches)
+        if config['input_channel'][self.dataset] is not None:
+            self.input_slice = config['input_channel'][self.dataset]
+
+        # create pools of patches that keep track which patches have been trained
+        self.to_train = []
+        self.used = []
+        self.pool = []
+        # in the beginning all patches for every image are considered
+        for i in range(num_of_imgs):
+            for index in self.patches_indices:
+                self.pool.append(Patch(i, index))
+
+    def get_unused_patches_indices(self, image_number):
+        patches = []
+        for patch in self.pool:
+            if patch.image == image_number:
+                patches.append(patch.index)
+        return patches
+
+    def select_patches(self):
+        for n in range(self.batch_size):
+            most_uncertain = max(self.pool, key=lambda x: x.uncertainty)
+            self.to_train.append(most_uncertain)
+            self.pool.pop(most_uncertain)
+
+class Patch:
+    def __init__(self, image, index):
+        self.image = image
+        self.index = index
+
+    def set_uncertainty(self, uncertainty):
+        self.uncertainty = uncertainty
