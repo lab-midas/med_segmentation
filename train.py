@@ -129,12 +129,12 @@ def train_process(config, model, paths_train_img, paths_train_label, paths_val_i
         AL_iterations = 1
 
     # create object that keeps track of the patches (trained and untrained)
-    Patches = PatchPool(config, dataset, len(paths_train_img), batch_size=10)
+    patches = PatchPool(config, dataset, len(paths_train_img), batch_size=10)
 
     # Active learning iterations
     for n_AL in range(AL_iterations):
         if active_learning:
-            patch_selection, patch_remaining = query_training_patches(config, paths_train_img, model, Patches)
+            patches = query_training_patches(config, paths_train_img, model, patches)
 
         # build for selected patches the training pipeline and fit model
         ds_train = pipeline(config, paths_train_img, paths_train_label,

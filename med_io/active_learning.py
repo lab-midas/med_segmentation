@@ -40,20 +40,17 @@ def query_training_patches(config, dataset_image_path, model, pool):
         predict_patch_imgs = predict(config, model, patch_imgs, patches_indices)
 
         # calculate value of the patches for training
-        for predict_patch, patch_index in zip(predict_patch_imgs, patches_indices):
-            uncertainties[(image_number, tuple(patch_index))] = uncertainty_sampling(predict_patch)
-        print(image_number)
+        pool.calculate_values(predict_patch_imgs, patches_indices, image_number)
+
         # only for debugging
+        print(image_number)
         if image_number >= 2:
             break
 
     # select the best n for training
-    for n in range(pool.batch_size):
-        most_uncertain = max(uncertainties, key=lambda x: uncertainties[x])
-        selection.append(most_uncertain)
-        uncertainties.pop(most_uncertain)
-    remaining = list(uncertainties.keys())
-    return selection, remaining
+    pool.select_patches()
+
+    return pool
 
 
 def predict(config, model, patch_imgs, patches_indices, img_data_shape=None):
@@ -108,7 +105,7 @@ class PatchPool:
         self.dataset = dataset
 
         # determine general patch indices and parameters for patching
-        assert not config['patch_probability_distribution']['use']  # make sure tiling method is used
+        assert not config['patch_probability_distribution']['use']  # make sure tiling method is used, if random shift should get turned on at some point make shure get_pos_key and communicatin of patches to pipeline still works
         self.patch_size = config['patch_size']
         self.dim = len(self.patch_size)
         self.max_data_size = [config['max_shape']['image'][i] for i in range(self.dim)]
@@ -122,31 +119,50 @@ class PatchPool:
             self.input_slice = config['input_channel'][self.dataset]
 
         # create pools of patches that keep track which patches have been trained
-        self.to_train = []
+        self.to_train = {}
         self.used = []
-        self.pool = []
+        self.pool = {}
         # in the beginning all patches for every image are considered
         for i in range(num_of_imgs):
+            self.pool[i] = {}
+            self.to_train[i] = []
             for index in self.patches_indices:
-                self.pool.append(Patch(i, index))
+                self.pool[i][self.get_pos_key(index)] = Patch(i, index)
 
     def get_unused_patches_indices(self, image_number):
-        patches = []
-        for patch in self.pool:
-            if patch.image == image_number:
-                patches.append(patch.index)
+        patches = self.pool[image_number]
+        patches = list(patches.values())
+        patches = list(map(lambda x: x.index, patches))
         return patches
 
     def select_patches(self):
+        patches = []
+        for patches_of_image in self.pool:
+            patches.append(list(patches_of_image.values()))
         for n in range(self.batch_size):
-            most_uncertain = max(self.pool, key=lambda x: x.uncertainty)
-            self.to_train.append(most_uncertain)
-            self.pool.pop(most_uncertain)
+            most_uncertain = max(patches, key=lambda x: x.uncertainty)
+            self.to_train[most_uncertain.image].append(most_uncertain)
+            self.pool[most_uncertain.image].pop(self.get_pos_key(most_uncertain.index))
+
+    def calculate_values(self, predict_patch_imgs, patches_indices, image_mumber):
+        for predict_patch, patch_index in zip(predict_patch_imgs, patches_indices):
+            self.pool[image_mumber][self.get_pos_key(patch_index)].uncertainty = \
+                uncertainty_sampling(predict_patch)
+
+    # maybe as dict key, less space
+    def get_pos_key(self, index):
+        key = 0
+        for i in range(len(index)):
+            key += int(index[i] / self.patch_size[i] * (10 ** (2 * i)))
+            # assumes less than 100 patches in every dimension!
+        return key
+
 
 class Patch:
     def __init__(self, image, index):
         self.image = image
         self.index = index
+        self.uncertainty = 0
 
     def set_uncertainty(self, uncertainty):
         self.uncertainty = uncertainty
