@@ -161,7 +161,7 @@ class PatchPool:
     def get_pos_key(self, index):
         key = 0
         for i in range(len(index)):
-            key += int(index[i] / self.patch_size[i] * (10 ** (2 * i)))
+            key += int(ceil(index[i] / self.patch_size[i]) * (10 ** (2 * i)))
             # assumes less than 100 patches in every dimension!
         return key
 
