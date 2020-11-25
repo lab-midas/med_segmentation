@@ -1,5 +1,6 @@
 import tensorflow as tf
 import numpy as np
+from math import ceil
 from med_io.parser_tfrec import parser
 from med_io.get_pad_and_patch import get_fixed_patches_index, pad_img_label, get_patches_data
 
@@ -110,10 +111,10 @@ class PatchPool:
         self.dim = len(self.patch_size)
         self.max_data_size = [config['max_shape']['image'][i] for i in range(self.dim)]
         # general patch locations for max size image
-        self.patches_indices = get_fixed_patches_index(config, self.max_data_size, self.patch_size,
-                                                       overlap_rate=config['patch_overlap_rate'],
-                                                       start=config['patch_start'],
-                                                       end=config['patch_end'])
+        self.ideal_patches_indices = get_fixed_patches_index(config, self.max_data_size, self.patch_size,
+                                                             overlap_rate=config['patch_overlap_rate'],
+                                                             start=config['patch_start'],
+                                                             end=config['patch_end'])
         # check what input channels are used (for creation of patches)
         if config['input_channel'][self.dataset] is not None:
             self.input_slice = config['input_channel'][self.dataset]
@@ -126,13 +127,15 @@ class PatchPool:
         for i in range(num_of_imgs):
             self.pool[i] = {}
             self.to_train[i] = []
-            for index in self.patches_indices:
-                self.pool[i][self.get_pos_key(index)] = Patch(i, index)
+        self.patches_set_up = [False] * num_of_imgs
 
     def get_unused_patches_indices(self, image_number):
-        patches = self.pool[image_number]
-        patches = list(patches.values())
-        patches = list(map(lambda x: x.index, patches))
+        if self.patches_set_up[image_number]:
+            patches = self.pool[image_number]
+            patches = list(patches.values())
+            patches = list(map(lambda x: x.index, patches))
+        else:
+            patches = self.ideal_patches_indices
         return patches
 
     def select_patches(self):
@@ -145,6 +148,11 @@ class PatchPool:
             self.pool[most_uncertain.image].pop(self.get_pos_key(most_uncertain.index))
 
     def calculate_values(self, predict_patch_imgs, patches_indices, image_mumber):
+        if not self.patches_set_up[image_mumber]:
+            for index in patches_indices:
+                self.pool[image_mumber][self.get_pos_key(index)] = Patch(image_mumber, index)
+            self.patches_set_up[image_mumber] = True
+
         for predict_patch, patch_index in zip(predict_patch_imgs, patches_indices):
             self.pool[image_mumber][self.get_pos_key(patch_index)].uncertainty = \
                 uncertainty_sampling(predict_patch)
