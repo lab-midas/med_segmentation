@@ -188,7 +188,7 @@ patch_probability_distribution:
 # Active Learning
 information_estimation: 'uncertainty'   # in which way information content of patches will be estimated
                                         # choose one of: 'uncertainty', 'entropy'
-AL_iterations: 3 # Number of epochs of choosing the best patches and training on them
+al_iterations: 3 # Number of epochs of choosing the best patches and training on them
 
 ##----------------------------------------------------------------------------------------------------------------------
 ## MODEL ##

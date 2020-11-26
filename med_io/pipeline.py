@@ -9,13 +9,16 @@ from .generate_label import *
 import pickle
 
 
-def pipeline(config, dataset_image_path, dataset_label_path, dataset=None, active_learning=False):
+def pipeline(config, dataset_image_path, dataset_label_path, dataset=None, pool=None):
     """
     Pipeline of tf.data for importing the data
     :param config: type dict,config parameter
     :param dataset_image_path: type str: dataset image path
     :param dataset_label_path: type str: dataset label path
-    :param active_learning: type bool: train on most effective data first
+    :param pool: instance of PatchPool, object that keeps track of patches
+    selected for training through active learning algorithm in
+    med_io.active_learning.py. If a pool object is given as argument, active
+    learning is automatically turned on.
     :return: dataset: return tf.data.dataset: pipeline dataset
     """
     patch_size = config['patch_size']

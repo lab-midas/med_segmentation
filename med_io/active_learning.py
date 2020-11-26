@@ -10,7 +10,7 @@ Active learning parts for pipeline
 
 
 def query_training_patches(config, dataset_image_path, model, pool):
-    '''Load patch and predict data (exact docstring TBD)'''
+    """Load patch and predict data (exact docstring TBD)"""
     # Data loading inspired by predict.py
 
     # Prepare to read data from TFRecord Files

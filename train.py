@@ -124,21 +124,22 @@ def train_process(config, model, paths_train_img, paths_train_label, paths_val_i
     ds_validation = pipeline(config, paths_val_img, paths_val_label, dataset=dataset)
 
     if active_learning:
-        AL_iterations = config['AL_iterations']
+        al_iterations = config['al_iterations']
+        # create object that keeps track of the patches (trained and untrained)
+        patches = PatchPool(config, dataset, len(paths_train_img), batch_size=10)
     else:
-        AL_iterations = 1
-
-    # create object that keeps track of the patches (trained and untrained)
-    patches = PatchPool(config, dataset, len(paths_train_img), batch_size=10)
+        al_iterations = 1
 
     # Active learning iterations
-    for n_AL in range(AL_iterations):
+    for n_AL in range(al_iterations):
         if active_learning:
             patches = query_training_patches(config, paths_train_img, model, patches)
-
-        # build for selected patches the training pipeline and fit model
-        ds_train = pipeline(config, paths_train_img, paths_train_label,
-                            dataset=dataset, active_learning=active_learning)
+            ds_train = pipeline(config, paths_train_img, paths_train_label,
+                                dataset=dataset, pool=patches)
+        else:
+            # build for selected patches the training pipeline and fit model
+            ds_train = pipeline(config, paths_train_img, paths_train_label,
+                                dataset=dataset)
 
         # Fit training & validation data into the model
         history = model.fit(ds_train,
@@ -224,17 +225,17 @@ def k_fold_train_process(config, model, k_fold, paths, dataset, cp_callback, ini
 
             # train all k-fold on one model
             model, history_curr = train_process(config, model, paths_train_img, paths_train_label, paths_val_img,
-                                           paths_val_label, dataset, cp_callback,
-                                           saver1, k_fold_index=k,
-                                           init_epoch=k * config['epochs'] + init_epoch)
+                                                paths_val_label, dataset, cp_callback,
+                                                saver1, k_fold_index=k,
+                                                init_epoch=k * config['epochs'] + init_epoch)
             history.append(history_curr)
 
         else:
             # establish one new model at each fold.
             model, history_curr = train_process(config, model, paths_train_img, paths_train_label, paths_val_img,
-                                           paths_val_label, dataset, cp_callback,
-                                           saver1, k_fold_index=k,
-                                           init_epoch=init_epoch)
+                                                paths_val_label, dataset, cp_callback,
+                                                saver1, k_fold_index=k,
+                                                init_epoch=init_epoch)
 
             history.append(history_curr)
             # save model
