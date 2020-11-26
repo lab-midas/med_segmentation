@@ -148,19 +148,21 @@ class PatchPool:
             self.to_train[most_uncertain.image].append(most_uncertain)
             self.pool[most_uncertain.image].pop(self.get_pos_key(most_uncertain.index))
 
-    def calculate_values(self, predict_patch_imgs, patches_indices, image_mumber):
-        if not self.patches_set_up[image_mumber]:
+    def calculate_values(self, predict_patch_imgs, patches_indices, image_number):
+        if not self.patches_set_up[image_number]:
             for index in patches_indices:
-                self.pool[image_mumber][self.get_pos_key(index)] = Patch(image_mumber, index)
-            self.patches_set_up[image_mumber] = True
+                self.pool[image_number][self.get_pos_key(index)] = Patch(image_number, index)
+            self.patches_set_up[image_number] = True
 
         for predict_patch, patch_index in zip(predict_patch_imgs, patches_indices):
-            self.pool[image_mumber][self.get_pos_key(patch_index)].uncertainty = \
+            self.pool[image_number][self.get_pos_key(patch_index)].uncertainty = \
                 uncertainty_sampling(predict_patch)
 
     def get_patches_to_train(self, image_number):
         patches = self.to_train.pop(image_number)
+        self.to_train[image_number] = []
         self.used.append(patches)
+        patches = list(map(lambda x: x.index, patches))
         return patches
 
     # maybe as dict key, less space
