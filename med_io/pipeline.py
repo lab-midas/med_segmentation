@@ -93,8 +93,9 @@ def pipeline(config, dataset_image_path, dataset_label_path, dataset=None, pool=
                                                      )
 
             patchs_imgs, patchs_labels, index_list = get_patches_data(max_data_size, patch_size, images_data,
-                                                                      labels_data,
-                                                                      patches_indices, slice_channel_img=input_slice,
+                                                                      patches_indices,
+                                                                      data_label=labels_data,
+                                                                      slice_channel_img=input_slice,
                                                                       slice_channel_label=output_slice,
                                                                       output_patch_size=config['model_output_size'])
 

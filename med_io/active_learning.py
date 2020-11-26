@@ -31,11 +31,11 @@ def query_training_patches(config, dataset_image_path, model, pool):
         img_shape = [elem[1].numpy() for elem in dataset_image][0]
         img_data = pad_img_label(config, pool.max_data_size, img_data, img_shape)
 
-        patch_imgs, patches_indices = get_patches_data(pool.max_data_size, pool.patch_size, img_data,
-                                                       pool.get_unused_patches_indices(image_number),
-                                                       slice_channel_img=pool.input_slice,
-                                                       output_patch_size=config['model_output_size'],
-                                                       random_shift_patch=False)
+        patch_imgs, _, patches_indices = get_patches_data(pool.max_data_size, pool.patch_size, img_data,
+                                                          pool.get_unused_patches_indices(image_number),
+                                                          slice_channel_img=pool.input_slice,
+                                                          output_patch_size=config['model_output_size'],
+                                                          random_shift_patch=False)
 
         # predict data-patches
         predict_patch_imgs = predict(config, model, patch_imgs, patches_indices)

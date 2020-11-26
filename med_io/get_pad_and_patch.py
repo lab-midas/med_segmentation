@@ -245,9 +245,9 @@ def get_patches_data(data_size, patch_size, data_img, index_list, data_label=Non
     :param patch_size: type list of int: patch size images
     :param data_img:  type ndarray: unpatched image data with channel,
                        if 3D image, then its shape is [height,width,depth,channel].
+    :param index_list: type list of list of integers: list position of each patch
     :param data_label: type ndarray: unpatch label data  with channel,
                         if 3D image, then its shape is [height,width,depth,channel].
-    :param index_list: type list of list of integers: list position of each patch
     :param slice_channel_img： type list of int:  channel indice chosen for model inputs,
             if :param squeeze_channel is true, the img dimension remains same, else reduce 1.
     :param slice_channel_label： type list of int: channel indice chosen for model outputs
@@ -322,7 +322,4 @@ def get_patches_data(data_size, patch_size, data_img, index_list, data_label=Non
         # Select the label channel for patching
         patch_label_collection = [tf.stack([label[..., i] for i in slice_channel_label], axis=-1) for label in
                                   patch_label_collection]
-    if data_label is None and slice_channel_label is None:
-        return patch_img_collection, index_list
-    else:
-        return patch_img_collection, patch_label_collection, index_list
+    return patch_img_collection, patch_label_collection, index_list
