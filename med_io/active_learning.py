@@ -140,10 +140,11 @@ class PatchPool:
 
     def select_patches(self):
         patches = []
-        for patches_of_image in self.pool:
-            patches.append(list(patches_of_image.values()))
+        for image_key in self.pool:
+            patches.extend(list(self.pool[image_key].values()))
         for n in range(self.batch_size):
             most_uncertain = max(patches, key=lambda x: x.uncertainty)
+            patches.remove(most_uncertain)
             self.to_train[most_uncertain.image].append(most_uncertain)
             self.pool[most_uncertain.image].pop(self.get_pos_key(most_uncertain.index))
 
