@@ -158,6 +158,11 @@ class PatchPool:
             self.pool[image_mumber][self.get_pos_key(patch_index)].uncertainty = \
                 uncertainty_sampling(predict_patch)
 
+    def get_patches_to_train(self, image_number):
+        patches = self.to_train.pop(image_number)
+        self.used.append(patches)
+        return patches
+
     # maybe as dict key, less space
     def get_pos_key(self, index):
         key = 0
