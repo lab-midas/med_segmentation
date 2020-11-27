@@ -93,11 +93,12 @@ def pipeline(config, dataset_image_path, dataset_label_path, dataset=None, pool=
                                                      )
 
             patchs_imgs, patchs_labels, index_list = get_patches_data(max_data_size, patch_size, images_data,
+                                                                      labels_data,
                                                                       patches_indices,
-                                                                      data_label=labels_data,
                                                                       slice_channel_img=input_slice,
                                                                       slice_channel_label=output_slice,
-                                                                      output_patch_size=config['model_output_size'])
+                                                                      output_patch_size=config['model_output_size'],
+                                                                      random_shift_patch=config['random_shift_patch'])
 
             # List regularize
             index_list = index_list / (np.array(max_data_size) + 1e-16)
@@ -119,10 +120,12 @@ def pipeline(config, dataset_image_path, dataset_label_path, dataset=None, pool=
 
             patchs_imgs, _, index_list = get_patches_data(max_data_size, patch_size, images_data,
                                                           data_label=None,
-                                                          index_list=patches_indices, slice_channel_img=input_slice,
+                                                          index_list=patches_indices,
+                                                          slice_channel_img=input_slice,
                                                           slice_channel_label=None,
                                                           output_patch_size=config['model_output_size'],
-                                                          squeeze_channel=config['squeeze_channel'])
+                                                          squeeze_channel=config['squeeze_channel'],
+                                                          random_shift_patch=config['random_shift_patch'])
             # Generate labels by patch indices  according to labels_data(position of hip, wrist etc.)
             generate_labels = generate_label(config, labels_data, patches_indices, patch_size)
 

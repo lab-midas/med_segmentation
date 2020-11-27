@@ -10,7 +10,11 @@ Active learning parts for pipeline
 
 
 def query_training_patches(config, dataset_image_path, model, pool):
-    """Load patch and predict data (exact docstring TBD)"""
+    """
+    Patch the image data and calculate an active learning value
+    (e.g. uncertainty of the network) for every patch, then select the n best
+    patches with the highest value for training.
+    """
     # Data loading inspired by predict.py
 
     # Prepare to read data from TFRecord Files
@@ -45,7 +49,7 @@ def query_training_patches(config, dataset_image_path, model, pool):
 
         # only for debugging
         print(image_number)
-        if image_number >= 2:
+        if image_number >= 0:
             break
 
     # select the best n for training

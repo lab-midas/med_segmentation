@@ -176,7 +176,7 @@ patch_overlap_rate: 0.0 # value in [0,1)
 squeeze_channel:  True # Type bool, extract the first channel from the input image to the model. (For model body identification=True,others=False)
 predict_patch_overlap_rate: 0.0 #value in [0,1)
 unpatch_overlap_rate: 0.2  # value in [0,1)
-random_shift_patch: True  # shift the patch or not for augmention
+random_shift_patch: False  # shift the patch or not for augmention
 patch_probability_distribution:
     use:   False # True if patch by pdf
     normal: #   True if use normal distribution

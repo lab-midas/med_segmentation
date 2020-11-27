@@ -236,7 +236,7 @@ def unpatch_predict_image(data_patches, indice_list, patch_size, unpatch_data_si
     return unpatch_img
 
 
-def get_patches_data(data_size, patch_size, data_img, index_list, data_label=None, random_rate=0.3,
+def get_patches_data(data_size, patch_size, data_img, data_label, index_list, random_rate=0.3,
                      slice_channel_img=None, slice_channel_label=None, output_patch_size=None, random_shift_patch=True,
                      squeeze_channel=False):
     """
@@ -245,9 +245,9 @@ def get_patches_data(data_size, patch_size, data_img, index_list, data_label=Non
     :param patch_size: type list of int: patch size images
     :param data_img:  type ndarray: unpatched image data with channel,
                        if 3D image, then its shape is [height,width,depth,channel].
-    :param index_list: type list of list of integers: list position of each patch
     :param data_label: type ndarray: unpatch label data  with channel,
                         if 3D image, then its shape is [height,width,depth,channel].
+    :param index_list: type list of list of integers: list position of each patch
     :param slice_channel_img： type list of int:  channel indice chosen for model inputs,
             if :param squeeze_channel is true, the img dimension remains same, else reduce 1.
     :param slice_channel_label： type list of int: channel indice chosen for model outputs
