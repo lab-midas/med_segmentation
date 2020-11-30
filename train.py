@@ -126,7 +126,7 @@ def train_process(config, model, paths_train_img, paths_train_label, paths_val_i
     if active_learning:
         al_iterations = config['al_iterations']
         # create object that keeps track of the patches (trained and untrained)
-        patches = PatchPool(config, dataset, len(paths_train_img), batch_size=10)
+        patches = PatchPool(config, dataset, paths_train_img, batch_size=10)
     else:
         al_iterations = 1
 
