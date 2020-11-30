@@ -238,7 +238,7 @@ def unpatch_predict_image(data_patches, indice_list, patch_size, unpatch_data_si
 
 def get_patches_data(data_size, patch_size, data_img, data_label, index_list, random_rate=0.3,
                      slice_channel_img=None, slice_channel_label=None, output_patch_size=None, random_shift_patch=True,
-                     squeeze_channel=False, return_indices_only=False):
+                     squeeze_channel=False):
     """
     Get patches from unpatched image and correspondent label by the list of patch positions.
     :param data_size: type ndarray: data size of :param: data_img and :param data_label
@@ -255,7 +255,6 @@ def get_patches_data(data_size, patch_size, data_img, data_label, index_list, ra
     :param random_rate: type float,rate of random shift of position from  :param index_list. random_rate=0 if no shift.
     :param random_shift_patch: type bool, True if the patches are randomly shift for data augmentation.
     :param squeeze_channel: type bool, True if select image channel. else all channel will be as input if :param slice_channel_img is False.
-    :param return_indices_only: type bool, if True only the new index list depending on data and patch size is returned
 
     :return: patch_img_collection: type list of ndarray with the shape :param patch_size: list of patches images.
     :return: patch_label_collection type list of ndarray with the shape :param patch_size: list of patches labels.
@@ -279,9 +278,6 @@ def get_patches_data(data_size, patch_size, data_img, data_label, index_list, ra
             index_list[j] = [new_index[i] if (indices_max_bound[i] >= new_index[i] >= 0)
                              else max(min(index[i], indices_max_bound[i]), 0)
                              for i in range(dim)]
-    # return the index list if only the new indices are requested as return
-    if return_indices_only:
-        return None, None, index_list
 
     # indexing using function slice for variable dim,indexing last channel by slice(None, None),equivalent to [:]
     # Get patch image data

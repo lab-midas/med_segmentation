@@ -22,10 +22,6 @@ def query_training_patches(config, dataset_image_path, model, pool):
     data_path_image_list = [t[i] for t in dataset_image_path for i in range(len(dataset_image_path[0]))]
     list_image_TFRecordDataset = [tf.data.TFRecordDataset(i) for i in data_path_image_list]
 
-    # Initialize dictionary that stores the uncertainty values
-    uncertainties = {}
-    selection = []
-
     # for every image, get patches and determine each ones uncertainty value
     for image_number, image_TFRecordDataset in enumerate(list_image_TFRecordDataset):
         #       img_data, img_shape = image_TFRecordDataset.map(parser)
@@ -178,9 +174,41 @@ class PatchPool:
         return key
 
 
+class ImagePatches:
+    def __init__(self, number, ideal_patches_indices, patch_pool):
+        self.patch_pool = patch_pool
+        self.number = number
+        self.patches_indices = ideal_patches_indices
+        self.patches_set_up = False
+        self.pool = {}
+        self.to_train = []
+
+    def set_up_patches(self, patches_indices):
+        self.patches_indices = patches_indices
+        for index in self.patches_indices:
+            self.pool[self.patch_pool.get_pos_key(index)] = Patch(self.number, index)
+        self.patches_set_up = True
+
+    def get_pipeline_patches_indices(self):
+        if self.patch_pool.mode == 'query':
+            if self.patches_set_up:
+                patches = list(self.pool.values())
+                patches = list(map(lambda x: x.index, patches))
+            else:
+                patches = self.patches_indices
+            return patches
+        elif self.patch_pool.mode == 'train':
+            patches = list(map(lambda x: x.index, self.to_train))
+            self.to_train = []
+            return patches
+        else:
+            raise Exception('Unknown mode of PatchPool')
+
 class Patch:
-    def __init__(self, image, index):
-        self.image = image
+    """ Object that uniquely identifies a patch"""
+
+    def __init__(self, image_number, index):
+        self.image_number = image_number
         self.index = index
         self.uncertainty = 0
 
