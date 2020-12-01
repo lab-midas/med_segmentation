@@ -79,9 +79,9 @@ class PatchPool:
     def __init__(self, config, dataset, dataset_image_path, batch_size=20):
         self.batch_size = batch_size
         self.dataset = dataset
-        # mode for building pipeline with
-        # unused patches form pool or patches to train: either 'query' or 'train'
-        self.mode = 'query'
+        # mode for building pipeline with unused patches form pool or patches
+        # to train: either 0 for query or 1 for train mode
+        self.mode = 0
 
         # determine general patch indices and parameters for patching
         assert not config['patch_probability_distribution']['use']  #!evtl möglich? aber nicht sinnvoll?! make sure tiling method is used, if random shift should get turned on at some point make shure get_pos_key and communicatin of patches to pipeline still works
@@ -150,6 +150,16 @@ class PatchPool:
             key += int(ceil(index[i] / self.patch_size[i]) * (10 ** (2 * i)))
             # assumes less than 100 patches in every dimension!
         return key
+
+    def get_patches_pipeline(self, image_data_path):
+        image_pathlib_path = Path(image_data_path)
+        image_number = image_pathlib_path.parts[-3]
+        patch_list = self.pool[image_number]
+        patch_list_for_pipeline = []
+        for patch in patch_list:
+            if patch[3] == self.mode:
+                patch_list_for_pipeline.append(patch)
+        return patch_list_for_pipeline
 
 
 class ImagePatches:
