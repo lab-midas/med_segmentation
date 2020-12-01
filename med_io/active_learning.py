@@ -16,41 +16,15 @@ def query_training_patches(config, dataset_image_path, model, pool):
     (e.g. uncertainty of the network) for every patch, then select the n best
     patches with the highest value for training.
     """
-    # Data loading inspired by predict.py
 
-    # Prepare to read data from TFRecord Files
-    # Reformat data path list: [[path1],[path2], ...] ->[[path1, path2, ...]]
-    data_path_image_list = [t[i] for t in dataset_image_path for i in range(len(dataset_image_path[0]))]
-    list_image_TFRecordDataset = [tf.data.TFRecordDataset(i) for i in data_path_image_list]
+    # predict data-patches
+    #predict_patch_imgs = predict(config, model, patch_imgs, patches_indices)
 
-    # for every image, get patches and determine each ones uncertainty value
-    for image_number, image_TFRecordDataset in enumerate(list_image_TFRecordDataset):
-        #       img_data, img_shape = image_TFRecordDataset.map(parser)
-        #       img_data = img_data.numpy()
-        dataset_image = image_TFRecordDataset.map(parser)
-        img_data = [elem[0].numpy() for elem in dataset_image][0]
-        img_shape = [elem[1].numpy() for elem in dataset_image][0]
-        img_data = pad_img_label(config, pool.max_data_size, img_data, img_shape)
-
-        patch_imgs, _, patches_indices = get_patches_data(pool.max_data_size, pool.patch_size, img_data,
-                                                          pool.get_unused_patches_indices(image_number),
-                                                          slice_channel_img=pool.input_slice,
-                                                          output_patch_size=config['model_output_size'],
-                                                          random_shift_patch=False)
-
-        # predict data-patches
-        predict_patch_imgs = predict(config, model, patch_imgs, patches_indices)
-
-        # calculate value of the patches for training
-        pool.calculate_values(predict_patch_imgs, patches_indices, image_number)
-
-        # only for debugging
-        print(image_number)
-        if image_number >= 0:
-            break
+    # calculate value of the patches for training
+    #pool.calculate_values(predict_patch_imgs, patches_indices, image_number)
 
     # select the best n for training
-    pool.select_patches()
+    #pool.select_patches()
 
     return pool
 
@@ -105,7 +79,8 @@ class PatchPool:
     def __init__(self, config, dataset, dataset_image_path, batch_size=20):
         self.batch_size = batch_size
         self.dataset = dataset
-        # mode for building pipeline with unused patches form pool or patches to train: either 'query' or 'train'
+        # mode for building pipeline with
+        # unused patches form pool or patches to train: either 'query' or 'train'
         self.mode = 'query'
 
         # determine general patch indices and parameters for patching
@@ -122,48 +97,51 @@ class PatchPool:
         if config['input_channel'][self.dataset] is not None:
             self.input_slice = config['input_channel'][self.dataset]
 
-        # create ImagePatches Objects that keep track of the patches of every image
-        self.image_patches = {}
+        # create the lists that keep track of the patches and their status for every image
+        # status is one of 0 (unused), 1 (to train), 2 (used) and initialized as 0
+        self.pool = {}
         for [image_path] in dataset_image_path:
             image_pathlib_path = Path(image_path)
             image_number = image_pathlib_path.parts[-3]
-            self.image_patches[image_number] = ImagePatches(image_number, self.ideal_patches_indices, self)
+            # create list with patches indices in first 3 column an status in 4th
+            self.pool[image_number] = np.zeros((len(self.ideal_patches_indices), 4), dtype=int)
+            self.pool[image_number][:, :3] = self.ideal_patches_indices
 
-#    def get_unused_patches_indices(self, image_number):
-#        if self.patches_set_up[image_number]:
-#            patches = self.pool[image_number]
-#            patches = list(patches.values())
-#            patches = list(map(lambda x: x.index, patches))
-#        else:
-#            patches = self.ideal_patches_indices
-#        return patches
-#
-#    def select_patches(self):
-#        patches = []
-#        for image_key in self.pool:
-#            patches.extend(list(self.pool[image_key].values()))
-#        for n in range(self.batch_size):
-#            most_uncertain = max(patches, key=lambda x: x.uncertainty)
-#            patches.remove(most_uncertain)
-#            self.to_train[most_uncertain.image_number].append(most_uncertain)
-#            self.pool[most_uncertain.image_number].pop(self.get_pos_key(most_uncertain.index))
-#
-#    def calculate_values(self, predict_patch_imgs, patches_indices, image_number):
-#        if not self.patches_set_up[image_number]:
-#            for index in patches_indices:
-#                self.pool[image_number][self.get_pos_key(index)] = Patch(image_number, index)
-#            self.patches_set_up[image_number] = True
-#
-#        for predict_patch, patch_index in zip(predict_patch_imgs, patches_indices):
-#            self.pool[image_number][self.get_pos_key(patch_index)].uncertainty = \
-#                uncertainty_sampling(predict_patch)
-#
-#    def get_patches_to_train(self, image_number):
-#        patches = self.to_train.pop(image_number)
-#        self.to_train[image_number] = []
-#        self.used.append(patches)
-#        patches = list(map(lambda x: x.index, patches))
-#        return patches
+    # def get_unused_patches_indices(self, image_number):
+    #     if self.patches_set_up[image_number]:
+    #         patches = self.pool[image_number]
+    #         patches = list(patches.values())
+    #         patches = list(map(lambda x: x.index, patches))
+    #     else:
+    #         patches = self.ideal_patches_indices
+    #     return patches
+    #
+    # def select_patches(self):
+    #     patches = []
+    #     for image_key in self.pool:
+    #         patches.extend(list(self.pool[image_key].values()))
+    #     for n in range(self.batch_size):
+    #         most_uncertain = max(patches, key=lambda x: x.uncertainty)
+    #         patches.remove(most_uncertain)
+    #         self.to_train[most_uncertain.image_number].append(most_uncertain)
+    #         self.pool[most_uncertain.image_number].pop(self.get_pos_key(most_uncertain.index))
+    #
+    # def calculate_values(self, predict_patch_imgs, patches_indices, image_number):
+    #     if not self.patches_set_up[image_number]:
+    #         for index in patches_indices:
+    #             self.pool[image_number][self.get_pos_key(index)] = Patch(image_number, index)
+    #         self.patches_set_up[image_number] = True
+    #
+    #     for predict_patch, patch_index in zip(predict_patch_imgs, patches_indices):
+    #         self.pool[image_number][self.get_pos_key(patch_index)].uncertainty = \
+    #             uncertainty_sampling(predict_patch)
+    #
+    # def get_patches_to_train(self, image_number):
+    #     patches = self.to_train.pop(image_number)
+    #     self.to_train[image_number] = []
+    #     self.used.append(patches)
+    #     patches = list(map(lambda x: x.index, patches))
+    #     return patches
 
     # maybe as dict key, less space
     def get_pos_key(self, index):
