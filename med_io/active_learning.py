@@ -142,63 +142,25 @@ class PatchPool:
     #     self.used.append(patches)
     #     patches = list(map(lambda x: x.index, patches))
     #     return patches
-
-    # maybe as dict key, less space
-    def get_pos_key(self, index):
-        key = 0
-        for i in range(len(index)):
-            key += int(ceil(index[i] / self.patch_size[i]) * (10 ** (2 * i)))
-            # assumes less than 100 patches in every dimension!
-        return key
+    #
+    # # maybe as dict key, less space
+    # def get_pos_key(self, index):
+    #     key = 0
+    #     for i in range(len(index)):
+    #         key += int(ceil(index[i] / self.patch_size[i]) * (10 ** (2 * i)))
+    #         # assumes less than 100 patches in every dimension!
+    #     return key
 
     def get_patches_pipeline(self, image_data_path):
         image_pathlib_path = Path(image_data_path)
         image_number = image_pathlib_path.parts[-3]
         patch_list = self.pool[image_number]
         patch_list_for_pipeline = []
-        for patch in patch_list:
+        patch_id = []
+        for i, patch in enumerate(patch_list):
+            # if index has the right status add the index to the returned list
             if patch[3] == self.mode:
-                patch_list_for_pipeline.append(patch)
-        return patch_list_for_pipeline
-
-
-class ImagePatches:
-    def __init__(self, number, ideal_patches_indices, patch_pool):
-        self.patch_pool = patch_pool
-        self.number = number
-        self.patches_indices = ideal_patches_indices
-        self.patches_set_up = False
-        self.pool = {}
-        self.to_train = []
-
-    def set_up_patches(self, patches_indices):
-        self.patches_indices = patches_indices
-        for index in self.patches_indices:
-            self.pool[self.patch_pool.get_pos_key(index)] = Patch(self.number, index)
-        self.patches_set_up = True
-
-    def get_pipeline_patches_indices(self):
-        if self.patch_pool.mode == 'query':
-            if self.patches_set_up:
-                patches = list(self.pool.values())
-                patches = list(map(lambda x: x.index, patches))
-            else:
-                patches = self.patches_indices
-            return patches
-        elif self.patch_pool.mode == 'train':
-            patches = list(map(lambda x: x.index, self.to_train))
-            self.to_train = []
-            return patches
-        else:
-            raise Exception('Unknown mode of PatchPool')
-
-class Patch:
-    """ Object that uniquely identifies a patch"""
-
-    def __init__(self, image_number, index):
-        self.image_number = image_number
-        self.index = index
-        self.uncertainty = 0
-
-    def set_uncertainty(self, uncertainty):
-        self.uncertainty = uncertainty
+                patch_list_for_pipeline.append(patch[:3])
+                # add the parameters needed to identify the patch
+                patch_id.append((str(i), image_number))
+        return patch_list_for_pipeline, patch_id

@@ -51,6 +51,7 @@ def pipeline(config, dataset_image_path, dataset_label_path, dataset=None, pool=
     # Create TFRecordDataset list for each image and label path.
     list_image_TFRecordDataset = [tf.data.TFRecordDataset(i) for i in data_path_image_list]
     list_label_TFRecordDataset = [tf.data.TFRecordDataset(i) for i in data_path_label_list]
+
     # Create Dataset of patches indices for patch selection in AL
     if pool is not None:
         list_image_patches = [pool.get_patches_pipeline(i) for i in data_path_image_list[0]]
