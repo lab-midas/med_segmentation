@@ -107,50 +107,6 @@ class PatchPool:
             self.pool[image_number] = np.zeros((len(self.ideal_patches_indices), 4), dtype=int)
             self.pool[image_number][:, :3] = self.ideal_patches_indices
 
-    # def get_unused_patches_indices(self, image_number):
-    #     if self.patches_set_up[image_number]:
-    #         patches = self.pool[image_number]
-    #         patches = list(patches.values())
-    #         patches = list(map(lambda x: x.index, patches))
-    #     else:
-    #         patches = self.ideal_patches_indices
-    #     return patches
-    #
-    # def select_patches(self):
-    #     patches = []
-    #     for image_key in self.pool:
-    #         patches.extend(list(self.pool[image_key].values()))
-    #     for n in range(self.batch_size):
-    #         most_uncertain = max(patches, key=lambda x: x.uncertainty)
-    #         patches.remove(most_uncertain)
-    #         self.to_train[most_uncertain.image_number].append(most_uncertain)
-    #         self.pool[most_uncertain.image_number].pop(self.get_pos_key(most_uncertain.index))
-    #
-    # def calculate_values(self, predict_patch_imgs, patches_indices, image_number):
-    #     if not self.patches_set_up[image_number]:
-    #         for index in patches_indices:
-    #             self.pool[image_number][self.get_pos_key(index)] = Patch(image_number, index)
-    #         self.patches_set_up[image_number] = True
-    #
-    #     for predict_patch, patch_index in zip(predict_patch_imgs, patches_indices):
-    #         self.pool[image_number][self.get_pos_key(patch_index)].uncertainty = \
-    #             uncertainty_sampling(predict_patch)
-    #
-    # def get_patches_to_train(self, image_number):
-    #     patches = self.to_train.pop(image_number)
-    #     self.to_train[image_number] = []
-    #     self.used.append(patches)
-    #     patches = list(map(lambda x: x.index, patches))
-    #     return patches
-    #
-    # # maybe as dict key, less space
-    # def get_pos_key(self, index):
-    #     key = 0
-    #     for i in range(len(index)):
-    #         key += int(ceil(index[i] / self.patch_size[i]) * (10 ** (2 * i)))
-    #         # assumes less than 100 patches in every dimension!
-    #     return key
-
     def get_patches_pipeline(self, image_data_path):
         image_pathlib_path = Path(image_data_path)
         image_number = image_pathlib_path.parts[-3]
