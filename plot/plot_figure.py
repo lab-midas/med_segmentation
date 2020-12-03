@@ -19,6 +19,7 @@ def save_histories_plot_images(history, dataset, config, mode='train_val',k_fold
     :param k_fold_index: type int:
     :return:
     """
+
     path_figures = config['result_rootdir'] + '/' + config[
         'model'] + '/figures/train_loss_and_metrics/' + dataset + '/'
     path_pickle = config['result_rootdir'] + '/' + config['model'] + '/train_history/' + dataset + '/'
@@ -127,7 +128,19 @@ def plot_mosaic(config, mask, slice_dim=2, colormap=None, vspace=2, hspace=2, co
     """
     # Define variable h(height), w(width), and slices
     mask_shape = mask.shape[:3]
+    mask = mask[:, :, :, 0]
 
+    #if mask.shape != origin_image.shape:
+    if mask_shape != origin_image.shape:
+    ## sometimes after the unpatching, the predicted image is smaller than original
+        difference = [(origin_image.shape[i] - mask_shape[i]) for i in range(len(origin_image.shape))]
+        array_difference = [(0, difference[0]), (0, difference[1]), (0, difference[2])]
+        new_mask = np.pad(mask, array_difference, mode='constant', constant_values=0)
+        mask = new_mask
+        print("new mask after padding: ", mask.shape)
+        ##with this it is ensure that dimensions are good
+
+    ## slice_dim = 2
     if slice_dim == 2:
         h, w, slices = mask_shape[0], mask_shape[1], mask_shape[2]
     elif slice_dim == 1:
@@ -137,8 +150,14 @@ def plot_mosaic(config, mask, slice_dim=2, colormap=None, vspace=2, hspace=2, co
 
     if rotate_k==1 or rotate_k==3 or rotate_k==-1 or rotate_k==-3:
         h,w=w,h
+    ##_------------------------------------------------------------------
 
-    num_category = len(np.unique(mask))
+    num_category = len(np.unique(mask)) ## with Melanom Dataset should be 2 (tumor, not tumor)
+    #art_mask = np.random.randint(5, size=mask.shape[:3])
+    #art_mask = np.zeros(mask.shape[:3])
+    #art_mask[100:, 100:, 150:] = 1
+    #num_category = len(np.unique(art_mask))
+    ##-----------------------------------------------------------------
     colormap = color_set(num_categories=num_category, costum_colormap=colormap)
     row = math.ceil(slices / col)
     # layout empty figure
@@ -154,12 +173,16 @@ def plot_mosaic(config, mask, slice_dim=2, colormap=None, vspace=2, hspace=2, co
                 indice_ = tuple(indice)
 
                 color_image = colormap[mask[indice_].astype(int) % num_category].astype('uint8')
+                ##color_image = colormap[art_mask[indice_].astype(int) % num_category].astype('uint8')
                 if rotate_k:
                     color_image= np.rot90(color_image, k=rotate_k)
 
                 if flip_axis:
                     color_image=np.flip(color_image,axis=flip_axis)
-
+                ##---------------------------------------------------------------------------------
+                #art_mask = np.ones(mask.shape[:3])
+                ##_----------------------------------
+                ##---------------------------------------------------------------------------------
                 im = Image.fromarray(color_image)
                 im = im.convert("RGBA")
 
@@ -174,8 +197,15 @@ def plot_mosaic(config, mask, slice_dim=2, colormap=None, vspace=2, hspace=2, co
                         origin_image_slice = np.rot90(origin_image_slice, k=rotate_k)
 
                     origin_image_slice = Image.fromarray(origin_image_slice).convert("RGBA")
+                    #print("image shape: ", im.size)
+                    #print("origin image slice", origin_image_slice.size)
+                    #if im.size != origin_image_slice.size:
+                        #print("mask size is: ", mask.shape)
+                        #print("slice_",  indice_)
+                        #print("color_image", color_image)
 
-                    im = Image.blend(im, origin_image_slice, alpha=alpha_origin)
+                    #im = Image.blend(im, origin_image_slice, alpha=alpha_origin)
+                    im = Image.blend(im, origin_image_slice, alpha=0.0)
 
                 # Draw slice index on the left top of the image
                 #draw = ImageDraw.Draw(im)
@@ -183,7 +213,7 @@ def plot_mosaic(config, mask, slice_dim=2, colormap=None, vspace=2, hspace=2, co
                 #draw.text((7, 7), str(slice_index+1), font=font)
                 figure.paste(im, (col_index * (w + vspace), row_index * (h + hspace)))
 
-    dir_figures = config['result_rootdir'] + '/' + config['model'] + '/figures/plot_mosaic/' + dataset + '/' + name_ID
+    dir_figures = config['result_rootdir'] + '/' + config['exp_name'] + '/' + config['model'] + '/figures/plot_mosaic/' + dataset + '/' + name_ID
     if client_save_rootdir is not None:
         dir_figures=client_save_rootdir+'/'+dir_figures
     if not os.path.exists(dir_figures): os.makedirs(dir_figures)
@@ -218,7 +248,8 @@ def plot_area_ratio(config, list_images_series, slice_dim=2, merge_channel_plot=
     sum_ = len(list_images_series[0])
 
     # shape of each patients 4D image
-    channel = list_images_series[0][0].shape[-1]
+    #channel = list_images_series[0][0].shape[-1]
+    channel = None
 
     mean_map_series = []
     std_map_series = []
@@ -227,6 +258,7 @@ def plot_area_ratio(config, list_images_series, slice_dim=2, merge_channel_plot=
     for list_img in list_images_series:  # for each sublist,
         sum_ratio = []
         max_slice = 0
+        channel = list_img[0][0].shape[-1]
 
         for n in range(sum_):  # sum_: total number of patients in this series.
             img = list_img[n]

@@ -56,6 +56,8 @@ def dice_loss_melanoma(y_true, y_pred, config):
     #print("channel label num: ", config['channel_label_num'])
     #print("dim y_true before: ", y_true.shape)
     y_true = tf.one_hot(tf.argmax(y_true, axis=-1), config['num_classes'])
+    assert y_true.shape[-1] == config['num_classes']
+    #assert y_pred.shape == y_true.shape
     #print("dim y_true: ", y_true.shape)
     #print("dim y_pred: ", y_pred.shape)
     sum_loss, weight_sum = 0, 0

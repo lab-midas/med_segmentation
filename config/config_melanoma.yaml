@@ -5,7 +5,7 @@
 dataset : [MELANOM] # either known database [NAKO_AT,DIXON,TULIP1_5T,TULIP3T,NAKO,KORA]
     #(i.e. converting and loading as TFRecords) or leave empty (only test/prediction) -> direct loading from Nifty, information specified in PREDICTION
 project: MELANOM  # project name
-exp_name: exp_Melanom  # experiment name (used for storage)
+exp_name: Melanoma_1_augmentation  # experiment name (used for storage)
 
 
 # Seed for fixing the random data
@@ -165,14 +165,18 @@ ratio_val_to_train: 0.2 # ratio validation to training (tfrecords)
 # Saved models dir
 saved_models_dir: ./saved_models
 # Saved result dir
-result_rootdir: ./result
+result_rootdir: ./results_networks/result
 dir_model_checkpoint: ./model_checkpoint
 dir_dataset_info: ./dataset_info
 dir_list_tfrecord: ./list_tfrecord
 
+# Augmentations Performed for dataset
+#augmentation: [brightness, gamma, contrast]
+augmentation: [gamma]
+
 # Pipeline tf.dataset Configuration
 num_parallel_calls: 1 # number parallel calls of tf.data.dataset
-shuffle: 1 # shuffle seed of tf.data.dataset
+shuffle: 16 # shuffle seed of tf.data.dataset
 
 # Batch
 batch: 8 # batch size of training model
@@ -231,7 +235,7 @@ model_add_background_output: False # Type bool, add one channel from the model o
 img_label_same_shape: False  # Type bool, repad to same shape
 
 # Epochs and steps
-epochs: 10 # total training epochs
+epochs: 100 # total training epochs
 train_steps_per_epoch: 40 #  steps per one training epoch
 val_steps_per_epoch: 3  # validation steps per epoch
 evaluate_step: 20  # evaluation steps per epoch
@@ -252,7 +256,7 @@ convolution_parameter :
 
 # Compile model
 # Metrics of model
-tensorflow_metrics: [accuracy] # metric defined in  https://www.tensorflow.org/api_docs/python/tf/keras/metrics
+tensorflow_metrics: [acc] # metric defined in  https://www.tensorflow.org/api_docs/python/tf/keras/metrics
 custom_metrics: [dice_coef_all] #[recall_all,recall_per_class] # metric defined by custom, must be chosen from models/loss_function.py/Metric()
 # Loss
 loss_functions: # loss function of the network, must be chosen from models/loss_function.py, if weight=0 or not specified it is not considered
@@ -312,7 +316,7 @@ predict_image_scale: 1               #  gain of the predict input image (adjustm
 predict_output_channel_order:        #  type list of integers, change the order of the output channel from predict result
 
 predict_result_add_background_output: False  # True if adding background of predict result
-label_add_background_output: True #  True if adding background channel in the label
+label_add_background_output: False #  True if adding background channel in the label
 
 predict_label_datatype: nii  # string: file type of prediction image (before conversion), 'dicom', 'mat' or 'nii'
 predict_img_datatype: nii  # string: file type of prediction image (before conversion), 'dicom', 'mat' or 'nii'
@@ -332,12 +336,12 @@ regularize_indice_list:
 # For data which has only images and without labels, any 'label_integers','label', 'label_onehot' should be deleted.
 
 # Save predict data
-save_predict_data: False
+save_predict_data: True
 
 # Plot image
 # name of the plotting figure by predicting the dataset. If multiple plots are needed. write: [plot_name_A, plot_name_B ...]
 # further details are specified below
-plot_figure: [plot_mosaic,profile_plot_by_slice,plot_area_ratio ]
+plot_figure: [plot_mosaic] ###,profile_plot_by_slice,plot_area_ratio ]
 
 # Colors of the categories in the plot. type list of list of 3 floats, the float must be in [0,1]
 colormap: [[0, 0, 0.1], [0, 0.2, 0.8], [0, 1, 0.5], [0.8, 0.8, 0.8], [0.2, 0.1, 0.8],
@@ -346,12 +350,12 @@ colormap: [[0, 0, 0.1], [0, 0.2, 0.8], [0, 1, 0.5], [0.8, 0.8, 0.8], [0.2, 0.1, 
 # Display which channel image is the background of the original image
 display_origin_image_channel: 0
 select_image:
-    plot_mosaic: [predict_integers,label_integers] # select predict_integers or label_integers
+    plot_mosaic: [predict_integers] ##, label_integers] # select predict_integers or label_integers
     profile_plot_by_slice: [predict_integers,label_integers] # select predict_integers or label_integers
     plot_area_ratio:  [predict,label] # predict or label
 
 plot_mosaic:
-    slice_dim: 0 # slice_dim: type int: dimension index of slicing. For 3D, 0 for Sagittal plain, 1 for Coronal plane, 2 for Axial plane.
+    slice_dim: 1 # slice_dim: type int: dimension index of slicing. For 3D, 0 for Sagittal plain, 1 for Coronal plane, 2 for Axial plane.
     colormap: # type list of list of 3 floats: color value of each category from :param: mask
     vspace: 2  # type int, vertical interval between each mosaic sub-figure. vspace=0 if no space between them.
     hspace: 2 # type int, horizontal interval between each mosaic sub-figure. vspace=0 if no space between them.

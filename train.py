@@ -11,6 +11,7 @@ import pickle
 import datetime
 import os
 import random
+import matplotlib.font_manager
 
 
 def train(config, restore=False):
@@ -146,9 +147,9 @@ def train_process(config, model, paths_train_img, paths_train_label, paths_val_i
 
         #ds_validation_it = iter(ds_validation)
 
-        ds_train = pipeline_melanom(config, paths_train_img, paths_train_label, dataset=dataset)
+        ds_train = pipeline_melanom(config, paths_train_img, paths_train_label, dataset=dataset, augment=True)
 
-        ds_validation = pipeline_melanom(config, paths_val_img, paths_val_label, dataset=dataset)
+        ds_validation = pipeline_melanom(config, paths_val_img, paths_val_label, dataset=dataset, augment=False)
 
         # Fit training & validation data into the model
         # ds_validation_it_next = ds_validation_it.get_next()

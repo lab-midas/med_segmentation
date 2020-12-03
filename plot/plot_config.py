@@ -95,8 +95,8 @@ def plot_figures_dataset(config, dict_data, dataset='0', client_save_rootdir=Non
             # (Mostly occurs when only predict img data is available, but label item appears in plot settings
             #  in the config.yaml)
             for img in input_img_list:
-                if isinstance( img , list):
-                    for  im in img:
+                if isinstance(img, list):
+                    for im in img:
                         if im is None:
                             raise ValueError('Nonetype can not be appeared in input_img_list! ')
                 if img==None:

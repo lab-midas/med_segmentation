@@ -934,7 +934,7 @@ def create_and_compile_model(inputs, outputs, config, premodel=None):
         if 'loss_functions' in config:
             for name_loss_function in config['loss_functions']:
                 loss_func = getattr(loss_function, name_loss_function)(y_true, y_pred, config=config)
-                print("Loss function used: ", name_loss_function)
+                #print("Loss function used: ", name_loss_function)
                 weight = config['loss_functions'][name_loss_function]
                 sum_ = sum_ + weight * loss_func
         return sum_

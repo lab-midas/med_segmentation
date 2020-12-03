@@ -5,11 +5,12 @@ import matplotlib.animation as animation
 from .parser_tfrec import parser
 from .get_pad_and_patch import *
 from .generate_label import *
-# from augmentations import spatial
+from .augmentation import *
 import pickle
+from tensorflow.keras import layers
 
 
-def pipeline_melanom(config, dataset_image_path, dataset_label_path, dataset=None):
+def pipeline_melanom(config, dataset_image_path, dataset_label_path, dataset=None, augment=False):
     """
     Pipeline of tf.data for importing the data
     :param config: type dict,config parameter
@@ -57,99 +58,102 @@ def pipeline_melanom(config, dataset_image_path, dataset_label_path, dataset=Non
     zip_data_path_TFRecordDataset = tf.data.Dataset.zip(
         (list_image_TFRecordDataset[0], list_label_TFRecordDataset[0]))
 
+    #print("zip: ", next(zip_data_path_TFRecordDataset))
+
     @tf.function
     def _map(*args):
 
         """
         Map function of Zip dataset for parsing paths to data
-        :param args: args[0] for images TFRecordDataset and args[1] for labels TFRecordDataset
+        :param args: args[0] for images TFRecordDataset, args[1] for labels TFRecordDataset
         :return: images_data, labels_data: type list of data tensor
         """
         images_data, images_shape = parser(args[0])
+        print("images_shape: ", images_shape)
         labels_data, labels_shape = parser(args[1])
+        print("labels_shape: ", labels_shape)
 
-        if not config['read_body_identification']:
-            # Change orientation
-            if config['transpose_permute'] is not None:
-                images_data = tf.transpose(images_data, perm=config['transpose_permute'])
-                images_shape = tf.transpose(images_shape, perm=config['transpose_permute'])
-                labels_data = tf.transpose(labels_data, perm=config['transpose_permute'])
-                labels_shape = tf.transpose(labels_shape, perm=config['transpose_permute'])
+        # Pad and patch the data
+        images_data, labels_data = pad_img_label(config, max_data_size, images_data, images_shape, labels_data,
+                                                 labels_shape)
 
-            # Add background map (the correspond pixel value is zero at all label channels)
-            # before the first channel of the label.
-            if config['model_add_background_output']:
-                # Add background channel at labels_data
-                label_sum, label_sum1 = labels_data[..., 0] * 0, labels_data[..., 0] * 0
-                label_sum2 = labels_data[..., 0] * 1
-                for ch in range(config['channel_label_num'] - 1):
-                    label_sum += labels_data[..., ch]
-                label_background = label_sum2 - tf.cast(tf.math.greater(label_sum, label_sum1), tf.float32)
-                label_background = tf.cast(tf.expand_dims(label_background, axis=-1), tf.float32)
-                labels_data = tf.concat([label_background, labels_data], axis=-1)
+        print("image type: ", type(images_data))
+        print("image type len : ", len(images_data))
+        print("image first: ", images_data[0].shape)
+        print(images_data)
 
-            # Pad and patch the data
-            images_data, labels_data = pad_img_label(config, max_data_size, images_data, images_shape, labels_data,
-                                                     labels_shape,
-                                                     )
+        patchs_imgs, patchs_labels, index_list = get_patches_data(max_data_size, patch_size, images_data,
+                                                                  labels_data,
+                                                                  patches_indices, slice_channel_img=input_slice,
+                                                                  slice_channel_label=output_slice,
+                                                                  output_patch_size=config['model_output_size'])
+        print("patch type: ", type(patchs_imgs))
+        print("patch shape: ", patchs_imgs[0].shape)
+        print(patchs_imgs)
 
-            patchs_imgs, patchs_labels, index_list = get_patches_data(max_data_size, patch_size, images_data,
-                                                                      labels_data,
-                                                                      patches_indices, slice_channel_img=input_slice,
-                                                                      slice_channel_label=output_slice,
-                                                                      output_patch_size=config['model_output_size'])
-
-            # List regularize
-            index_list = index_list / (np.array(max_data_size) + 1e-16)
-            if config['feed_pos']:
-                return (patchs_imgs, index_list), patchs_labels
-            else:
-                return patchs_imgs, patchs_labels
-
+        ## List regularize
+        index_list = index_list / (np.array(max_data_size) + 1e-16)
+        if config['feed_pos']:
+            return (patchs_imgs, index_list), patchs_labels
         else:
-
-            # Pad image size to max shape
-            images_data = pad_img_label(config, max_data_size, images_data, images_shape)
-            labels_data = tf.pad(tensor=labels_data, paddings=[[0, 0]])
-
-            # Special case for network "body identification"
-            if config['transpose_permute'] is not None:
-                images_data = tf.transpose(images_data, perm=config['transpose_permute'])
-                images_shape = tf.transpose(images_shape, perm=config['transpose_permute'])
-
-            patchs_imgs, _, index_list = get_patches_data(max_data_size, patch_size, images_data,
-                                                          data_label=None,
-                                                          index_list=patches_indices, slice_channel_img=input_slice,
-                                                          slice_channel_label=None,
-                                                          output_patch_size=config['model_output_size'],
-                                                          squeeze_channel=config['squeeze_channel'])
-            # Generate labels by patch indices  according to labels_data(position of hip, wrist etc.)
-            generate_labels = generate_label(config, labels_data, patches_indices, patch_size)
-
-            if config['model'] == 'model_body_identification_classification':
-                # Single output
-                generate_labels = generate_labels[0]
-
-            if config['feed_pos']:
-                return [patchs_imgs, index_list], generate_labels
-            else:
-                # Multiple output
-                return patchs_imgs, generate_labels  # patchs_imgs, (generate_labels[0], generate_labels[1])
+            return patchs_imgs, patchs_labels
 
     # Create pipeline and config dataset.
-    dataset = zip_data_path_TFRecordDataset.map(map_func=_map, num_parallel_calls=config['num_parallel_calls'])
+    # dataset = zip_data_path_TFRecordDataset.map(map_func=_map, num_parallel_calls=config['num_parallel_calls'])
+    dataset = zip_data_path_TFRecordDataset.map(map_func=_map, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+
+    for elem in dataset.take(2):
+        print("image size: ", elem[0].shape)
+        print("label size: ", elem[1].shape)
+
+    @tf.function
+    def data_augmentation(images_data, labels_data):
+        ####----------------------------------
+        ##augmentation
+        # this does not correspond to pytorch architecture
+        ## augmentation is performed after patching
+        ## augmentations used are contrast and brightness change: gamma, brightness, contrast
+        ## further details implemented in PyTorch archictecture
+
+        ###------------------------------------
+
+        #images_data = args[0]
+        print("images data: ", images_data.numpy().shape)
+        #labels_data = args[1]
+        print("label data: ",labels_data.numpy().shape)
+
+        ##assert len(images_data.shape) == 4
+
+        transformation_list = config['augmentation']
+
+        for transform in transformation_list:
+            print("transformation: ", transform)
+
+        for transformation in transformation_list:
+            if transformation == 'brightness':
+                images_data = brightness_transform(images_data, mu=0.0, sigma=0.3)
+
+            if transformation == 'gamma':
+                images_data = gamma_contrast(images_data, gamma_range=(0.7, 1.3))
+
+            if transformation == 'contrast':
+                images_data = contrast_augmentation_transform(images_data, contrast_range=(0.3, 1.7))
+
+        return images_data, labels_data
+
+    if augment:
+        dataset = dataset.map(map_func=data_augmentation, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
     print("dataset type: ", type(dataset))
 
-    dataset = dataset.unbatch().batch(config['batch']).shuffle(config['shuffle']).prefetch(
-        tf.data.experimental.AUTOTUNE)
+    dataset = dataset.unbatch().shuffle(config['shuffle']).batch(config['batch']).prefetch(16)
+    # tf.data.experimental.AUTOTUNE)
 
     print("dataset type: ", type(dataset))
 
-    #while True:
-        #for elem ,elem2 in dataset:
-            #print("elem: ", elem)
-            #print("elem2: ", elem2)
-
+    # while True:
+    # for elem ,elem2 in dataset:
+    # print("elem: ", elem)
+    # print("elem2: ", elem2)
 
     return dataset

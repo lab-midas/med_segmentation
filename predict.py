@@ -50,7 +50,9 @@ def predict(config, datasets=None, save_predict_data=False, name_ID=None):
                 dataset_image_path = [[config['rootdir_tfrec'][dataset] + '/' + name_ID + '/image/image.tfrecords']]
                 dataset_label_path = [[config['rootdir_tfrec'][dataset] + '/' + name_ID + '/label/label.tfrecords']]
 
+            ##max shape, channel img num, channel label num, condigured
             config = channel_config(config, dataset)
+
             # Reformat data path list: [[path1],[path2], ...] ->[[path1, path2, ...]]
             data_path_image_list = [t[i] for t in dataset_image_path for i in range(len(dataset_image_path[0]))]
             data_path_label_list = [t[i] for t in dataset_label_path for i in range(len(dataset_label_path[0]))]
@@ -66,7 +68,7 @@ def predict(config, datasets=None, save_predict_data=False, name_ID=None):
                     enumerate(zip(list_image_TFRecordDataset, list_label_TFRecordDataset, data_path_image_list)):
                 dataset_image = image_TFRecordDataset.map(parser)
                 dataset_label = label_TFRecordDataset.map(parser)
-
+                print("index img: ", index)
                 # Get the image data from tfrecords
                 # elem[0]= data, elem[1]= data shape
                 img_data = [elem[0].numpy() for elem in dataset_image][0]
@@ -74,18 +76,59 @@ def predict(config, datasets=None, save_predict_data=False, name_ID=None):
                 img_data, label_data_onehot = image_transform(config, img_data, label_data_onehot)
                 # Patch the image
                 patch_imgs, indice_list = patch_image(config, img_data)
-                print('76',patch_imgs.shape)
+                print('patch image shape 76: ',patch_imgs.shape)
                 predict_img = predict_image(config, dataset, model, patch_imgs, indice_list)
+                ##------------------------------------------------------------------------------------------
+                #n_classes = {}
+                #for i in range(int(predict_img.shape[0]/3)):
+                    #for j in range(int(predict_img.shape[1]/3)):
+                        #for k in range(int(predict_img.shape[2]/3)):
+                            #elem = predict_img[i, j, k, 1]
+
+                            #if str(elem) not in list(n_classes.keys()):
+                                #n_classes[str(elem)] = 1
+                            #else:
+                                #n_classes[str(elem)] = n_classes[str(elem)] + 1
+
+                #print(n_classes)
+                ##---------{---------------------------------------------------------
+
                 predict_img, label_data_onehot = select_output_channel(config, dataset, predict_img, label_data_onehot)
+
                 predict_img_integers, predict_img_onehot, label_data_integers, label_data_onehot = convert_result(
                     config, predict_img, label_data_onehot)
+                ##------------------------------------------------------------------------------------------
+                #n_classes = {}
+                #for i in range(int(predict_img_integers.shape[0]/3)):
+                #    for j in range(int(predict_img_integers.shape[1]/3)):
+                #        for k in range(int(predict_img_integers.shape[2]/3)):
+                #            elem = predict_img_integers[i, j, k]
+
+                 #           if str(elem) not in list(n_classes.keys()):
+                 #               n_classes[str(elem)] = 1
+                 #           else:
+                 #               n_classes[str(elem)] = n_classes[str(elem)] + 1
+
+                #print(n_classes)
+                ##---------{---------------------------------------------------------
+
+
 
                 # Get name_ID from the data path
                 # The data path must have the specified format which is generated from  med_io/preprocess_raw_dataset.py
                 name_ID = data_path_image.replace('\\', '/').split('/')[-3]
+                print("name_id: ", name_ID)
 
                 # Get data of one patient for plot
-                dict_data = {'predict_integers': predict_img_integers,
+                ##------------------------------------------------------------------------------
+                #dict_data = {'predict_integers': predict_img_integers,
+                             #'predict_onehot': predict_img_onehot,
+                             #'label_integers': label_data_integers,
+                             #'label_onehot': label_data_onehot,
+                             #'original_image': img_data,
+                             #'without_mask': np.zeros(predict_img_integers.shape)}
+                ##------------------------------------------------------------------------------
+                dict_data = {'predict_integers': predict_img,
                              'predict_onehot': predict_img_onehot,
                              'label_integers': label_data_integers,
                              'label_onehot': label_data_onehot,
@@ -281,7 +324,7 @@ def predict_image(config, dataset, model, patch_imgs, indice_list, img_data_shap
     if config['input_channel'][dataset] is not None:
         patch_imgs = patch_imgs[..., config['input_channel'][dataset]]
 
-    print('283', patch_imgs.shape)
+    print('patch image 283: ', patch_imgs.shape)
     indice_list_model = indice_list
     if config['regularize_indice_list']['max_shape']:
 
@@ -304,13 +347,13 @@ def predict_image(config, dataset, model, patch_imgs, indice_list, img_data_shap
         model = load_model_file(config, dataset)
         predict_patch_imgs = model.predict(x=(patch_imgs, indice_list_model), batch_size=1, verbose=1)
 
-    print('298',predict_patch_imgs.shape)
+    print('predict patch image 298: ',predict_patch_imgs.shape)
     # patch images-> whole image
     predict_img = unpatch_predict_image(predict_patch_imgs, indice_list, config['patch_size'],
                                         output_patch_size=config['model_output_size'],
                                         set_zero_by_threshold=config['set_zero_by_threshold'],
                                         threshold=config['unpatch_start_threshold'])
-    print('308', predict_img.shape)
+    print('predict image 308: ', predict_img.shape)
 
     # Adjust model output channel order
     if config['predict_output_channel_order']:
@@ -357,9 +400,39 @@ def convert_result(config, predict_img, label_data_onehot=None, predict_class_nu
         predict_img_integers = convert_onehot_to_integers_add_bg(predict_img)
     else:
         predict_img_integers = convert_onehot_to_integers(predict_img)
+
+    ##------------------------------------------------------------------------------------------
+    #n_classes = {}
+    #for i in range(predict_img_integers.shape[0]):
+        #for j in range(predict_img_integers.shape[1]):
+            #for k in range(predict_img_integers.shape[2]):
+                #elem = predict_img_integers[i, j, k]
+
+                #if str(elem) not in list(n_classes.keys()):
+                    #n_classes[str(elem)] = 1
+                #else:
+                    #n_classes[str(elem)] = n_classes[str(elem)] + 1
+
+    #print(n_classes)
+    ##---------{---------------------------------------------------------
+
     if predict_class_num is None:
         print("predict img integers: ", np.max(predict_img_integers))
         predict_img_onehot = convert_integers_to_onehot(predict_img_integers, num_classes=predict_img.shape[-1])
+        ##------------------------------------------------------------------------------------------
+        #n_classes = {}
+        #for i in range(predict_img_onehot.shape[0]):
+            #for j in range(predict_img_onehot.shape[1]):
+                #for k in range(predict_img_onehot.shape[2]):
+                    #elem = predict_img_onehot[i, j, k, 1]
+
+                    #if str(elem) not in list(n_classes.keys()):
+                        #n_classes[str(elem)] = 1
+                    #else:
+                        #n_classes[str(elem)] = n_classes[str(elem)] + 1
+
+        #print(n_classes)
+        ##---------{---------------------------------------------------------
         print('line357', predict_img_onehot.shape)
     else:
         predict_img_onehot = convert_integers_to_onehot(predict_img_integers, num_classes=predict_class_num)
@@ -375,6 +448,20 @@ def convert_result(config, predict_img, label_data_onehot=None, predict_class_nu
         # recreate one hot predict image and label from the integers maps
         label_data_onehot = convert_integers_to_onehot(label_data_integers,
                                                        num_classes=channel_label_num)
+        ##------------------------------------------------------------------------------------------
+        #n_classes = {}
+        #for i in range(label_data_onehot.shape[0]):
+            #for j in range(label_data_onehot.shape[1]):
+                #for k in range(label_data_onehot.shape[2]):
+                    #elem = label_data_onehot[i, j, k, 0]
+
+                    #if str(elem) not in list(n_classes.keys()):
+                        #n_classes[str(elem)] = 1
+                    #else:
+                        #n_classes[str(elem)] = n_classes[str(elem)] + 1
+
+        #print(n_classes)
+        ##---------{---------------------------------------------------------
 
         if (not predict_class_num) and (predict_img.shape[-1] != config['channel_label_num']):
             print('Warning! The channels of predict image and label are not equal! Predict:',

@@ -514,7 +514,7 @@ def preprocess_raw_dataset(config):
                 print("Shape of the image is: ", img_h5.shape)
                 # the form of the images are  (channel, H, W, D)
 
-                mask_h5 = Data_Reader.file[file_keys[1]][img_ID] # mask or label
+                mask_h5 = Data_Reader.file[file_keys[2]][img_ID] # mask or label
                 print("Shape of the mask_h5 is: ", mask_h5.shape)
 
                 img_array = np.rollaxis(np.float32(np.array(img_h5)), 0, 4)
