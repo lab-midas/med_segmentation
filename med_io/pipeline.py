@@ -9,16 +9,12 @@ from .generate_label import *
 import pickle
 
 
-def pipeline(config, dataset_image_path, dataset_label_path, dataset=None, pool=None):
+def pipeline(config, dataset_image_path, dataset_label_path, dataset=None):
     """
     Pipeline of tf.data for importing the data
     :param config: type dict,config parameter
     :param dataset_image_path: type str: dataset image path
     :param dataset_label_path: type str: dataset label path
-    :param pool: instance of PatchPool, object that keeps track of patches
-    selected for training through active learning algorithm in
-    med_io.active_learning.py. If a pool object is given as argument, active
-    learning is automatically turned on.
     :return: dataset: return tf.data.dataset: pipeline dataset
     """
     patch_size = config['patch_size']
@@ -39,6 +35,11 @@ def pipeline(config, dataset_image_path, dataset_label_path, dataset=None, pool=
             # Add background channel at first (0), and all selected channel index +1
             output_slice = [0] + list(map(lambda x: x + 1, output_slice))
 
+    patches_indices = get_fixed_patches_index(config, max_data_size, patch_size,
+                                              overlap_rate=config['patch_overlap_rate'],
+                                              start=config['patch_start'],
+                                              end=config['patch_end'])
+
     # Reformat data path list: [[path1],[path2], ...] ->[[path1, path2, ...]]
     data_path_image_list = [[t[i] for t in dataset_image_path] for i in range(len(dataset_image_path[0]))]
     data_path_label_list = [[t[i] for t in dataset_label_path] for i in range(len(dataset_label_path[0]))]
@@ -47,27 +48,9 @@ def pipeline(config, dataset_image_path, dataset_label_path, dataset=None, pool=
     list_image_TFRecordDataset = [tf.data.TFRecordDataset(i) for i in data_path_image_list]
     list_label_TFRecordDataset = [tf.data.TFRecordDataset(i) for i in data_path_label_list]
 
-    # Create Dataset of patches indices for patch selection in AL
-    if pool is not None:
-        indice_lists, id_lists = [], []
-        for i in data_path_image_list[0]:
-            indice_list, id_list = pool.get_patches_pipeline(i)
-            indice_lists.append(indice_list)
-            id_lists.append(id_list)
-        list_image_patches_dataset = tf.data.Dataset.from_tensor_slices(indice_lists)
-        list_patches_id_dataset = tf.data.Dataset.from_tensor_slices(id_lists)
-        # Zip dataset of images and labels.
-        zip_data_path_TFRecordDataset = tf.data.Dataset.zip(
-            (list_image_TFRecordDataset[0], list_label_TFRecordDataset[0],
-             list_image_patches_dataset, list_patches_id_dataset))
-    else:
-        patches_indices = get_fixed_patches_index(config, max_data_size, patch_size,
-                                                  overlap_rate=config['patch_overlap_rate'],
-                                                  start=config['patch_start'],
-                                                  end=config['patch_end'])
-        # Zip dataset of images and labels.
-        zip_data_path_TFRecordDataset = tf.data.Dataset.zip(
-            (list_image_TFRecordDataset[0], list_label_TFRecordDataset[0]))
+    # Zip dataset of images and labels.
+    zip_data_path_TFRecordDataset = tf.data.Dataset.zip(
+        (list_image_TFRecordDataset[0], list_label_TFRecordDataset[0]))
 
     @tf.function
     def _map(*args):
