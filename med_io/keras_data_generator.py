@@ -31,19 +31,27 @@ def convert_tf_records_hdf5(dataset_train_image_path, dataset_train_label_path,
     hdf5_path = hdf5_path / 'al_patches_data3.hdf5'
     with h5py.File(hdf5_path, 'w') as f:
         # create the hdf5 groups that store the datasets
-        grp_images_train = f.create_group('images/train')
-        grp_images_val = f.create_group('images/validation')
+        grp_images = f.create_group('images')
         grp_labels = f.create_group('labels')
+        grp_id_lists = f.create_group('id_lists')
         # training data: get the data from pipeline and store as hdf5
+        train_ids, val_ids = [], []
         for img_num, (image_data, label_data) in dataset_train.take(4).enumerate(0): # faster solution?
             image_data = image_data.numpy()
             label_data = label_data.numpy()
-            grp_images_train.create_dataset(str(img_num.numpy()), data=image_data)
+            grp_images.create_dataset(str(img_num.numpy()), data=image_data)
             grp_labels.create_dataset(str(img_num.numpy()), data=label_data)
+            train_ids.append(str(img_num.numpy()))
+        # save the indices of all training data in a list (conversion to ascii necessary)
+        train_ids = [s.encode('ascii') for s in train_ids]
+        grp_id_lists.create_dataset('train_ids', data=train_ids)
         # validation data: get the data from pipeline and store as hdf5
         for img_num, (image_data, label_data) in dataset_val.take(4).enumerate(img_num + 1):
             image_data = image_data.numpy()
             label_data = label_data.numpy()
-            grp_images_val.create_dataset(str(img_num.numpy()), data=image_data)
+            grp_images.create_dataset(str(img_num.numpy()), data=image_data)
             grp_labels.create_dataset(str(img_num.numpy()), data=label_data)
+            val_ids.append(str(img_num.numpy()))
+        val_ids = [s.encode('ascii') for s in val_ids]
+        grp_id_lists.create_dataset('val_ids', data=val_ids)
     return hdf5_path
