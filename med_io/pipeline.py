@@ -9,7 +9,7 @@ from .generate_label import *
 import pickle
 
 
-def pipeline(config, dataset_image_path, dataset_label_path, dataset=None):
+def pipeline(config, dataset_image_path, dataset_label_path, dataset=None, no_shuffle_and_batching=False):
     """
     Pipeline of tf.data for importing the data
     :param config: type dict,config parameter
@@ -138,8 +138,11 @@ def pipeline(config, dataset_image_path, dataset_label_path, dataset=None):
     # Create pipeline and config dataset.
     dataset = zip_data_path_TFRecordDataset.map(map_func=_map, num_parallel_calls=config['num_parallel_calls'])
 
-    dataset = dataset.unbatch().batch(config['batch']).shuffle(config['shuffle']).prefetch(
-        tf.data.experimental.AUTOTUNE)
+    if no_shuffle_and_batching:
+        dataset = dataset.unbatch()
+    else:
+        dataset = dataset.unbatch().batch(config['batch']).shuffle(config['shuffle']).prefetch(
+            tf.data.experimental.AUTOTUNE)
     """
     while True:
         for elem ,elem2 in dataset:

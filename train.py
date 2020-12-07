@@ -12,6 +12,8 @@ import datetime
 import os
 import random
 
+from med_io.keras_data_generator import convert_tf_records_hdf5
+
 
 def train(config, restore=False):
     """
@@ -119,6 +121,9 @@ def train_process(config, model, paths_train_img, paths_train_label, paths_val_i
                   cp_callback,
                   saver1, k_fold_index=0, init_epoch=0, active_learning=True):
     """Internal function"""
+
+    # only debugging
+    convert_tf_records_hdf5(paths_train_img, paths_train_label, paths_val_img, paths_val_label, config, dataset=dataset)
 
     # Building pipeline for validation Dataset.
     ds_validation = pipeline(config, paths_val_img, paths_val_label, dataset=dataset)
