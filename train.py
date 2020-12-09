@@ -14,7 +14,6 @@ import os
 import random
 
 
-
 def train(config, restore=False):
     """
     Train the dataset from given paths of dataset.
@@ -119,36 +118,20 @@ def train(config, restore=False):
 
 def train_process(config, model, paths_train_img, paths_train_label, paths_val_img, paths_val_label, dataset,
                   cp_callback,
-                  saver1, k_fold_index=0, init_epoch=0, active_learning=True):
+                  saver1, k_fold_index=0, init_epoch=0):
     """Internal function"""
 
-    # only debugging
-    test_path, test_trainid, test_valid = tf_records_as_hdf5(paths_train_img, paths_train_label, paths_val_img, paths_val_label, config, dataset=dataset)
-    test_generator = DataGenerator(test_path, test_trainid, n_channels=4, n_classes=4, batch_size=2)
-    model.fit(x=test_generator)
-
-    # Building pipeline for validation Dataset.
-    ds_validation = pipeline(config, paths_val_img, paths_val_label, dataset=dataset)
-
-    if active_learning:
-        al_iterations = config['al_iterations']
-        # create object that keeps track of the patches (trained and untrained)
-        patches = PatchPool(config, dataset, paths_train_img, batch_size=10)
+    # if active learning is configured use al training process otherwise normal
+    if config['active_learning']:
+        return train_al_process(config, model, paths_train_img, paths_train_label,
+                                paths_val_img, paths_val_label, dataset, cp_callback, saver1)
     else:
-        al_iterations = 1
+        ds_train = pipeline(config, paths_train_img, paths_train_label, dataset=dataset)
 
-    # Active learning iterations
-    for n_AL in range(al_iterations):
-        if active_learning:
-            patches = query_training_patches(config, paths_train_img, model, patches)
-            ds_train = pipeline(config, paths_train_img, paths_train_label,
-                                dataset=dataset, pool=patches)
-        else:
-            # build for selected patches the training pipeline and fit model
-            ds_train = pipeline(config, paths_train_img, paths_train_label,
-                                dataset=dataset)
+        ds_validation = pipeline(config, paths_val_img, paths_val_label, dataset=dataset)
 
         # Fit training & validation data into the model
+
         history = model.fit(ds_train,
                             epochs=config['epochs'] + init_epoch,
                             steps_per_epoch=config['train_steps_per_epoch'],
@@ -158,12 +141,28 @@ def train_process(config, model, paths_train_img, paths_train_label, paths_val_i
                             validation_steps=config['val_steps_per_epoch'],
                             validation_freq=config['validation_freq'],
                             verbose=config['train_verbose_mode'])
-# !!! save history in for loop?
-    print(history.history)
-    # Save the histories and plot figures
-    save_histories_plot_images(history, config=config, dataset=dataset, mode='train_val', k_fold_index=k_fold_index)
-    return model, history
+        print(history.history)
+        # Save the histories and plot figures
+        save_histories_plot_images(history, config=config, dataset=dataset, mode='train_val', k_fold_index=k_fold_index)
+        return model, history
 
+
+def train_al_process(config, model, paths_train_img, paths_train_label, paths_val_img, paths_val_label, dataset,
+                     cp_callback,
+                     saver1, k_fold_index=0, init_epoch=0):
+
+    # convert the tf_records data to hdf5 if this hasn't already happened
+    test_path, test_trainid, test_valid = tf_records_as_hdf5(paths_train_img, paths_train_label, paths_val_img,
+                                                             paths_val_label, config, dataset=dataset)
+    # create the DataGenerator objects for the train process
+    #test_generator = DataGenerator(test_path, test_trainid, n_channels=4, n_classes=4, batch_size=2)
+
+    #learner = modAL.ActiveLearner(estimator=model, X_training=initial_data)
+
+
+    model.fit = 'TBD'
+    history = 'TBD'
+    return model, history
 
 def train_config_setting(config, dataset):
     """
