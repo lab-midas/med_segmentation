@@ -5,14 +5,14 @@ from sklearn.model_selection import train_test_split
 from util import *
 from plot.plot_figure import *
 from tensorflow.keras.models import load_model
-from med_io.active_learning import *
+from med_io.keras_data_generator import DataGenerator, tf_records_as_hdf5
+from med_io.active_learning import PatchPool, query_training_patches
 from models.load_model import load_model_file
 import pickle
 import datetime
 import os
 import random
 
-from med_io.keras_data_generator import convert_tf_records_hdf5
 
 
 def train(config, restore=False):
@@ -123,7 +123,9 @@ def train_process(config, model, paths_train_img, paths_train_label, paths_val_i
     """Internal function"""
 
     # only debugging
-    convert_tf_records_hdf5(paths_train_img, paths_train_label, paths_val_img, paths_val_label, config, dataset=dataset)
+    test_path, test_trainid, test_valid = tf_records_as_hdf5(paths_train_img, paths_train_label, paths_val_img, paths_val_label, config, dataset=dataset)
+    test_generator = DataGenerator(test_path, test_trainid, n_channels=4, n_classes=4, batch_size=2)
+    model.fit(x=test_generator)
 
     # Building pipeline for validation Dataset.
     ds_validation = pipeline(config, paths_val_img, paths_val_label, dataset=dataset)

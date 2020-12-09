@@ -197,13 +197,13 @@ al_iterations: 3 # Number of epochs of choosing the best patches and training on
 ## MODEL ##
 ##---------
 # Model (to train, evaluate, test)
-model: premodel_MRGE #  model name, must be chosen from class ModelSet in models/ModelSet.py
+model: model_MRGE #  model name, must be chosen from class ModelSet in models/ModelSet.py
                       # or premodel name, (can be chosen from class Premodel_Set in models/Premodel_Set.py)
 filters: 8 #  base number of filters of the model
 feed_pos: False  # True if the position of the patches is input to the model
 pos_noise_stdv: 0.01 # standard variation of feed position
 multi_gpu: False
-train_premodel: True # True if continue training the pre-trained model
+train_premodel: False # True if continue training the pre-trained model
 
 # Premodel
 # load_weights_only: True , load_premodel: False -> load model from models/ModelSet.py and saved_models_dir
