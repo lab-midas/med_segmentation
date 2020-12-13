@@ -1,6 +1,6 @@
 import tensorflow as tf
 import numpy as np
-import modAL
+from modAL.utils.selection import multi_argmax
 from scipy.stats import entropy
 
 from pathlib import Path
@@ -11,29 +11,36 @@ Active learning parts for pipeline
 """
 
 
-def query_selection(model, X, n_classes):
-    utility = segmentation_utility(model, X)
-    pass
+def query_selection(model, X, config):
+    # choose the type of utility function used for calculation of utility
+    utility_functions = {'entropy': _proba_entropy,
+                         'uncertainty': _proba_uncertainty,
+                         'margin': _proba_margin}
+    utility_function = utility_functions[config['information_estimation']]
+
+    utilities = value_of_means(model, X, utility_function)
+
+    # selecting the best instances
+    query_idx = multi_argmax(utilities)
+
+    return query_idx
 
 
-def segmentation_utility(model, X):
-    pass
-
-
-def predict_and_average_proba(model, X):
+def value_of_means(model, X, utility_function):
     predictions = model.predict(X)  # Problem - evtl zu viele Daten!!! sequence- enqueer?
-    segmentation = np.mean(predictions, (1, 2, 3))
-    return predictions
+    mean_predictions = np.mean(predictions, (1, 2, 3))
+    utilities = utility_function(mean_predictions)
+    return utilities
+
+def mean_of_values(model, X, utility_function):
+    predictions = model.predict(X)  # Problem - evtl zu viele Daten!!! sequence- enqueer?
+    utilities = utility_function(predictions)
+    mean_utilities = np.mean(utilities, (1, 2, 3))
+    return mean_utilities
 
 
-def utility_measure(prediction_proba, type):
-    if type == 'entropy':
-        return entropy(prediction_proba)
-    elif type == 'uncertainty':
-        return
 
-
-""" functions that calculate an uncertainty measure from the class probability predictions 
+""" functions that calculate an utility value from the class probability predictions 
     inspired by the corresponding functions in modAL uncertainty.py version 0.4.0 """
 
 

@@ -6,7 +6,7 @@ from util import *
 from plot.plot_figure import *
 from tensorflow.keras.models import load_model
 from med_io.keras_data_generator import DataGenerator, tf_records_as_hdf5
-from med_io.active_learning import PatchPool, query_training_patches
+from med_io.active_learning import query_selection
 from models.load_model import load_model_file
 import modAL
 import pickle
@@ -153,12 +153,19 @@ def train_al_process(config, model, paths_train_img, paths_train_label, paths_va
                      saver1, k_fold_index=0, init_epoch=0):
 
     # convert the tf_records data to hdf5 if this hasn't already happened
-    test_path, test_trainid, test_valid = tf_records_as_hdf5(paths_train_img, paths_train_label, paths_val_img,
+    hdf5_path, train_ids, val_ids = tf_records_as_hdf5(paths_train_img, paths_train_label, paths_val_img,
                                                              paths_val_label, config, dataset=dataset)
     # create the DataGenerator objects for the train process
-    #test_generator = DataGenerator(test_path, test_trainid, n_channels=4, n_classes=4, batch_size=2)
+    n_channels = len(config['input_channel'][dataset])
+    n_classes = len(config['output_channel'][dataset])
+    validation_generator = DataGenerator(hdf5_path, val_ids, n_channels=n_channels, n_classes=n_classes, batch_size=2)
 
-    #learner = modAL.ActiveLearner(estimator=model, X_training=initial_data)
+    test_generator = DataGenerator(hdf5_path, val_ids, n_channels=n_channels, n_classes=n_classes, batch_size=2)
+
+    learner = modAL.ActiveLearner(estimator=model, X_training=test_generator)
+    test = query_selection(model, test_generator, config)
+
+
 
 
     model.fit = 'TBD'
