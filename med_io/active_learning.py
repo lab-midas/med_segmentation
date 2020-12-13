@@ -1,13 +1,60 @@
 import tensorflow as tf
 import numpy as np
-from math import ceil
+import modAL
+from scipy.stats import entropy
+
 from pathlib import Path
-from med_io.parser_tfrec import parser
 from med_io.get_pad_and_patch import get_fixed_patches_index, pad_img_label, get_patches_data
 
 """
 Active learning parts for pipeline
 """
+
+
+def query_selection(model, X, n_classes):
+    utility = segmentation_utility(model, X)
+    pass
+
+
+def segmentation_utility(model, X):
+    pass
+
+
+def predict_and_average_proba(model, X):
+    predictions = model.predict(X)  # Problem - evtl zu viele Daten!!! sequence- enqueer?
+    segmentation = np.mean(predictions, (1, 2, 3))
+    return predictions
+
+
+def utility_measure(prediction_proba, type):
+    if type == 'entropy':
+        return entropy(prediction_proba)
+    elif type == 'uncertainty':
+        return
+
+
+""" functions that calculate an uncertainty measure from the class probability predictions 
+    inspired by the corresponding functions in modAL uncertainty.py version 0.4.0 """
+
+
+def _proba_uncertainty(proba):
+    return 1 - np.max(proba, axis=-1)
+
+
+def _proba_margin(proba):
+    if proba.shape[-1] == 1:
+        raise Exception('Not enought classes for margin uncertainty') # or set 0 like in modAL
+    # sort the array in parts so that the first two elements in last axis are
+    # the most certain predictions then return margin
+    part = np.partition(-proba, 1, axis=-1)
+    return - part[..., 0] + part[..., 1]
+
+
+def _proba_entropy(proba):
+    return entropy(proba, axis=-1)
+
+
+""" ------------------------------- """
 
 
 def query_training_patches(config, dataset_image_path, model, pool):
@@ -27,25 +74,6 @@ def query_training_patches(config, dataset_image_path, model, pool):
     #pool.select_patches()
 
     return pool
-
-
-def predict(config, model, patch_imgs, patches_indices, img_data_shape=None):
-    # reformat list of indices (inspired by predict.py line 184)
-    indice_list_model = np.float32(patches_indices)
-    if config['regularize_indice_list']['max_shape']:
-        indice_list_model = np.float32(np.array(patches_indices)) / np.array(
-            config['max_shape']['image'])[..., 0]
-    elif config['regularize_indice_list']['image_shape']:
-        indice_list_model = np.float32(np.array(patches_indices)) / np.array(
-            img_data_shape)[:-1]  # !not yet fully implemented
-    elif config['regularize_indice_list']['custom_specified']:
-        indice_list_model = np.float32(np.array(patches_indices)) / np.array(
-            config['regularize_indice_list']['custom_specified'])
-
-    # predict data
-    predict_patch_imgs = model.predict(x=(patch_imgs, indice_list_model),
-                                       batch_size=1, verbose=1)
-    return predict_patch_imgs
 
 
 def uncertainty_sampling(prediction, computation='entropy'):

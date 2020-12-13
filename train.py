@@ -8,6 +8,7 @@ from tensorflow.keras.models import load_model
 from med_io.keras_data_generator import DataGenerator, tf_records_as_hdf5
 from med_io.active_learning import PatchPool, query_training_patches
 from models.load_model import load_model_file
+import modAL
 import pickle
 import datetime
 import os
