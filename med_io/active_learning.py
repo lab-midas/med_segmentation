@@ -5,11 +5,20 @@ from scipy.stats import entropy
 from med_io.keras_data_generator import DataGenerator
 
 """
-Active learning parts for pipeline
+Active learning parts for training
 """
 
 
-def query_selection(model, X, config):
+def query_selection(model, X, config, n_instances=1):
+    """
+        Query the ids of the most promising data
+        :parm model: segmentation model that is supposed to be trained by al loop
+        :parm X: Data for prediction e.g. DataGenerator object
+        :parm config: config parameters
+        :return: indices of the queried (best) data
+        Note: the ids returned are the indices in the data provided, not the
+              indices of the hdf5 file used in CustomActiveLearner!
+    """
     # choose the type of utility function used for calculation of utility
     utility_functions = {'entropy': _proba_entropy,
                          'uncertainty': _proba_uncertainty,
@@ -19,7 +28,7 @@ def query_selection(model, X, config):
     utilities = value_of_means(model, X, utility_function)
 
     # selecting the best instances
-    query_idx = multi_argmax(utilities)
+    query_idx = multi_argmax(utilities, n_instances=n_instances)
 
     return query_idx
 
@@ -62,6 +71,18 @@ def _proba_entropy(proba):
 # Define ActiveLearner class to manage active learning loop. The class is inspired
 # by ActiveLearner class from modAL but designed to work with the DataGenerator class
 class CustomActiveLearner:
+    """
+    Object that manages active learning
+    :param config: config parameters
+    :param model: keras model that is supposed to be trained
+    :query_strategy: function that takes model and prediction data as input and
+                     returns the indices of data to be queried
+    :hdf5_path: path where the data and labels are saved
+    :pool_ids: ids of data (in hdf5 file) that are available to be queried
+    :val_dataset: tf dataset with validation data (doesn't work with Sequence object)
+    :dataset: name of dataset used
+    :init_ids: ids of data with which the model gets trained before al starts
+    """
     def __init__(self, config, model, query_strategy, hdf5_path, pool_ids,
                  val_dataset, dataset, init_ids=None):
         self.model = model
@@ -82,14 +103,22 @@ class CustomActiveLearner:
         self.histories = []
 
     def _fit_on_new(self, ids):
+        """
+        Fit the model to the data with given ids (data is saved in hdf5 file),
+        save history in history attribute
+        """
         data_generator = DataGenerator(self.hdf5_path, ids,
                                        n_channels=self.n_channels,
                                        n_classes=self.n_classes,
                                        batch_size=self.batch_size)
         history = self.model.fit(x=data_generator, validation_data=self.val_dataset)
-        self.historys.append(history)
+        self.histories.append(history)
 
     def _add_training_data(self, ids, label_data=None):
+        """
+        Remove the ids of new training data from pool and add to train_ids
+        (To be implemented: if new label data is given after query save it in hdf5 file first)
+        """
         if label_data is not None:
             # later add option to add label data to hdf5 file for unlabled data
             pass
@@ -98,13 +127,25 @@ class CustomActiveLearner:
             self.pool_ids.remove(train_id)
 
     def query(self, *query_args, **query_kwargs):
+        """
+        Query the ids of most promising data with help of the query_strategy
+        """
         pool_data = DataGenerator(self.hdf5_path, self.pool_ids,
                                   n_channels=self.n_channels,
                                   n_classes=self.n_classes,
-                                  batch_size=self.batch_size)
-        query_result = self.query_strategy(self.model, pool_data, *query_args, **query_kwargs)
-        return query_result
+                                  batch_size=self.batch_size,
+                                  shuffle=False)
+        query_result = self.query_strategy(self.model, pool_data,
+                                           *query_args, **query_kwargs)
+        # indices returned by query strategy note position in pool_ids not ids themself!
+        query_ids = [self.pool_ids[i] for i in query_result]
+        return query_ids
 
     def teach(self, ids, label_data=None):
+        """
+        Add the ids of new training data to list of training data ids (and if
+        provided add new label data to data in hdf5 file), then fit the model to
+        the new data
+        """
         self._add_training_data(ids, label_data=label_data)
         self._fit_on_new(ids)

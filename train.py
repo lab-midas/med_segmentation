@@ -152,20 +152,24 @@ def train_al_process(config, model, paths_train_img, paths_train_label, paths_va
                      saver1, k_fold_index=0, init_epoch=0):
 
     # convert the tf_records data to hdf5 if this hasn't already happened
-    hdf5_path, train_ids, val_ids = tf_records_as_hdf5(paths_train_img, paths_train_label, paths_val_img,
-                                                             paths_val_label, config, dataset=dataset)
+    hdf5_path, train_ids, val_ids = tf_records_as_hdf5(paths_train_img, paths_train_label,
+                                                       paths_val_img, paths_val_label,
+                                                       config, dataset=dataset)
 
     # keras fit method can not use Sequence Objects so a dataset is used
     ds_validation = pipeline(config, paths_val_img, paths_val_label, dataset=dataset)
 
+    # instantiate an active learner that manages active learning
     learner = CustomActiveLearner(config, model, query_selection, hdf5_path,
                                   train_ids, ds_validation, dataset)
 
+    for al_epoch in range(config['al_iterations']):
+        query_ids = learner.query(config, n_instances=1)
+        # labeling of unlabeled data can later be implemented here
+        learner.teach(query_ids)
 
+    history = learner.histories
 
-
-    model.fit = 'TBD'
-    history = 'TBD'
     return model, history
 
 def train_config_setting(config, dataset):
