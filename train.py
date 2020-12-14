@@ -6,9 +6,8 @@ from util import *
 from plot.plot_figure import *
 from tensorflow.keras.models import load_model
 from med_io.keras_data_generator import DataGenerator, tf_records_as_hdf5
-from med_io.active_learning import query_selection
+from med_io.active_learning import CustomActiveLearner, query_selection
 from models.load_model import load_model_file
-import modAL
 import pickle
 import datetime
 import os
@@ -155,15 +154,12 @@ def train_al_process(config, model, paths_train_img, paths_train_label, paths_va
     # convert the tf_records data to hdf5 if this hasn't already happened
     hdf5_path, train_ids, val_ids = tf_records_as_hdf5(paths_train_img, paths_train_label, paths_val_img,
                                                              paths_val_label, config, dataset=dataset)
-    # create the DataGenerator objects for the train process
-    n_channels = len(config['input_channel'][dataset])
-    n_classes = len(config['output_channel'][dataset])
-    validation_generator = DataGenerator(hdf5_path, val_ids, n_channels=n_channels, n_classes=n_classes, batch_size=2)
 
-    test_generator = DataGenerator(hdf5_path, val_ids, n_channels=n_channels, n_classes=n_classes, batch_size=2)
+    # keras fit method can not use Sequence Objects so a dataset is used
+    ds_validation = pipeline(config, paths_val_img, paths_val_label, dataset=dataset)
 
-    learner = modAL.ActiveLearner(estimator=model, X_training=test_generator)
-    test = query_selection(model, test_generator, config)
+    learner = CustomActiveLearner(config, model, query_selection, hdf5_path,
+                                  train_ids, ds_validation, dataset)
 
 
 

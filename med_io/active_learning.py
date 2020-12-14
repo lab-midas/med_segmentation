@@ -2,9 +2,7 @@ import tensorflow as tf
 import numpy as np
 from modAL.utils.selection import multi_argmax
 from scipy.stats import entropy
-
-from pathlib import Path
-from med_io.get_pad_and_patch import get_fixed_patches_index, pad_img_label, get_patches_data
+from med_io.keras_data_generator import DataGenerator
 
 """
 Active learning parts for pipeline
@@ -32,12 +30,12 @@ def value_of_means(model, X, utility_function):
     utilities = utility_function(mean_predictions)
     return utilities
 
+
 def mean_of_values(model, X, utility_function):
     predictions = model.predict(X)  # Problem - evtl zu viele Daten!!! sequence- enqueer?
     utilities = utility_function(predictions)
     mean_utilities = np.mean(utilities, (1, 2, 3))
     return mean_utilities
-
 
 
 """ functions that calculate an utility value from the class probability predictions 
@@ -50,7 +48,7 @@ def _proba_uncertainty(proba):
 
 def _proba_margin(proba):
     if proba.shape[-1] == 1:
-        raise Exception('Not enought classes for margin uncertainty') # or set 0 like in modAL
+        raise Exception('Not enought classes for margin uncertainty')  # or set 0 like in modAL
     # sort the array in parts so that the first two elements in last axis are
     # the most certain predictions then return margin
     part = np.partition(-proba, 1, axis=-1)
@@ -61,97 +59,52 @@ def _proba_entropy(proba):
     return entropy(proba, axis=-1)
 
 
-""" ------------------------------- """
+# Define ActiveLearner class to manage active learning loop. The class is inspired
+# by ActiveLearner class from modAL but designed to work with the DataGenerator class
+class CustomActiveLearner:
+    def __init__(self, config, model, query_strategy, hdf5_path, pool_ids,
+                 val_dataset, dataset, init_ids=None):
+        self.model = model
+        self.query_strategy = query_strategy
+        self.hdf5_path = hdf5_path
+        # create the list that 0
+        self.pool_ids = pool_ids
+        self.train_ids = []
+        # for creating the DataGenerator objects
+        self.n_channels = len(config['input_channel'][dataset])
+        self.n_classes = len(config['output_channel'][dataset])
+        self.batch_size = 2
+        # train on initial data if given
+        if init_ids is not None:
+            self._fit_on_new(init_ids)
+            self.train_ids.append(init_ids)
+        self.val_dataset = val_dataset
+        self.histories = []
 
+    def _fit_on_new(self, ids):
+        data_generator = DataGenerator(self.hdf5_path, ids,
+                                       n_channels=self.n_channels,
+                                       n_classes=self.n_classes,
+                                       batch_size=self.batch_size)
+        history = self.model.fit(x=data_generator, validation_data=self.val_dataset)
+        self.historys.append(history)
 
-def query_training_patches(config, dataset_image_path, model, pool):
-    """
-    Patch the image data and calculate an active learning value
-    (e.g. uncertainty of the network) for every patch, then select the n best
-    patches with the highest value for training.
-    """
+    def _add_training_data(self, ids, label_data=None):
+        if label_data is not None:
+            # later add option to add label data to hdf5 file for unlabled data
+            pass
+        self.train_ids.append(ids)
+        for train_id in ids:
+            self.pool_ids.remove(train_id)
 
-    # predict data-patches
-    #predict_patch_imgs = predict(config, model, patch_imgs, patches_indices)
+    def query(self, *query_args, **query_kwargs):
+        pool_data = DataGenerator(self.hdf5_path, self.pool_ids,
+                                  n_channels=self.n_channels,
+                                  n_classes=self.n_classes,
+                                  batch_size=self.batch_size)
+        query_result = self.query_strategy(self.model, pool_data, *query_args, **query_kwargs)
+        return query_result
 
-    # calculate value of the patches for training
-    #pool.calculate_values(predict_patch_imgs, patches_indices, image_number)
-
-    # select the best n for training
-    #pool.select_patches()
-
-    return pool
-
-
-def uncertainty_sampling(prediction, computation='entropy'):
-    """
-        Calculate an estimation of uncertainty for the prediction and return
-        this value. The prediction data must be a Tensor with a probability
-        value for every class for every voxel.
-        :parm prediction: type tf.Tensor, 4D prediction data where the first 3
-        Dimensions are Space and the 4th the class probabilities
-        :return: uncertainty_value
-    """
-    # Calculate an uncertainty value for every pixel producing an uncertainty-field
-    if computation == 'entropy':
-        # calculate the Shannon Entropy for every pixel as uncertainty value
-        probs_log = tf.math.log(prediction)
-        weighted_probs_log = tf.math.multiply(prediction, probs_log)
-        uncertainty_field = tf.math.reduce_sum(tf.math.negative(weighted_probs_log), axis=-1)
-    elif computation == 'least_confident':
-        # pick the probability of the most likely class as uncertainty value
-        uncertainty_field = tf.reduce_max(prediction, axis=-1)
-    else:
-        raise Exception('Unknown way of computing the uncertainty')
-
-    # Average the values to get an average uncertainty for the entire prediction
-    uncertainty = tf.math.reduce_mean(uncertainty_field)
-    return uncertainty
-
-
-# Define classes to manage patch selection
-class PatchPool:
-    def __init__(self, config, dataset, dataset_image_path, batch_size=20):
-        self.batch_size = batch_size
-        self.dataset = dataset
-        # mode for building pipeline with unused patches form pool or patches
-        # to train: either 0 for query or 1 for train mode
-        self.mode = 0
-
-        # determine general patch indices and parameters for patching
-        assert not config['patch_probability_distribution']['use']  #!evtl möglich? aber nicht sinnvoll?! make sure tiling method is used, if random shift should get turned on at some point make shure get_pos_key and communicatin of patches to pipeline still works
-        self.patch_size = config['patch_size']
-        self.dim = len(self.patch_size)
-        self.max_data_size = [config['max_shape']['image'][i] for i in range(self.dim)]
-        # general patch locations for max size image
-        self.ideal_patches_indices = get_fixed_patches_index(config, self.max_data_size, self.patch_size,
-                                                             overlap_rate=config['patch_overlap_rate'],
-                                                             start=config['patch_start'],
-                                                             end=config['patch_end'])
-        # check what input channels are used (for creation of patches)
-        if config['input_channel'][self.dataset] is not None:
-            self.input_slice = config['input_channel'][self.dataset]
-
-        # create the lists that keep track of the patches and their status for every image
-        # status is one of 0 (unused), 1 (to train), 2 (used) and initialized as 0
-        self.pool = {}
-        for [image_path] in dataset_image_path:
-            image_pathlib_path = Path(image_path)
-            image_number = image_pathlib_path.parts[-3]
-            # create list with patches indices in first 3 column an status in 4th
-            self.pool[image_number] = np.zeros((len(self.ideal_patches_indices), 4), dtype=int)
-            self.pool[image_number][:, :3] = self.ideal_patches_indices
-
-    def get_patches_pipeline(self, image_data_path):
-        image_pathlib_path = Path(image_data_path)
-        image_number = image_pathlib_path.parts[-3]
-        patch_list = self.pool[image_number]
-        patch_list_for_pipeline = []
-        patch_id = []
-        for i, patch in enumerate(patch_list):
-            # if index has the right status add the index to the returned list
-            if patch[3] == self.mode:
-                patch_list_for_pipeline.append(patch[:3])
-                # add the parameters needed to identify the patch
-                patch_id.append((str(i), image_number))
-        return patch_list_for_pipeline, patch_id
+    def teach(self, ids, label_data=None):
+        self._add_training_data(ids, label_data=label_data)
+        self._fit_on_new(ids)
