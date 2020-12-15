@@ -71,7 +71,7 @@ def get_fixed_patches_index(config,max_fix_img_size, patch_size, overlap_rate=0.
     if start is None: start = np.array([0] * dim)
     assert (len(start) == len(overlap_rate) == dim)
     patch_size = [tf.math.minimum(max_fix_img_size[i], patch_size[i]) for i in range(dim)]
-    end1 = [max_fix_img_size[i] - patch_size[i] for i in range(dim)]  # 停止点列表 int list
+    end1 = [max_fix_img_size[i] - patch_size[i] for i in range(dim)]  # int list
     if end is not None:
         for i in range(dim):
             if end[i] > end1[i]: end[i] = end1[i]
