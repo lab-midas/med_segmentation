@@ -102,7 +102,7 @@ class CustomActiveLearner:
         self.val_dataset = val_dataset
         self.histories = []
 
-    def _fit_on_new(self, ids):
+    def _fit_on_new(self, ids, **fit_kwargs):
         """
         Fit the model to the data with given ids (data is saved in hdf5 file),
         save history in history attribute
@@ -111,7 +111,7 @@ class CustomActiveLearner:
                                        n_channels=self.n_channels,
                                        n_classes=self.n_classes,
                                        batch_size=self.batch_size)
-        history = self.model.fit(x=data_generator, validation_data=self.val_dataset)
+        history = self.model.fit(x=data_generator, validation_data=self.val_dataset, **fit_kwargs)
         self.histories.append(history)
 
     def _add_training_data(self, ids, label_data=None):
@@ -141,11 +141,11 @@ class CustomActiveLearner:
         query_ids = [self.pool_ids[i] for i in query_result]
         return query_ids
 
-    def teach(self, ids, label_data=None):
+    def teach(self, ids, label_data=None, **fit_kwargs):
         """
         Add the ids of new training data to list of training data ids (and if
         provided add new label data to data in hdf5 file), then fit the model to
         the new data
         """
         self._add_training_data(ids, label_data=label_data)
-        self._fit_on_new(ids)
+        self._fit_on_new(ids, **fit_kwargs)
