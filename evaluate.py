@@ -11,6 +11,8 @@ import os
 from models.load_model import load_model_file
 from predict import channel_config
 
+from med_io.pipeline_melanom import *
+
 
 def evaluate(config, datasets=None):
     """
@@ -32,7 +34,7 @@ def evaluate(config, datasets=None):
         # Set the config files
         config = channel_config(config, dataset, evaluate=True)
         # create pipeline dataset
-        ds_test = pipeline(config, dataset_image_path, dataset_label_path,dataset=dataset, augment=False)
+        ds_test = pipeline_melanom(config, dataset_image_path, dataset_label_path, dataset=dataset, augment=False)
 
         # Choose the training model.
         model = load_model_file(config, dataset)

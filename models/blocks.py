@@ -199,21 +199,22 @@ def res_block(filters, conv_param, scale=0.1):
 ##  https://arxiv.org/pdf/1706.00120.pdf
 
 
-def block_ExtResNet(out_channels, kernel_size=3, order=['c', 'b', 'r'], name=None):
+def block_ExtResNet(out_channels, kernel_size=(3, 3, 3), stride_size=(1, 1, 1),
+                    order=['c', 'b', 'r'], order_param=None, name=None):
     def block_ExtResNet(x):
 
         #print("dimension entering x is: ", x.shape)
 
         ## we start at creating 2 and the second output is used as residual connection
-        conv1 = block(f=out_channels, k=kernel_size, s=1, order=order,
-                      order_param=None, order_priority=False)(x)
+        conv1 = block(f=out_channels, k=kernel_size, s=stride_size, order=order,
+                      order_param=order_param, order_priority=False)(x)
 
         #print("dimension after conv 1 is: ", conv1.shape)
 
         residual = conv1
 
-        conv2 = block(f=out_channels, k=kernel_size, s=1, order=order,
-                      order_param=None, order_priority=False)(conv1)
+        conv2 = block(f=out_channels, k=kernel_size, s=stride_size, order=order,
+                      order_param=order_param, order_priority=False)(conv1)
 
         #print("dimension after conv 2 is: ", conv2.shape)
 
@@ -228,7 +229,8 @@ def block_ExtResNet(out_channels, kernel_size=3, order=['c', 'b', 'r'], name=Non
                 last_order.append(c)
 
         #print("new order: ", n_order)
-        conv3 = block(f=out_channels, k=kernel_size, s=1, order=n_order, order_param=None, order_priority=False)(conv2)
+        conv3 = block(f=out_channels, k=kernel_size, s=stride_size, order=n_order, order_param=order_param,
+                      order_priority=False)(conv2)
 
         #print("dimension after conv 3 is: ", conv3.shape)
 
@@ -237,80 +239,87 @@ def block_ExtResNet(out_channels, kernel_size=3, order=['c', 'b', 'r'], name=Non
         #print("dimension after residual connection is: ", res_connection.shape)
 
         #print("order after concat: ", last_order)
-        x = block(f=out_channels, k=kernel_size, s=1, order=last_order,
-                  order_param=None, order_priority=False, name=name)(res_connection)
+        x = block(f=out_channels, k=kernel_size, s=stride_size, order=last_order,
+                  order_param=order_param, order_priority=False, name=name)(res_connection)
         return x
 
     return block_ExtResNet
 
 
-def encoder_block(out_channels, conv_kernel_size=3, apply_pooling=True,
-                  pool_kernel_size=(2, 2, 2), pool_type='mp', basic_block=block_ExtResNet,
-                  conv_layer_order=['c', 'b', 'r'], name=None):
+def encoder_block(out_channels, conv_kernel_size=(3, 3, 3), stride_size_conv=(1, 1, 1), apply_pooling=True,
+                  stride_pool=(2, 2, 2), pool_kernel_size=(2, 2, 2), pool_type='mp', basic_block=block_ExtResNet,
+                  conv_layer_order=['c', 'b', 'r'], order_param=None, name=None):
     def encoder_block(x):
 
         ## here is missing the pool_kernel_size
         if apply_pooling:
             pooling_order =[]
+            order_param_pool = {'pool_size': pool_kernel_size,
+                                'strides': stride_pool,
+                                'padding': 'valid',
+                                'data_format': None}
+            # pool_size: [2, 2, 2]
+            # strides: [2, 2, 2]
+            # padding: 1
+            # data_format:
             if pool_type == 'mp':
                 pooling_order.append(pool_type)
-                x = block(order=pooling_order)(x)
+                x = block(order=pooling_order, order_param=order_param_pool)(x)
 
             else:
                 pooling_order.append(pool_type)
-                x = block(order=pooling_order)(x)
+                x = block(order=pooling_order, order_param=order_param_pool)(x)
 
-        x = basic_block(out_channels, kernel_size=conv_kernel_size,
-                        order=conv_layer_order, name=name)(x)
+        x = basic_block(out_channels, kernel_size=conv_kernel_size, stride_size=stride_size_conv,
+                        order=conv_layer_order, order_param=order_param, name=name)(x)
 
         return x
 
     return encoder_block
 
 
-def decoder_block(out_channels, kernel_size=3,
-                  scale_factor=(2, 2, 2), basic_module=block_ExtResNet, pool_type='up',
-                  conv_layer_order=['c', 'b', 'r'], last_decoder=False):
+def decoder_block(out_channels, kernel_size=(3, 3, 3), stride_size_conv=(1, 1, 1),
+                  stride_factor_up=(2, 2, 2), basic_module=block_ExtResNet, pool_type='up',
+                  conv_layer_order=['c', 'b', 'r'], order_up=['dc', 'b', 'e'],
+                  order_param=None, last_decoder=False, concat=True):
 
     def decoder_block(x, encoder_feature):
         ##x = Conv3DTranspose(out_channels, kernel_size=kernel_size, strides=scale_factor, padding='same')(x)
         if not last_decoder:
-            x = block(out_channels, kernel_size, s=2, order=['dc', 'b', 'r'])(x)  # Deconvolution process
-            x = tf.concat([x, encoder_feature], axis=-1)  # Concatenation with encoder part
-            x = basic_module(out_channels, kernel_size=kernel_size, order=conv_layer_order)(x)
+            x = block(out_channels, kernel_size, s=stride_factor_up,
+                      order=order_up, order_param=order_param)(x)  # Deconvolution process
 
         else:
             print("last decoder x2")
-            x = block(out_channels, kernel_size, s=2, order=['dc', 'b', 'r'])(x)  # Deconvolution process
-            x = tf.concat([x, encoder_feature], axis=-1)  # Concatenation with encoder part
-            #x = block(out_channels, (5, 5, 1), s=1, order=conv_layer_order)(x)
-            x = basic_module(out_channels, kernel_size=kernel_size, order=conv_layer_order)(x)
+            x = block(out_channels, kernel_size, s=stride_factor_up,
+                      order=order_up, order_param=order_param)(x)  # Deconvolution process
 
+        if concat:
+            x = tf.concat([x, encoder_feature], axis=-1)  # Concatenation with encoder part
+
+        else: ## summation joining with the encoder part
+                ## this does not increase the number of feature maps
+
+            x = Add()([x, encoder_feature])
+
+        x = basic_module(out_channels, kernel_size=kernel_size,
+                         order=conv_layer_order, order_param=order_param)(x)
 
         return x
 
     return decoder_block
 
-def final_conv(out_channels, kernel_size=(1,1,1),
-               conv_layer_order=['c', 'b', 'r']):
+def final_conv(out_channels, kernel_size=(1,1,1), s=1,
+               conv_layer_order=['c', 'b', 'e'], order_param=None):
 
     def final_conv(x):
 
-        #conv1 = block(f=out_channels, k=kernel_size, s=1, order=conv_layer_order,
-                      #order_param=None, order_priority=False)(x)
+        # for the last convolution, the bias parameter in the convolution must be set as True
 
-        # print("dimension after conv 1 is: ", conv1.shape)
+        order_param['convolution']['bias'] = True
 
-        #conv2 = block(f=2, k=(1, 1, 1), s=1, order=conv_layer_order,
-                      #order_param=None, order_priority=False)(conv1)
-
-        # print("dimension after conv 1 is: ", conv1.shape)
-
-        #x = conv2
-
-
-        x = block(f=out_channels, k=(1, 1, 1), s=1, order=conv_layer_order,
-                      order_param=None, order_priority=False)(x)
+        x = block(f=out_channels, k=kernel_size, s=s, order=conv_layer_order,
+                      order_param=order_param, order_priority=False)(x)
 
         # print("dimension after 1x1x1 conv is: ", conv1.shape)
 
@@ -390,5 +399,5 @@ def attention_layer_1(filters_out, conv_param, filters=16, alpha=1):
 
 
 """
-=== end blocks 
+=== end blocks
 """

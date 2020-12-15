@@ -10,6 +10,8 @@ from .write_tf_record import *
 from .read_and_save_datapath import *
 from .read_nrrd_path import *
 import h5py
+from keras.utils.np_utils import to_categorical
+from tests.test_augmentation import test_augmentation
 
 def preprocess_raw_dataset(config):
     """
@@ -67,7 +69,7 @@ def preprocess_raw_dataset(config):
         if info is not None:
             pickle.dump(info, open(dir_tfrec_info + '/'+info_name+'.pickle', 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
 
-    def normalize(img, globalscale=False, channel_at_beginning=False):
+    def normalize(img, globalscale=False):
         """
         Change pixel values in img to (0,1)
         :param img: type ndarray: input images
@@ -75,42 +77,23 @@ def preprocess_raw_dataset(config):
         :param channel_at_beginning: type boolean: channels are at the beginning of input shape
         :return:img: type ndarray
         """
-
+        num_channels = img.shape[-1]
         print("Shape to normalize is: ", img.shape)
 
-        if not channel_at_beginning:
-
-            if globalscale:
-                maxval = np.amax(img)
-                minval = np.amin(img)
-                img = (img - minval) / (maxval - minval + 1E-16)
+        if globalscale:
+            maxval = np.amax(img)
+            minval = np.amin(img)
+            img = (img - minval) / (maxval - minval + 1E-16)
 
 
-            else:
-                img = [(img[..., i] - np.min(img[..., i])) / (np.ptp(img[..., i]) + 1E-16) for i in
+        else:
+            img = [(img[..., i] - np.min(img[..., i])) / (np.ptp(img[..., i]) + 1E-16) for i in
                        range(img.shape[-1])]
             img = np.rollaxis(np.float32(np.array(img)), 0, 4)
 
-        else: # this means that the channel is on the first position (channels, x, y, z)
+        print("Shape after normalization: ", img.shape)
 
-            num_channels = img.shape[3]
-            #img = np.rollaxis(np.float32(np.array(img)), 0, 4) # changes the channel axis to the end
-            print("Shape before normalization: ", img.shape)
-
-            if globalscale:
-                maxval = np.amax(img)
-                minval = np.amin(img)
-                img = (img - minval) / (maxval - minval + 1E-16)
-
-
-            else:
-                img = [(img[..., i] - np.min(img[..., i])) / (np.ptp(img[..., i]) + 1E-16) for i in
-                       range(img.shape[-1])]
-
-            img = np.rollaxis(np.float32(np.array(img)), 0, 4)
-            print("Shape after normalization: ", img.shape)
-
-            assert num_channels == img.shape[-1], "normalization was not good performed"
+        assert num_channels == img.shape[-1], "normalization was not good performed"
 
         print("Final Shape: ", img.shape)
 
@@ -483,6 +466,7 @@ def preprocess_raw_dataset(config):
         ## for Melanom dataset
         elif dataset == 'MELANOM':
 
+            #test_augmentation()
             # directories in server for the HD5F files
             # directory of images and masks are the same
             rootdir_file = config['rootdir_raw_data_img'][dataset]
@@ -522,22 +506,39 @@ def preprocess_raw_dataset(config):
 
                 mask_array = np.rollaxis(np.float32(np.array(mask_h5)), 0, 4)
                 print("Shape of the mask ARRAY is: ", mask_array.shape)
+                un = np.unique(mask_array)
+
+                ## shape = (x, y, z, 1)
+
+                ##_-----transform the mask into one hot encoded -----------------
+                values_b = np.unique(mask_array)
+                ##assert values_b == [0.0,1.0], "Labels do not contain only 0s and 1s"
+                mask_one_hot = to_categorical(mask_array, num_classes=config['num_classes'])
+                values_1 = np.unique(mask_one_hot[...,0])
+                values_2 = np.unique(mask_one_hot[..., 1])
+                assert mask_one_hot.shape[-1] == config['num_classes'], "Mask is not in one hot encoded"
+
+                ##--------------------------------------------------------------
 
                 max_shape_img = calculate_max_shape(max_shape_img, img_array)
                 print("MaxShape of the image is: ", max_shape_img)
-                max_shape_mask = calculate_max_shape(max_shape_label, mask_array)
-                print("MaxShape of the mask is: ", max_shape_mask)
+                #max_shape_label = calculate_max_shape(max_shape_label, mask_array)
+                #print("MaxShape of the mask is: ", max_shape_label)
+                max_shape_label = calculate_max_shape(max_shape_label, mask_one_hot)
+                print("MaxShape of the mask one hot encoded is: ", max_shape_label)
                 #max_shape_mask_iso = calculate_max_shape(max_shape_label, img['mask_iso'][img_ID])
-                img_normalized = normalize(img_array, channel_at_beginning=True).astype(np.float32)
+                img_normalized = normalize(img_array).astype(np.float32)
                 print("The normalized shape is: ", img_normalized.shape)
 
-                assert img_normalized.shape[:3] == mask_array.shape[:3], "Dimensions from image and mask do not match"
+                #assert img_normalized.shape[:3] == mask_array.shape[:3], "Dimensions from image and mask do not match"
+                assert img_normalized.shape[:3] == mask_one_hot.shape[:3], "Dimensions from image and mask do not match"
 
                 infos = {'name_ID': img_ID,
                          'info_patient': "info",
                          'name_input_channel': config['name_input_channel'][dataset],
                          'name_output_channel': config['name_output_channel'][dataset]}
-                print(img_ID, ': image shape:', img_normalized.shape, ' labels shape:', mask_array.shape)
+                #print(img_ID, ': image shape:', img_normalized.shape, ' labels shape:', mask_array.shape)
+                print(img_ID, ': image shape:', img_normalized.shape, ' labels shape:', mask_one_hot.shape)
 
                 ## create tfrecord directory
                 dir_tfrec_img, dir_tfrec_label, dir_tfrec_info = create_tfrec_dir(
@@ -548,10 +549,12 @@ def preprocess_raw_dataset(config):
                 ## write tfrec in pickle file
                 #print("Type of image is: ", type(img_normalized))
                 #print("Type of mask is: ", type(mask_h5))
-                write_tfrec_and_pickle(img_normalized, dir_tfrec_img, mask_array, dir_tfrec_label, infos,
+                #write_tfrec_and_pickle(img_normalized, dir_tfrec_img, mask_array, dir_tfrec_label, infos,
+                                      # dir_tfrec_info)
+                write_tfrec_and_pickle(img_normalized, dir_tfrec_img, mask_one_hot, dir_tfrec_label, infos,
                                        dir_tfrec_info)
                 ##save the max shape
-                save_max_shape(dataset, max_shape_img, max_shape_mask)
+                save_max_shape(dataset, max_shape_img, max_shape_label)
 
             print("Melanom Dataset preprocessed")
 

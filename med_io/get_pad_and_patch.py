@@ -45,7 +45,7 @@ def pad_img_label(config, max_data_size, images_data, images_shape, labels_data=
         return images_data
 
 
-def get_fixed_patches_index(config,max_fix_img_size, patch_size, overlap_rate=0.5, start=None, end=None, shuffle=False,
+def get_fixed_patches_index(config,max_fix_img_size, patch_size, overlap_rate=0.5, start=None, end=None, shuffle=True,
                             max_patch_num=None):
     """
     Get fixed patches position list by given image size
@@ -71,7 +71,7 @@ def get_fixed_patches_index(config,max_fix_img_size, patch_size, overlap_rate=0.
     if start is None: start = np.array([0] * dim)
     assert (len(start) == len(overlap_rate) == dim)
     patch_size = [tf.math.minimum(max_fix_img_size[i], patch_size[i]) for i in range(dim)]
-    end1 = [max_fix_img_size[i] - patch_size[i] for i in range(dim)]  # 停止点列表 int list
+    end1 = [max_fix_img_size[i] - patch_size[i] for i in range(dim)]  # stop int list
     if end is not None:
         for i in range(dim):
             if end[i] > end1[i]: end[i] = end1[i]
@@ -323,3 +323,31 @@ def get_patches_data(data_size, patch_size, data_img, data_label, index_list, ra
         patch_label_collection = [tf.stack([label[..., i] for i in slice_channel_label], axis=-1) for label in
                                   patch_label_collection]
     return patch_img_collection, patch_label_collection, index_list
+
+def get_fixed_sampled_patches(data_size, patch_size, data_img, data_label, index_list, random_rate=0.3,
+                     slice_channel_img=None, slice_channel_label=None, output_patch_size=None, random_shift_patch=True,
+                     squeeze_channel=False):
+    """
+    Get patches from unpatched image and correspondent label by the list of patch positions.
+    :param data_size: type ndarray: data size of :param: data_img and :param data_label
+    :param patch_size: type list of int: patch size images
+    :param data_img:  type ndarray: unpatched image data with channel,
+                       if 3D image, then its shape is [height,width,depth,channel].
+    :param data_label: type ndarray: unpatch label data  with channel,
+                        if 3D image, then its shape is [height,width,depth,channel].
+    :param index_list: type list of list of integers: list position of each patch
+    :param slice_channel_img： type list of int:  channel indice chosen for model inputs,
+            if :param squeeze_channel is true, the img dimension remains same, else reduce 1.
+    :param slice_channel_label： type list of int: channel indice chosen for model outputs
+    :param output_patch_size： type list of int: model output size
+    :param random_rate: type float,rate of random shift of position from  :param index_list. random_rate=0 if no shift.
+    :param random_shift_patch: type bool, True if the patches are randomly shift for data augmentation.
+    :param squeeze_channel: type bool, True if select image channel. else all channel will be as input if :param slice_channel_img is False.
+
+    :return: patch_img_collection: type list of ndarray with the shape :param patch_size: list of patches images.
+    :return: patch_label_collection type list of ndarray with the shape :param patch_size: list of patches labels.
+    :return: index_list: type list of int. Position  of the patch.
+
+    """
+
+    return patches_list

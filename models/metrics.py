@@ -88,25 +88,26 @@ class Metric:
                             y_pred: predictions tensor.
                             Dice calculation with smoothing to avoid division by zero
         """
+        # smooth = 1E-16
+        # assert y_true.shape == y_pred.shape
         smooth = K.epsilon()
-        y_true = tf.one_hot(tf.argmax(y_pred, axis=-1), config['num_classes'])
-        assert y_true.shape[-1] == config['num_classes']
-        assert y_true.shape[-1] == y_pred.shape[-1]
-        #print(y_pred.shape)
-        #print(y_true.shape)
+        #assert len(y_true.shape) == 5
+        sum_metric, weight_sum = 0, 0
 
-        dice = 0
-        weight_sum_dice = 0
         for class_index in range(config['num_classes']):
             y_t = y_true[..., class_index]
             y_p = y_pred[..., class_index]
-            intersection = K.sum(K.abs(y_t * y_p), axis=-1)
-            dice_coef = (2. * intersection + smooth) / (K.sum(K.square(y_t), -1) + K.sum(K.square(y_p), -1) + smooth)
-            dice += dice_coef * config['loss_channel_weight'][class_index]  ## this returns a tensor
-            weight_sum_dice += config['loss_channel_weight'][class_index]  ## this returns a tensor too
+            intersection = tf.math.reduce_sum(y_t * y_p) * config['loss_channel_weight'][class_index]
+            denominator = tf.math.reduce_sum(y_t) + tf.math.reduce_sum(y_p) + smooth
 
-        ## the average should be return
-        return dice / (weight_sum_dice + smooth)
+            metric = (2. * intersection / denominator)
+
+            sum_metric += metric  ## this returns a tensor
+            weight_sum += config['loss_channel_weight'][class_index]  ## this returns a tensor too
+
+        y_mean = sum_metric / weight_sum
+
+        return y_mean
 
 
 def get_custom_metrics(amount_classes, name_metric, config):

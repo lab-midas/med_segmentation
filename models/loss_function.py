@@ -37,9 +37,9 @@ def dice_loss(y_true, y_pred, config):
     smooth = K.epsilon()
     sum_loss, weight_sum = 0, 0
     for class_index in range(config['channel_label_num']):
-        y_t = y_true[..., class_index]
+        y_t = y_true[..., class_index] #(x, y, z)
         y_p = y_pred[..., class_index]
-        intersection = K.sum(K.abs(y_t * y_p), axis=-1)
+        intersection = K.sum(K.abs(y_t * y_p), axis=-1) #(x, y)
         loss = 1 - (2. * intersection + smooth) / (K.sum(K.square(y_t), -1) + K.sum(K.square(y_p), -1) + smooth)
         sum_loss += loss * config['loss_channel_weight'][class_index]
         weight_sum += config['loss_channel_weight'][class_index]
@@ -52,14 +52,35 @@ def dice_loss_melanoma(y_true, y_pred, config):
             Dice calculation with smoothing to avoid division by zero
     """
     # smooth = 1E-16
+    #assert y_true.shape == y_pred.shape
     smooth = K.epsilon()
-    #print("channel label num: ", config['channel_label_num'])
-    #print("dim y_true before: ", y_true.shape)
-    y_true = tf.one_hot(tf.argmax(y_true, axis=-1), config['num_classes'])
-    assert y_true.shape[-1] == config['num_classes']
-    #assert y_pred.shape == y_true.shape
-    #print("dim y_true: ", y_true.shape)
-    #print("dim y_pred: ", y_pred.shape)
+    #assert len(y_true.shape) == 5
+    sum_loss, weight_sum = 0, 0
+
+    for class_index in range(config['num_classes']):
+        y_t = y_true[..., class_index]
+        y_p = y_pred[..., class_index]
+        intersection = tf.math.reduce_sum(y_t * y_p) * config['loss_channel_weight'][class_index]
+        denominator = tf.math.reduce_sum(y_t) + tf.math.reduce_sum(y_p) + smooth
+
+        loss = 1 - (2. * intersection / denominator)
+
+        sum_loss += loss ## this returns a tensor
+        weight_sum += config['loss_channel_weight'][class_index] ## this returns a tensor too
+
+    y_mean = sum_loss/weight_sum
+
+    return y_mean
+
+def dice_loss_melanoma_2(y_true, y_pred, config):
+    """ Dice loss for Melanoma network
+            y_true: true targets tensor.
+            y_pred: predictions tensor.
+            Dice calculation with smoothing to avoid division by zero
+    """
+    ## here it is assumed that the y_true is already in one hot encoded
+    assert y_true.shape == y_pred.shape
+    smooth = K.epsilon()
     sum_loss, weight_sum = 0, 0
     for class_index in range(config['num_classes']):
         y_t = y_true[..., class_index]
@@ -69,10 +90,7 @@ def dice_loss_melanoma(y_true, y_pred, config):
         sum_loss += loss * config['loss_channel_weight'][class_index] ## this returns a tensor
         weight_sum += config['loss_channel_weight'][class_index] ## this returns a tensor too
 
-    #print("sum loss:", sum_loss)
-    #print("dice loss:", sum_loss / (weight_sum + smooth))
     return sum_loss / (weight_sum + smooth)
-
 
 def dice_coefficient_loss(y_true, y_pred, config, smooth=K.epsilon(), axis=None):
     """ Dice coefficient along specific axis (same as  1+dice_loss() if axis=None)

@@ -128,25 +128,6 @@ def train_process(config, model, paths_train_img, paths_train_label, paths_val_i
 
         print("reading pipeline for Melanom dataset")
 
-        #ds_train_it = tf.compat.v1.data.Iterator.from_structure(ds_train.output_types,
-                                                                   #ds_train.output_shapes)
-        #next_elements_train = iterator_train.get_next()
-
-        #ds_validation_it = tf.compat.v1.data.Iterator.from_structure(ds_validation.output_types,
-                                                       #ds_validation.output_shapes)
-        #next_elements_train = iterator_train.get_next()
-        #next_elements_val = iterator_val.get_next()
-
-        #training_init_op = ds_train_it.make_initializer(ds_train, name="training_init_op")
-        #validation_init_op = ds_validation_it.make_initializer(ds_validation, name="validation_init_op")
-
-        #ds_train_it = next_elements_train
-        #ds_validation_it = next_elements_val
-        #ds_train_it = iter(ds_train)
-        # ds_train_it_next = ds_train_it.get_next()
-
-        #ds_validation_it = iter(ds_validation)
-
         ds_train = pipeline_melanom(config, paths_train_img, paths_train_label, dataset=dataset, augment=True)
 
         ds_validation = pipeline_melanom(config, paths_val_img, paths_val_label, dataset=dataset, augment=False)

@@ -5,7 +5,7 @@
 dataset : [MELANOM] # either known database [NAKO_AT,DIXON,TULIP1_5T,TULIP3T,NAKO,KORA]
     #(i.e. converting and loading as TFRecords) or leave empty (only test/prediction) -> direct loading from Nifty, information specified in PREDICTION
 project: MELANOM  # project name
-exp_name: Melanoma_1_augmentation  # experiment name (used for storage)
+exp_name: Melanoma_2  # experiment name (used for storage)
 
 
 # Seed for fixing the random data
@@ -90,7 +90,7 @@ name_output_channel:
     TULIP3T:   [P_AT, P_BG, P_LT, P_VAT]
     NAKO:    [kidney_left, kidney_right, liver, pancreas, spleen]
     KORA:  [liver2d, spleen2d]
-    MELANOM: [PET, CT]
+    MELANOM: [Tumor, Non_Tumor]
 
 channel_img_num:
 channel_label_num:
@@ -109,7 +109,7 @@ input_channel:
     TULIP3T:  [0,1]      # name of the channel : [img]
     NAKO:   [0,1]       # name of the channel:[DIXF, DIXW, PFP/SAT_1.23, PFP/SAT_2.46]
     KORA:   [0,3]     # name of the channel ['_iso_F_', '_iso_in_', '_iso_opp_', '_iso_W_']
-    MELANOM:    #name of the channel ['PET', 'CT']
+    MELANOM:  [0,1]  #name of the channel ['PET', 'CT']
 
 output_channel:
     NAKO_AT:  [0,1,2,3]      # name of the channel: [AT, BG, LT, VAT]
@@ -118,7 +118,7 @@ output_channel:
     TULIP3T: [0]       # name of the channel: [AT, BG, LT, VAT]
     NAKO: [1,2]    # name of the channel: ['kidney_left', 'kidney_right', 'liver', 'pancreas', 'spleen']
     KORA:   [0,1]        # name of the channel: ['liver2d', 'spleen2d']
-    MELANOM:    #name of the channel ['PET', 'CT']
+    MELANOM: [0]   #name of the channel ['PET', 'CT']
 
 # Splitting data
 # Amount of fold of train/val data for each dataset. Leave empty if not use k fold for training of this dataset.
@@ -175,15 +175,17 @@ dir_list_tfrecord: ./list_tfrecord
 augmentation: [gamma]
 
 # Pipeline tf.dataset Configuration
+class_probabilities: [0.9, 0.1] ## probability distribution from class Non Tumor to Tumor
 num_parallel_calls: 1 # number parallel calls of tf.data.dataset
-shuffle: 16 # shuffle seed of tf.data.dataset
+shuffle: 8 # shuffle seed of tf.data.dataset
 
 # Batch
-batch: 8 # batch size of training model
+batch: 4 # batch size of training model
 evaluate_batch_size: 1 # batch size of evaluating model
 predict_batch_size: 2 # batch size of predicting model
 
 # Patch
+patches_per_subject: 10
 patch_size: [96, 96, 96] # patch size of the model, Type list of n int, n=dimension. # body identification network :[1, X, Y]
 patch_start:           # patch size of the model, Type list of n int, n=dimension.
 patch_end:            # patch size of the model, Type list of n int, n=dimension.
@@ -235,8 +237,8 @@ model_add_background_output: False # Type bool, add one channel from the model o
 img_label_same_shape: False  # Type bool, repad to same shape
 
 # Epochs and steps
-epochs: 100 # total training epochs
-train_steps_per_epoch: 40 #  steps per one training epoch
+epochs: 120 # total training epochs
+train_steps_per_epoch: 50 #  steps per one training epoch
 val_steps_per_epoch: 3  # validation steps per epoch
 evaluate_step: 20  # evaluation steps per epoch
 save_training_model_period: 3 #  epoch for saving the model
@@ -248,11 +250,30 @@ train_verbose_mode: 1
 
 # Parameters of convolution layer if the model has convolution
 convolution_parameter :
-    padding: same
-    num_parallel_calls: 1
-    kernel_regularizer: [l2,0.01]
-    dilation_rate: 1
-    kernel_initializer: he_normal
+    convolution:
+        padding: same
+        num_parallel_calls: 1
+        kernel_regularizer: None #[l2,0.01]
+        dilation_rate: 1
+        kernel_initializer: he_normal
+        bias: False
+    activation_function:
+        alpha: 1.0 ## for the case of using ELU activation function
+    normalization:
+        group_normalization:
+            groups: 8
+            epsilon: 1e-5
+    #pooling:
+        #average:
+            #pool_size: [2, 2, 2]
+            #strides: [2, 2, 2]
+            #padding: 1
+            #data_format:
+        #max:
+            #pool_size: [2, 2, 2]
+            #strides: [2, 2, 2]
+            #padding: 1
+            #data_format:
 
 # Compile model
 # Metrics of model

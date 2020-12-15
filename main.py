@@ -12,6 +12,7 @@ from Patient.Patient import *
 import os
 from packaging import version
 
+
 import argparse
 
 
@@ -19,9 +20,9 @@ def args_argument():
     parser = argparse.ArgumentParser(prog='MedSeg')
     parser.add_argument('-e', '--exp_name', type=str, default='exp0', help='Name of experiment (subfolder in result_rootdir)')
     
-    parser.add_argument('--preprocess', type=bool, default=False, help='Preprocess the data')
-    parser.add_argument('--train', type=bool, default=True, help='Train the model')
-    parser.add_argument('--evaluate', type=bool, default=True, help='Evaluate the model')
+    parser.add_argument('--preprocess', type=bool, default=True, help='Preprocess the data')
+    parser.add_argument('--train', type=bool, default=False, help='Train the model')
+    parser.add_argument('--evaluate', type=bool, default=False, help='Evaluate the model')
     parser.add_argument('--predict', type=bool, default=False, help='Predict the model')
     parser.add_argument('--restore', type=bool, default=False, help='Restore the unfinished trained model')
     #parser.add_argument('-c', '--config_path', type=str, default='./config/bi.yaml', help='Configuration file of the project')
