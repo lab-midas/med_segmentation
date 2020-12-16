@@ -161,12 +161,20 @@ def train_al_process(config, model, paths_train_img, paths_train_label, paths_va
 
     # instantiate an active learner that manages active learning
     learner = CustomActiveLearner(config, model, query_selection, hdf5_path,
-                                  train_ids, ds_validation, dataset)
+                                  train_ids, ds_validation, dataset,
+                                  config['batch'], config['predict_batch_size'])
 
     for al_epoch in range(config['al_iterations']):
-        query_ids = learner.query(config, n_instances=1)
+        query_ids = learner.query(config, n_instances=100)
         # labeling of unlabeled data can later be implemented here
-        learner.teach(query_ids)
+        learner.teach(query_ids,
+                      epochs=config['epochs'] + init_epoch,
+                      callbacks=[cp_callback, saver1],
+                      initial_epoch=init_epoch,
+                      validation_data=ds_validation,
+                      validation_steps=config['val_steps_per_epoch'],
+                      validation_freq=config['validation_freq'],
+                      verbose=config['train_verbose_mode'])
 
     history = learner.histories
 

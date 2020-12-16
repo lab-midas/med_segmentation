@@ -99,7 +99,8 @@ class CustomActiveLearner:
     :init_ids: ids of data with which the model gets trained before al starts
     """
     def __init__(self, config, model, query_strategy, hdf5_path, pool_ids,
-                 val_dataset, dataset, init_ids=None):
+                 val_dataset, dataset, fit_batch_size, predict_batch_size,
+                 init_ids=None):
         self.model = model
         self.query_strategy = query_strategy
         self.hdf5_path = hdf5_path
@@ -109,7 +110,8 @@ class CustomActiveLearner:
         # for creating the DataGenerator objects
         self.n_channels = len(config['input_channel'][dataset])
         self.n_classes = len(config['output_channel'][dataset])
-        self.batch_size = 2
+        self.fit_batch_size = fit_batch_size
+        self.predict_batch_size = predict_batch_size
         # train on initial data if given
         if init_ids is not None:
             self._fit_on_new(init_ids)
@@ -125,7 +127,8 @@ class CustomActiveLearner:
         data_generator = DataGenerator(self.hdf5_path, ids,
                                        n_channels=self.n_channels,
                                        n_classes=self.n_classes,
-                                       batch_size=self.batch_size)
+                                       batch_size=self.fit_batch_size,
+                                       shuffle=True)
         history = self.model.fit(x=data_generator, validation_data=self.val_dataset, **fit_kwargs)
         self.histories.append(history)
 
@@ -148,7 +151,7 @@ class CustomActiveLearner:
         pool_data = DataGenerator(self.hdf5_path, self.pool_ids,
                                   n_channels=self.n_channels,
                                   n_classes=self.n_classes,
-                                  batch_size=self.batch_size,
+                                  batch_size=self.predict_batch_size,
                                   shuffle=False)
         query_result = self.query_strategy(self.model, pool_data,
                                            *query_args, **query_kwargs)

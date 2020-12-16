@@ -12,7 +12,7 @@ def tf_records_as_hdf5(dataset_train_image_path, dataset_train_label_path,
     # create file path, where the data is (going to be) stored
     hdf5_path = Path(config['al_patches_data_dir'])
     hdf5_path.mkdir(exist_ok=True)
-    hdf5_path = hdf5_path / 'al_patches_data3.hdf5'
+    hdf5_path = hdf5_path / config['al_patches_data_file']
 
     # check if file already exists / if data was already converted
     if hdf5_path.is_file():
@@ -49,7 +49,7 @@ def convert_tf_records_hdf5(dataset_train_image_path, dataset_train_label_path,
 
         # training data: get the data from pipeline and store as hdf5
         train_ids, val_ids = [], []
-        for img_num, (image_data, label_data) in dataset_train.take(4).enumerate(0):  # faster solution?
+        for img_num, (image_data, label_data) in dataset_train.take(900).enumerate(0):  # faster solution?
             image_data = image_data.numpy()
             label_data = label_data.numpy()
             grp_images.create_dataset(str(img_num.numpy()), data=image_data)
@@ -59,7 +59,7 @@ def convert_tf_records_hdf5(dataset_train_image_path, dataset_train_label_path,
         grp_id_lists.create_dataset('train_ids', data=[s.encode('ascii') for s in train_ids])
 
         # validation data: get the data from pipeline and store as hdf5
-        for img_num, (image_data, label_data) in dataset_val.take(4).enumerate(img_num + 1):
+        for img_num, (image_data, label_data) in dataset_val.take(900).enumerate(img_num + 1):
             image_data = image_data.numpy()
             label_data = label_data.numpy()
             grp_images.create_dataset(str(img_num.numpy()), data=image_data)
