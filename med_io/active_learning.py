@@ -25,7 +25,13 @@ def query_selection(model, X, config, n_instances=1):
                          'margin': _proba_margin}
     utility_function = utility_functions[config['information_estimation']]
 
-    utilities = value_of_means(model, X, utility_function)
+    # choose how segmentation is condensed to a single utility value (using utility function from above)
+    reduction_functions = {'value_of_means': _value_of_means,
+                           'mean_of_values': _mean_of_values}
+    reduction_function = reduction_functions[config['reduce_segmentation']]
+
+    utilities = batchwise_utility_evaluation(model, X, reduction_function,
+                                             utility_function)
 
     # selecting the best instances
     query_idx = multi_argmax(utilities, n_instances=n_instances)
@@ -33,15 +39,24 @@ def query_selection(model, X, config, n_instances=1):
     return query_idx
 
 
-def value_of_means(model, X, utility_function):
-    predictions = model.predict(X)  # Problem - evtl zu viele Daten!!! sequence- enqueer?
+def batchwise_utility_evaluation(model, X, reduction_function, utility_function):
+    utilities = np.array([])
+    for i in range(len(X)):
+        batch = X[i]
+        predictions = model.predict_on_batch(batch)
+        new_utilities = reduction_function(predictions, utility_function)
+        utilities = np.append(utilities, new_utilities)
+
+    return utilities
+
+
+def _value_of_means(predictions, utility_function):
     mean_predictions = np.mean(predictions, (1, 2, 3))
     utilities = utility_function(mean_predictions)
     return utilities
 
 
-def mean_of_values(model, X, utility_function):
-    predictions = model.predict(X)  # Problem - evtl zu viele Daten!!! sequence- enqueer?
+def _mean_of_values(predictions, utility_function):
     utilities = utility_function(predictions)
     mean_utilities = np.mean(utilities, (1, 2, 3))
     return mean_utilities

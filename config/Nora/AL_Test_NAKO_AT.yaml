@@ -187,12 +187,14 @@ patch_probability_distribution:
 
 # Active Learning
 active_learning: True # use AL for training the model
-al_patches_data_dir: ./patches_data_hdf5 # dir where the patches data is saved for the keras data generator pipeline
-                                            # needed for AL
-reduce_segmentation: 'mean_of_values'   # determins the way the multiple predictions of segmentation (one for each pixel)
-                                        # get condensed to a single utility measuer.
-information_estimation: 'uncertainty'   # in which way information content of patches will be estimated
-                                        # choose one of: 'uncertainty', 'margin', 'entropy'
+al_patches_data_dir: ./patches_data_hdf5     # dir and filename where the patches data is saved for the keras data
+al_patches_data_file: al_testdata.hdf5       # generator pipeline needed for AL
+
+reduce_segmentation: mean_of_values   # determines the way the multiple predictions of segmentation (one for each pixel)
+                                      # get condensed to a single utility measure. Choose one of: 'mean_of_values'
+                                      # or 'value_of_means'
+information_estimation: uncertainty   # in which way information content of patches will be estimated
+                                      # choose one of: 'uncertainty', 'margin', 'entropy'
 al_iterations: 3 # Number of epochs of choosing the best patches and training on them
 
 ##----------------------------------------------------------------------------------------------------------------------
