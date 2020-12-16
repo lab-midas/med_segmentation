@@ -3,6 +3,7 @@ from med_io.pipeline import *
 from models.ModelSet import *
 from sklearn.model_selection import train_test_split
 from util import *
+from utils.TensorBoardTool import *
 from plot.plot_figure import *
 from tensorflow.keras.models import load_model
 from med_io.keras_data_generator import DataGenerator, tf_records_as_hdf5
@@ -59,9 +60,12 @@ def train(config, restore=False):
             os.makedirs(config['dir_model_checkpoint'] + '/' + config['exp_name'])
         checkpoint_path = config['dir_model_checkpoint'] + '/' + config['exp_name'] + '/cp.hdf5'
 
+        tb_tool = TensorBoardTool(config['dir_model_checkpoint'])  # start the Tensorboard
+
         # Create a callback that saves the model's weights every X epochs.
-        cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path, verbose=1, save_weights_only=False,
-                                                         period=config['save_training_model_period'])
+        cp_callback = [tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path, verbose=1, save_weights_only=False,
+                                                         period=config['save_training_model_period']),
+                       tf.keras.callbacks.TensorBoard(os.path.dirname(checkpoint_path), histogram_freq=1)]
 
         # Initial epoch of training data
         init_epoch = 0
