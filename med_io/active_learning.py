@@ -49,6 +49,8 @@ def batchwise_utility_evaluation(model, X, reduction_function, utility_function)
 
     return utilities
 
+""" functions that enable the reduction of an entire segmentation prediction to
+    a single value, using one of the functions below (71-85)"""
 
 def _value_of_means(predictions, utility_function):
     mean_predictions = np.mean(predictions, (1, 2, 3))

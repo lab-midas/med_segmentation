@@ -112,9 +112,9 @@ output_channel:
 # Splitting data
 # Amount of fold of train/val data for each dataset. Leave empty if not use k fold for training of this dataset.
 k_fold:
-    NAKO_AT: 3
-    DIXON:  3
-    TULIP1_5T: 4
+    NAKO_AT:
+    DIXON:
+    TULIP1_5T:
     TULIP3T:
     NAKO:
     KORA:
@@ -188,7 +188,7 @@ patch_probability_distribution:
 # Active Learning
 active_learning: True # use AL for training the model
 al_patches_data_dir: ./patches_data_hdf5     # dir and filename where the patches data is saved for the keras data
-al_patches_data_file: al_testdata.hdf5       # generator pipeline needed for AL
+al_patches_data_file: al_NAKO_AT_complete.hdf5       # generator pipeline needed for AL
 
 reduce_segmentation: mean_of_values   # determines the way the multiple predictions of segmentation (one for each pixel)
                                       # get condensed to a single utility measure. Choose one of: 'mean_of_values'
@@ -300,7 +300,7 @@ optimizer:
 ##--------------
 
 
-load_predict_from_tfrecords: False # If load nifti, write False, True if loaded from tfrecords.
+load_predict_from_tfrecords: True  # If load nifti, write False, True if loaded from tfrecords.
 
 # Without tfrecords
 predict_data_dir_img: /mnt/data/projects/Segmentation/Nora/NAKO_AT/NIFTI # path of prediction image,  # paths of nifti file which are defined in nifti yaml file can be leave empty here.
@@ -325,7 +325,7 @@ predict_label_datatype: nii
 predict_img_datatype: nii  # string: file type of prediction image (before conversion), 'dicom' or 'mat' or 'nii'
 save_predict_img_datatype: nii # datatype in which prediction gets saved, 'mat' or 'nii' (default mat if empty)
 regularize_indice_list:
-    max_shape:   # Bool, scale by max shape, for loading tfrecords dataset.
+    max_shape:  True # Bool, scale by max shape, for loading tfrecords dataset.
     image_shape:  # Bool, scale by current image shape, not for loading tfrecords dataset.
     custom_specified: # list of 3 integers, custom scaling
 
@@ -345,7 +345,7 @@ regularize_indice_list:
 # For data which has only images and without labels, any 'label_integers','label', 'label_onehot' should be deleted.
 
 # Save predict data
-save_predict_data: True
+save_predict_data: False
 
 # Plot image
 # name of the plotting figure by predicting the dataset. If multiple plots are needed. write: [plot_name_A, plot_name_B ...]
@@ -359,9 +359,9 @@ colormap: [[0, 0, 0.1], [0, 0.2, 0.8], [0, 1, 0.5], [0.8, 0.8, 0.8], [0.2, 0.1, 
 # Display which channel image is the background of the original image
 display_origin_image_channel: 0
 select_image:
-    plot_mosaic: [predict_integers]   # select predict_integers or label_integers
-    profile_plot_by_slice: [predict_integers] # select predict_integers or label_integers
-    plot_area_ratio:  [predict] # predict or label
+    plot_mosaic: [predict_integers,label_integers]   # select predict_integers or label_integers
+    profile_plot_by_slice: [predict_integers,label_integers] # select predict_integers or label_integers
+    plot_area_ratio:  [predict,label] # predict or label
 
 plot_mosaic:
     slice_dim: 2 # slice_dim: type int: dimension index of slicing. For 3D, 0 for Sagittal plain, 1 for Coronal plane, 2 for Axial plane.
@@ -379,7 +379,7 @@ profile_plot_by_slice:
     channel_only: 1 # type int, Select only one output channel to display, leave empty if display all channels
     slice_dim: 2 # slice_dim: type int: dimension index of slicing. For 3D, 0 for Sagittal plain, 1 for Coronal plane, 2 for Axial plane.
     space: 1 #type int, space between the images
-    title_list: [predict]  #type list of str: title of the images
+    title_list: [predict,label]  #type list of str: title of the images
     origin_image:  # type ndarray: original image (input image)
     alpha_origin: 0.5 #type float in [0,1]: transparency of :param: origin_image
     figure_layout: c # type str: layout of subplots, 'c' for column and 'r' for row.
@@ -390,7 +390,7 @@ profile_plot_by_slice:
 plot_area_ratio:
     slice_dim: 2 # slice_dim:  type int: dimension index of slicing. For 3D, 0 for Sagittal plane, 1 for Coronal plane, 2 for Axial plane.
     merge_channel_plot: False # type bool, True if plot all in one figure
-    plot_label_series: [predict]  # type list of str: name of each series, default: ['predict', 'label']
+    plot_label_series: [predict,label]  # type list of str: name of each series, default: ['predict', 'label']
     dataset:                   # type str: name of this dataset
     figsize: [20,40]  # type list of 2 ints, figure size
 
