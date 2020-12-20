@@ -49,25 +49,42 @@ def convert_tf_records_hdf5(dataset_train_image_path, dataset_train_label_path,
 
         # training data: get the data from pipeline and store as hdf5
         train_ids, val_ids = [], []
-        for img_num, (image_data, label_data) in dataset_train.take(900).enumerate(0):  # faster solution?
+        for img_num, (image_data, label_data) in dataset_train.take(2700).enumerate(0):
             image_data = image_data.numpy()
             label_data = label_data.numpy()
             grp_images.create_dataset(str(img_num.numpy()), data=image_data)
             grp_labels.create_dataset(str(img_num.numpy()), data=label_data)
-            train_ids.append(str(img_num.numpy()))
+            # filter out the patches that only contain padding/ zeros
+            if not contains_only_zeros(image_data):
+                train_ids.append(str(img_num.numpy()))
         # save the indices of all training data in a list (conversion to ascii necessary)
         grp_id_lists.create_dataset('train_ids', data=[s.encode('ascii') for s in train_ids])
 
         # validation data: get the data from pipeline and store as hdf5
-        for img_num, (image_data, label_data) in dataset_val.take(900).enumerate(img_num + 1):
+        for img_num, (image_data, label_data) in dataset_val.take(2700).enumerate(img_num + 1):
             image_data = image_data.numpy()
             label_data = label_data.numpy()
             grp_images.create_dataset(str(img_num.numpy()), data=image_data)
             grp_labels.create_dataset(str(img_num.numpy()), data=label_data)
-            val_ids.append(str(img_num.numpy()))
+            # filter out the patches that only contain padding/ zeros
+            if not contains_only_zeros(image_data):
+                val_ids.append(str(img_num.numpy()))
         grp_id_lists.create_dataset('val_ids', data=[s.encode('ascii') for s in val_ids])
 
     return train_ids, val_ids
+
+
+def contains_only_zeros(image_data):
+    """
+    Determines if data patch should be omitted from AL training. Patches in the
+    border region of the image can contain only padding (only values of 0). This
+    messes with the AL query strategy because the model is very uncertain, but
+    the patches don't contribute to training because they contain no real data.
+    :param image_data: numpy array with image data
+    :return: boolean value, True if image_data contains only 0, False otherwise
+    """
+    non_zero_values = image_data[image_data != 0]
+    return (non_zero_values.size == 0)
 
 
 """This code is inspired by the blog post https://stanford.edu/~shervine/blog/keras-how-to-generate-data-on-the-fly# 

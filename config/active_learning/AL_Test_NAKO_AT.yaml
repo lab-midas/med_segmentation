@@ -187,6 +187,7 @@ patch_probability_distribution:
 
 # Active Learning
 active_learning: True # use AL for training the model
+
 al_patches_data_dir: ./patches_data_hdf5     # dir and filename where the patches data is saved for the keras data
 al_patches_data_file: al_NAKO_AT_complete.hdf5       # generator pipeline needed for AL
 
