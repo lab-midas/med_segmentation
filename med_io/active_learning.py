@@ -49,6 +49,7 @@ def query_selection(model, X, config, n_instances=1, al_epoch=None):
             data = pickle.load(f)
             data[al_epoch] = utilities[query_idx]
         pickle.dump(data, f)
+
     return query_idx
 
 
@@ -105,7 +106,7 @@ class CustomActiveLearner:
     :init_ids: ids of data with which the model gets trained before al starts
     """
     def __init__(self, config, model, query_strategy, hdf5_path, pool_ids,
-                 val_dataset, dataset, fit_batch_size, predict_batch_size,
+                 dataset, fit_batch_size, predict_batch_size,
                  init_ids=None):
         self.model = model
         self.query_strategy = query_strategy
@@ -116,13 +117,13 @@ class CustomActiveLearner:
         # for creating the DataGenerator objects
         self.n_channels = len(config['input_channel'][dataset])
         self.n_classes = len(config['output_channel'][dataset])
+        self.patch_size = config['patch_size']
         self.fit_batch_size = fit_batch_size
         self.predict_batch_size = predict_batch_size
         # train on initial data if given
         if init_ids is not None:
             self._fit_on_new(init_ids)
             self.train_ids.append(init_ids)
-        self.val_dataset = val_dataset
         self.histories = []
 
     def _fit_on_new(self, ids, **fit_kwargs):
@@ -131,11 +132,12 @@ class CustomActiveLearner:
         save history in history attribute
         """
         data_generator = DataGenerator(self.hdf5_path, ids,
+                                       dim=self.patch_size,
                                        n_channels=self.n_channels,
                                        n_classes=self.n_classes,
                                        batch_size=self.fit_batch_size,
                                        shuffle=True)
-        history = self.model.fit(x=data_generator, validation_data=self.val_dataset, **fit_kwargs)
+        history = self.model.fit(x=data_generator, **fit_kwargs)
         self.histories.append(history)
 
     def _add_training_data(self, ids, label_data=None):
@@ -155,6 +157,7 @@ class CustomActiveLearner:
         Query the ids of most promising data with help of the query_strategy
         """
         pool_data = DataGenerator(self.hdf5_path, self.pool_ids,
+                                  dim=self.patch_size,
                                   n_channels=self.n_channels,
                                   n_classes=self.n_classes,
                                   batch_size=self.predict_batch_size,

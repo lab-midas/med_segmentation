@@ -160,13 +160,14 @@ def train_al_process(config, model, paths_train_img, paths_train_label, paths_va
                                                        paths_val_img, paths_val_label,
                                                        config, dataset=dataset)
 
-    # keras fit method can not use Sequence Objects so a dataset is used
-    ds_validation = pipeline(config, paths_val_img, paths_val_label, dataset=dataset)
+    # Define validation data DataGenerator (Sequence object)
+    val_data = DataGenerator(hdf5_path, val_ids, config['evaluate_batch_size'],
+                             config['evaluate_batch_size'], )
 
     # instantiate an active learner that manages active learning
     learner = CustomActiveLearner(config, model, query_selection, hdf5_path,
-                                  train_ids, ds_validation, dataset,
-                                  config['batch'], config['predict_batch_size'])
+                                  train_ids, dataset, config['batch'],
+                                  10)#config['predict_batch_size'])
 
     for al_epoch in range(config['al_iterations']):
         print('AL epoch ' + str(al_epoch) + ' querying new patches')
@@ -178,10 +179,11 @@ def train_al_process(config, model, paths_train_img, paths_train_label, paths_va
                       epochs=config['epochs'] + init_epoch,
                       callbacks=[cp_callback, saver1],
                       initial_epoch=init_epoch,
-                      validation_data=ds_validation,
-                      validation_steps=config['val_steps_per_epoch'],
+                      validation_data=val_data,
                       validation_freq=config['validation_freq'],
-                      verbose=config['train_verbose_mode'])
+                      verbose=config['train_verbose_mode'],
+                      workers=config['al_num_workers'],
+                      use_multiprocessing=(config['al_num_workers'] is not None))
 
     history = learner.histories
 

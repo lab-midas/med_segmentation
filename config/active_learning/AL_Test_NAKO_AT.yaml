@@ -200,6 +200,8 @@ information_estimation: uncertainty   # in which way information content of patc
 al_iterations: 3 # Number of epochs of choosing the best patches and training on them
 al_num_instances: 10 # Number of instances chosen by query strathegy every al-iteration
 
+al_num_workers: 8 # Number of workers used for fitting or predicting, when data is available as keras.Sequence object
+
 ##----------------------------------------------------------------------------------------------------------------------
 ## MODEL ##
 ##---------
