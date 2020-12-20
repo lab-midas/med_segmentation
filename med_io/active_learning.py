@@ -30,8 +30,9 @@ def query_selection(model, X, config, n_instances=1):
                            'mean_of_values': _mean_of_values}
     reduction_function = reduction_functions[config['reduce_segmentation']]
 
-    utilities = batchwise_utility_evaluation(model, X, reduction_function,
-                                             utility_function)
+    # utility evaluation using the predictions of the model for the data
+    predictions = model.predict(X, workers=5, use_multiprocessing=True)
+    utilities = reduction_function(predictions, utility_function)
 
     # selecting the best instances
     query_idx = multi_argmax(utilities, n_instances=n_instances)
@@ -39,15 +40,6 @@ def query_selection(model, X, config, n_instances=1):
     return query_idx
 
 
-def batchwise_utility_evaluation(model, X, reduction_function, utility_function):
-    utilities = np.array([])
-    for i in range(len(X)):
-        batch = X[i]
-        predictions = model.predict_on_batch(batch)
-        new_utilities = reduction_function(predictions, utility_function)
-        utilities = np.append(utilities, new_utilities)
-
-    return utilities
 
 """ functions that enable the reduction of an entire segmentation prediction to
     a single value, using one of the functions below (71-85)"""
