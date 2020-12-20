@@ -190,6 +190,7 @@ active_learning: True # use AL for training the model
 
 al_patches_data_dir: ./patches_data_hdf5     # dir and filename where the patches data is saved for the keras data
 al_patches_data_file: al_NAKO_AT_complete.hdf5       # generator pipeline needed for AL
+al_utilities_data_file: al_utilities_testexp
 
 reduce_segmentation: mean_of_values   # determines the way the multiple predictions of segmentation (one for each pixel)
                                       # get condensed to a single utility measure. Choose one of: 'mean_of_values'
@@ -197,6 +198,7 @@ reduce_segmentation: mean_of_values   # determines the way the multiple predicti
 information_estimation: uncertainty   # in which way information content of patches will be estimated
                                       # choose one of: 'uncertainty', 'margin', 'entropy'
 al_iterations: 3 # Number of epochs of choosing the best patches and training on them
+al_num_instances: 10 # Number of instances chosen by query strathegy every al-iteration
 
 ##----------------------------------------------------------------------------------------------------------------------
 ## MODEL ##

@@ -169,7 +169,10 @@ def train_al_process(config, model, paths_train_img, paths_train_label, paths_va
                                   config['batch'], config['predict_batch_size'])
 
     for al_epoch in range(config['al_iterations']):
-        query_ids = learner.query(config, n_instances=100)
+        print('AL epoch ' + str(al_epoch) + ' querying new patches')
+        query_ids = learner.query(config, n_instances=config['al_num_instances'],
+                                  al_epoch=al_epoch)
+
         # labeling of unlabeled data can later be implemented here
         learner.teach(query_ids,
                       epochs=config['epochs'] + init_epoch,
