@@ -435,7 +435,7 @@ def get_patches_data(data_size, patch_size, data_img, data_label, index_list, ra
     # indexing using function slice for variable dim,indexing last channel by slice(None, None),equivalent to [:]
     # Get patch image data
 
-    patch_img_collection = [data_img[(*[slice(index[i], index[i]) for i in range(dim)]
+    patch_img_collection = [data_img[(*[slice(index[i], index[i]+ patch_size[i]) for i in range(dim)]
                                        + [slice(None, None)],)]
                             for index in index_list]
 
