@@ -83,6 +83,12 @@ def predict(config, datasets=None, save_predict_data=False, name_ID=None):
                     # Patch the image
                     patch_imgs, indice_list = patch_image(config, img_data)
                     predict_img = predict_image(config, dataset, model, patch_imgs, indice_list)
+                    # Get name_ID from the data path
+                    # The data path must have the specified format which is generated from  med_io/preprocess_raw_dataset.py
+                    name_ID = data_path_image.replace('\\', '/').split('/')[-3]
+                    if isinstance(predict_img, int) and predict_img == -1:
+                        print('failed loading: ' + name_ID)
+                        continue
 
                     if config['output_label_tfrecords']:
                         predict_img, label_data_onehot = select_output_channel(config, dataset, predict_img,
@@ -95,10 +101,6 @@ def predict(config, datasets=None, save_predict_data=False, name_ID=None):
 
                         predict_img = select_output_channel(config, dataset, predict_img)
                         predict_img_integers, predict_img_onehot = convert_result(config, predict_img)
-
-                    # Get name_ID from the data path
-                    # The data path must have the specified format which is generated from  med_io/preprocess_raw_dataset.py
-                    name_ID = data_path_image.replace('\\', '/').split('/')[-3]
 
                     # Get data of one patient for plot
                     dict_data = {'predict_integers': predict_img_integers,
@@ -258,7 +260,7 @@ def channel_config(config, dataset, evaluate=False):
     if config['output_channel'][dataset] is not None:
         config['channel_label_num'] = len(config['output_channel'][dataset])
 
-    print(config['channel_img_num'], config['channel_label_num'])
+    print('channel_img_num:',config['channel_img_num'],'channel_label_num', config['channel_label_num'])
     if (not config['load_predict_from_tfrecords']) and (not evaluate) and (
             (not config['input_channel'][dataset]) or (not config['output_channel'][dataset])):
         raise ValueError('channel_label must be valued.')
@@ -348,16 +350,11 @@ def predict_image(config, dataset, model, patch_imgs, indice_list, img_data_shap
 
     print(config['saved_models_dir'] + '/' + config['exp_name'] + '/' + config['model'] + '/' + dataset + '.h5')
 
-    # patch_imgs=patch_imgs[...,0,:]
-    # predict_patch_imgs = model.predict(x=(patch_imgs), batch_size=10, verbose=1)
-
-    # predict_patch_imgs, predict_reg = model.predict(x=(patch_imgs, indice_list_model), batch_size=1, verbose=1)
-
     try:
         if not config['read_body_identification']:
             predict_patch_imgs = model.predict(x=(patch_imgs, indice_list_model), batch_size=1, verbose=1)
 
-            print('predict_patch_imgsshape', predict_patch_imgs.shape)
+            print('predict_patch_imgs_shape', predict_patch_imgs.shape)
         else:
 
             if config['model'] == 'model_body_identification_hybrid':
@@ -366,11 +363,15 @@ def predict_image(config, dataset, model, patch_imgs, indice_list, img_data_shap
             else:
                 predict_patch_imgs = model.predict(x=(patch_imgs[..., 0]), batch_size=1, verbose=1)
     except:
-        print('Predict by model with load_weights_only=True Failed, Try rebuild model with load_weights_only=False...')
-        config['load_weights_only'] = False
-        model = load_model_file(config, dataset)
+        try:
+            print(
+                'Predict by model with load_weights_only=True Failed, Try rebuild model with load_weights_only=False...')
+            config['load_weights_only'] = False
+            model = load_model_file(config, dataset)
 
-        predict_patch_imgs = model.predict(x=(patch_imgs, indice_list_model), batch_size=1, verbose=1)
+            predict_patch_imgs = model.predict(x=(patch_imgs, indice_list_model), batch_size=1, verbose=1)
+        except:
+            return -1
 
     # patch images-> whole image
     if not config['read_body_identification']:
@@ -436,7 +437,6 @@ def convert_result(config, predict_img, label_data_onehot=None, predict_class_nu
     else:
         predict_img_integers = convert_onehot_to_integers(predict_img)
     if predict_class_num is None:
-        print(np.max(predict_img_integers))
         predict_img_onehot = convert_integers_to_onehot(predict_img_integers, num_classes=predict_img.shape[-1])
     else:
         predict_img_onehot = convert_integers_to_onehot(predict_img_integers, num_classes=predict_class_num)
