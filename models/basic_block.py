@@ -23,10 +23,12 @@ def block(f=64, k=3, s=2, order=None, order_param=None, order_priority=False):
                                         determined by convolution parameter in :param  order_param
     :return: func: Model function
     """
-    if order_param is None:
-        order_param = [None] * 3
+
     if order is None:
         order = ['c', 'r', 'b']
+    if order_param is None:
+        order_param = [None] * len(order)
+
     assert (len(order) == len(order_param))
 
     def func(x):
@@ -103,6 +105,13 @@ def block(f=64, k=3, s=2, order=None, order_param=None, order_priority=False):
                 x = Softmax()(x)
             elif item == 't':
                 x = tanh()(x)
+
+            elif item == 'act_r':
+                x = Activation('relu')(x)
+            elif item == 'act_s':
+                x = Activation('softmax')(x)
+
+
 
             # Pooling#
             elif item == 'ap':  # average pooling
