@@ -33,8 +33,6 @@ def dice_loss(y_true, y_pred, config):
             y_pred: predictions tensor.
             Dice calculation with smoothing to avoid division by zero
 
-
-
     """
 
     smooth = 1E-16
@@ -48,6 +46,18 @@ def dice_loss(y_true, y_pred, config):
         sum_loss += loss * config['loss_channel_weight'][class_index]
         weight_sum += config['loss_channel_weight'][class_index]
     return sum_loss / (weight_sum + smooth)
+
+
+def dice_coefficient_loss(y_true, y_pred,config,  axis=None):
+    """ Dice coefficient along specific axis (same as  1+dice_loss() if axis=None)
+            y_true: true targets tensor.
+            y_pred: predictions tensor.
+            smooth: smoothing parameter to avoid division by zero
+            axis: along which to calculate Dice
+    """
+    smooth = 1E-16
+    intersection = K.sum(K.abs(y_true * y_pred), axis=axis)
+    return -(2. * intersection + smooth) / (K.sum(K.abs(y_true), axis=axis) + K.sum(K.abs(y_pred), axis=axis) + smooth)
 
 
 def focal_loss(y_true, y_pred, config, alpha=0.25, gamma=2.0):
@@ -109,6 +119,56 @@ def focal_loss(y_true, y_pred, config, alpha=0.25, gamma=2.0):
     return sum_loss / (weight_sum + smooth)
 
     # return sigmoid_focal_crossentropy(y_true, y_pred, alpha=alpha, gamma=gamma)
+
+
+def TverskyLoss(y_true, y_pred, config):
+    alpha, beta = 0.5,0.5
+    #smooth = 1E-16
+    smooth=K.epsilon()
+    # flatten label and prediction tensors
+    inputs = K.flatten(y_pred)
+    targets = K.flatten(y_true)
+
+    # True Positives, False Positives & False Negatives
+    TP = K.sum((inputs * targets))
+    FP = K.sum(((1 - targets) * inputs))
+    FN = K.sum((targets * (1 - inputs)))
+
+    Tversky = (TP + smooth) / (TP + alpha * FP + beta * FN + smooth)
+
+    return 1 - Tversky
+
+
+def focal_Tversky_loss(y_true, y_pred, config, alpha=0.5, beta=0.5, gamma=1, smooth=1e-6):
+    # flatten label and prediction tensors
+    inputs = K.flatten(y_pred)
+    targets = K.flatten(y_true)
+
+    # True Positives, False Positives & False Negatives
+    TP = K.sum((inputs * targets))
+    FP = K.sum(((1 - targets) * inputs))
+    FN = K.sum((targets * (1 - inputs)))
+
+    Tversky = (TP + smooth) / (TP + alpha * FP + beta * FN + smooth)
+    FocalTversky = K.pow((1 - Tversky), gamma)
+
+    return FocalTversky
+
+
+def combo_loss(y_true, y_pred, config):
+    ALPHA = 0.5  # < 0.5 penalises FP more, > 0.5 penalises FN more
+    CE_RATIO = 0.5  # weighted contribution of modified CE loss compared to Dice loss
+    targets = K.flatten(y_true)
+    inputs = K.flatten(y_pred)
+
+    intersection = K.sum(targets * inputs)
+    dice = (2. * intersection + smooth) / (K.sum(targets) + K.sum(inputs) + smooth)
+    inputs = K.clip(inputs, e, 1.0 - e)
+    out = - (ALPHA * ((targets * K.log(inputs)) + ((1 - ALPHA) * (1.0 - targets) * K.log(1.0 - inputs))))
+    weighted_ce = K.mean(out, axis=-1)
+    combo = (CE_RATIO * weighted_ce) - ((1 - CE_RATIO) * dice)
+
+    return combo
 
 
 def jaccard_dist_loss(y_true, y_pred, config):
