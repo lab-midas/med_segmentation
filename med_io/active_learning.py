@@ -43,7 +43,7 @@ def query_selection(model, X, config, n_instances=1, al_epoch=None):
     pickle_path = Path(config['result_rootdir'], config['al_utilities_data_file'])
     with open(pickle_path, 'rb+') as f:
         if al_epoch == 0:
-            data = np.empty((config['al_iterations'],n_instances))
+            data = np.empty((config['al_iterations'], n_instances))
             data[al_epoch] = utilities[query_idx]
         else:
             data = pickle.load(f)

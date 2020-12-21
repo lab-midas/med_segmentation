@@ -127,6 +127,7 @@ def train_process(config, model, paths_train_img, paths_train_label, paths_val_i
 
     # if active learning is configured use al training process otherwise normal
     if config['active_learning']:
+        print('Using active learning loop for training')
         return train_al_process(config, model, paths_train_img, paths_train_label,
                                 paths_val_img, paths_val_label, dataset, cp_callback, saver1)
     else:
@@ -156,15 +157,20 @@ def train_al_process(config, model, paths_train_img, paths_train_label, paths_va
                      saver1, k_fold_index=0, init_epoch=0):
 
     # convert the tf_records data to hdf5 if this hasn't already happened
+    print('Making shure data is available as hdf5 file')
     hdf5_path, train_ids, val_ids = tf_records_as_hdf5(paths_train_img, paths_train_label,
                                                        paths_val_img, paths_val_label,
                                                        config, dataset=dataset)
 
     # Define validation data DataGenerator (Sequence object)
-    val_data = DataGenerator(hdf5_path, val_ids, config['evaluate_batch_size'],
-                             config['evaluate_batch_size'], )
+    val_data = DataGenerator(hdf5_path, val_ids,
+                             batch_size=config['evaluate_batch_size'],
+                             dim=config['patch_size'],
+                             n_channels=len(config['input_channel'][dataset]),
+                             n_classes=len(config['output_channel'][dataset]))
 
     # instantiate an active learner that manages active learning
+    print('Initializing active learner object')
     learner = CustomActiveLearner(config, model, query_selection, hdf5_path,
                                   train_ids, dataset, config['batch'],
                                   10)#config['predict_batch_size'])
@@ -175,9 +181,11 @@ def train_al_process(config, model, paths_train_img, paths_train_label, paths_va
                                   al_epoch=al_epoch)
 
         # labeling of unlabeled data can later be implemented here
+
+        print('Fit to new queried patches')
         learner.teach(query_ids,
                       epochs=config['epochs'] + init_epoch,
-                      callbacks=[cp_callback, saver1],
+                      callbacks=cp_callback.append(saver1),
                       initial_epoch=init_epoch,
                       validation_data=val_data,
                       validation_freq=config['validation_freq'],
