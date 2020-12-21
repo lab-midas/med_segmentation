@@ -193,9 +193,9 @@ def plot_mosaic(config, mask, slice_dim=2, colormap=None, vspace=2, hspace=2, co
                 # Draw slice index on the left top of the image
                 draw = ImageDraw.Draw(im)
                 # In Linux, "arial.ttf" should be changed
-                font = ImageFont.truetype("arial.ttf", 14)
-                draw.text((7, 7), str(slice_index+1), font=font)
-                figure.paste(im, (col_index * (w + vspace), row_index * (h + hspace)))
+                #font = ImageFont.truetype("arial.ttf", 14)
+                #draw.text((7, 7), str(slice_index+1), font=font)
+                #figure.paste(im, (col_index * (w + vspace), row_index * (h + hspace)))
 
     dir_figures = config['result_rootdir'] + '/' + config['model'] + '/figures/plot_mosaic/' + dataset + '/' + name_ID
     if client_save_rootdir is not None:
