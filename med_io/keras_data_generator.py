@@ -17,13 +17,13 @@ def tf_records_as_hdf5(dataset_train_image_path, dataset_train_label_path,
     # check if file already exists / if data was already converted
     if hdf5_path.is_file():
         # get id lists from saved data
-        print('file {0} already exists, using data stored there'.format(hdf5_path))
+        print(' File {0} already exists, using data stored there'.format(hdf5_path))
         with h5py.File(hdf5_path, 'r') as f:
             train_ids = list(f['id_lists']['train_ids'])
             val_ids = list(f['id_lists']['val_ids'])
     else:
         # convert tf_record data to hdf5 and return the id lists
-        print('Patching and converting data to hdf5 for al process')
+        print(' Patching and converting data to hdf5 for al process')
         train_ids, val_ids = convert_tf_records_hdf5(
             dataset_train_image_path, dataset_train_label_path,
             dataset_val_image_path, dataset_val_label_path,
@@ -51,7 +51,7 @@ def convert_tf_records_hdf5(dataset_train_image_path, dataset_train_label_path,
 
         # training data: get the data from pipeline and store as hdf5
         train_ids, val_ids = [], []
-        for img_num, (image_data, label_data) in dataset_train.take(2700).enumerate(0):
+        for img_num, (image_data, label_data) in dataset_train.enumerate(0):
             image_data = image_data.numpy()
             label_data = label_data.numpy()
             grp_images.create_dataset(str(img_num.numpy()), data=image_data)
@@ -63,7 +63,7 @@ def convert_tf_records_hdf5(dataset_train_image_path, dataset_train_label_path,
         grp_id_lists.create_dataset('train_ids', data=[s.encode('ascii') for s in train_ids])
 
         # validation data: get the data from pipeline and store as hdf5
-        for img_num, (image_data, label_data) in dataset_val.take(2700).enumerate(img_num + 1):
+        for img_num, (image_data, label_data) in dataset_val.enumerate(img_num + 1):
             image_data = image_data.numpy()
             label_data = label_data.numpy()
             grp_images.create_dataset(str(img_num.numpy()), data=image_data)

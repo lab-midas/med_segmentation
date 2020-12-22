@@ -1,6 +1,7 @@
 import tensorflow as tf
 import numpy as np
 import pickle
+import random
 from pathlib import Path
 from modAL.utils.selection import multi_argmax
 from scipy.stats import entropy
@@ -9,6 +10,22 @@ from med_io.keras_data_generator import DataGenerator
 """
 Active learning parts for training
 """
+
+
+def choose_random_elements(_list, num_elements=5000):
+    """
+    Choose a certain number of elements from given list randomly and return the
+    original list without the chosen elements as well as a list of the chosen
+    elements.
+    :param _list: list with elements to be chosen from
+    :param num_elements: number of elements to be chosen
+    :return: tuple (original list without elements, list with chosen elements)
+    """
+    indices = random.sample(list(range(len(_list))), k=num_elements)
+    choices = []
+    for index in sorted(indices, reverse=True):
+        choices.append(_list.pop(index))
+    return _list, choices
 
 
 def query_selection(model, X, config, n_instances=1, al_epoch=None):
@@ -120,11 +137,8 @@ class CustomActiveLearner:
         self.patch_size = config['patch_size']
         self.fit_batch_size = fit_batch_size
         self.predict_batch_size = predict_batch_size
-        # train on initial data if given
-        if init_ids is not None:
-            self._fit_on_new(init_ids)
-            self.train_ids.append(init_ids)
         self.histories = []
+        self.init_ids = init_ids
 
     def _fit_on_new(self, ids, **fit_kwargs):
         """
@@ -162,6 +176,7 @@ class CustomActiveLearner:
                                   n_classes=self.n_classes,
                                   batch_size=self.predict_batch_size,
                                   shuffle=False)
+        print('Querying new patches')
         query_result = self.query_strategy(self.model, pool_data,
                                            *query_args, **query_kwargs)
         # indices returned by query strategy note position in pool_ids not ids themself!
@@ -174,5 +189,14 @@ class CustomActiveLearner:
         provided add new label data to data in hdf5 file), then fit the model to
         the new data
         """
+        # the first time train on initial data if given
+        if self.init_ids is not None:
+            print('Training on init data, {0} patches'.format(len(self.init_ids)))
+            self._fit_on_new(self.init_ids, **fit_kwargs)
+            self.train_ids.append(self.init_ids)
+            self.init_ids = None
+
+        # teach methods for normal al loop
+        print('teach new patches')
         self._add_training_data(ids, label_data=label_data)
         self._fit_on_new(ids, **fit_kwargs)

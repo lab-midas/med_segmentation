@@ -7,7 +7,7 @@ from utils.TensorBoardTool import *
 from plot.plot_figure import *
 from tensorflow.keras.models import load_model
 from med_io.keras_data_generator import DataGenerator, tf_records_as_hdf5
-from med_io.active_learning import CustomActiveLearner, query_selection
+from med_io.active_learning import CustomActiveLearner, query_selection, choose_random_elements
 from models.load_model import load_model_file
 import pickle
 import datetime
@@ -168,25 +168,28 @@ def train_al_process(config, model, paths_train_img, paths_train_label, paths_va
                              dim=config['patch_size'],
                              n_channels=len(config['input_channel'][dataset]),
                              n_classes=len(config['output_channel'][dataset]))
-
+    # choose patches from training data for initial training
+    train_ids, init_ids = choose_random_elements(train_ids,
+                                                 num_elements=config['al_num_init_patches'])
     # instantiate an active learner that manages active learning
     print('Initializing active learner object')
     learner = CustomActiveLearner(config, model, query_selection, hdf5_path,
                                   train_ids, dataset, config['batch'],
-                                  10)#config['predict_batch_size'])
+                                  config['evaluate_batch_size'],
+                                  init_ids=init_ids)
 
     for al_epoch in range(config['al_iterations']):
-        print('AL epoch ' + str(al_epoch) + ' querying new patches')
+        print('AL epoch ' + str(al_epoch))
         query_ids = learner.query(config, n_instances=config['al_num_instances'],
                                   al_epoch=al_epoch)
 
         # labeling of unlabeled data can later be implemented here
 
-        print('Fit to new queried patches')
         learner.teach(query_ids,
                       epochs=config['epochs'] + init_epoch,
                       callbacks=cp_callback.append(saver1),
                       initial_epoch=init_epoch,
+                      shuffle=False,
                       validation_data=val_data,
                       validation_freq=config['validation_freq'],
                       verbose=config['train_verbose_mode'],
