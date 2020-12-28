@@ -9,6 +9,7 @@ from tensorflow.keras.models import load_model
 from med_io.keras_data_generator import DataGenerator, tf_records_as_hdf5
 from med_io.active_learning import CustomActiveLearner, query_selection, choose_random_elements
 from models.load_model import load_model_file
+import time
 import pickle
 import datetime
 import os
@@ -183,11 +184,14 @@ def train_al_process(config, model, paths_train_img, paths_train_label, paths_va
                   'workers': config['al_num_workers'],
                   'use_multiprocessing': config['al_num_workers'] is not None}
 
+    # start timer for analysis how long loop takes
+    start_time = time.time()
+
     # instantiate an active learner that manages active learning
     print('Initializing active learner object')
     learner = CustomActiveLearner(config, model, query_selection, hdf5_path,
                                   train_ids, dataset, config['batch'],
-                                  config['evaluate_batch_size'],
+                                  config['predict_batch_size'],
                                   init_ids=init_ids, **fit_kwargs)
 
     for al_epoch in range(config['al_iterations']):
@@ -198,6 +202,16 @@ def train_al_process(config, model, paths_train_img, paths_train_label, paths_va
         # labeling of unlabeled data can later be implemented here
 
         learner.teach(query_ids, **fit_kwargs)
+
+    # print time required for AL  (inspired by https://www.codespeedy.com/how-to-create-a-stopwatch-in-python/)
+    def time_convert(sec):
+        mins = sec // 60
+        sec = sec % 60
+        hours = mins // 60
+        mins = mins % 60
+        print("AL loop took {0}:{1}:{2}".format(int(hours), int(mins), sec))
+    time_lapsed = time.time() - start_time
+    time_convert(time_lapsed)
 
     history = learner.histories
 

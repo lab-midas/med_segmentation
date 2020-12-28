@@ -6,7 +6,7 @@
 dataset : [NAKO_AT] # either known database [NAKO_AT,DIXON,TULIP1_5T,TULIP3T,NAKO,KORA]
     #(i.e. converting and loading as TFRecords) or leave empty (only test/prediction) -> direct loading from Nifty, information specified in PREDICTION
 project: NORA  # project name
-exp_name: AL_EXP1_NAKO_AT  # experiment name (used for storage)
+exp_name: AL_Exp1_NAKO_AT  # experiment name (used for storage)
 
 
 # Seed for fixing the random data
@@ -164,9 +164,9 @@ num_parallel_calls: 1 # number parallel calls of tf.data.dataset
 shuffle: 1 # shuffle seed of tf.data.dataset
 
 # Batch
-batch: 60 # batch size of training model
-evaluate_batch_size: 1 # batch size of evaluating model
-predict_batch_size: 2 # batch size of predicting model
+batch: 16 # batch size of training model
+evaluate_batch_size: 32 # batch size of evaluating model
+predict_batch_size: 16 # batch size of predicting model
 
 # Patch
 patch_size: [32,32,32] # patch size of the model, Type list of n int, n=dimension. # body identification network :[1, X, Y]
@@ -190,16 +190,16 @@ active_learning: True # use AL for training the model
 
 al_patches_data_dir: ./patches_data_hdf5     # dir and filename where the patches data is saved for the keras data
 al_patches_data_file: al_NAKO_AT_complete.hdf5       # generator pipeline needed for AL
-al_utilities_data_file: al_utilities_testexp
+al_utilities_data_file: al_utilities        # base of filename for utilities data (base + exp_name + .pickle)
 
 reduce_segmentation: mean_of_values   # determines the way the multiple predictions of segmentation (one for each pixel)
                                       # get condensed to a single utility measure. Choose one of: 'mean_of_values'
                                       # or 'value_of_means'
 information_estimation: uncertainty   # in which way information content of patches will be estimated
                                       # choose one of: 'uncertainty', 'margin', 'entropy'
-al_iterations: 3 # Number of epochs of choosing the best patches and training on them
-al_num_instances: 10 # Number of instances chosen by query strathegy every al-iteration
-al_num_init_patches: 5000 # Number of patches to choose for initial training
+al_iterations: 15 # Number of epochs of choosing the best patches and training on them
+al_num_instances: 900 # Number of instances chosen by query strategy every al-iteration
+al_num_init_patches: 2250 # Number of patches to choose for initial training
 
 al_num_workers: 8 # Number of workers used for fitting or predicting, when data is available as keras.Sequence object
 
@@ -246,7 +246,7 @@ img_label_same_shape: True
 
 
 # Epochs and steps
-epochs: 50 # total training epochs
+epochs: 20 # total training epochs
 train_steps_per_epoch: 40 #  steps per one training epoch
 val_steps_per_epoch: 3  # validation steps per epoch
 evaluate_step: 20  # evaluation steps per epoch

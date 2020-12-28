@@ -59,7 +59,7 @@ def query_selection(model, X, config, n_instances=1, al_epoch=None,
     query_idx = multi_argmax(utilities, n_instances=n_instances)
 
     # save utility values of queried instances
-    pickle_path = Path(config['result_rootdir'], config['al_utilities_data_file'])
+    pickle_path = Path(config['result_rootdir'], config['al_utilities_data_file'] + '_' + config['exp_name'] + '.pickle')
     with open(pickle_path, 'rb+') as f:
         if al_epoch == 0:
             data = np.empty((config['al_iterations'], n_instances))
