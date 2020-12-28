@@ -6,7 +6,7 @@
 dataset : [NAKO_AT] # either known database [NAKO_AT,DIXON,TULIP1_5T,TULIP3T,NAKO,KORA]
     #(i.e. converting and loading as TFRecords) or leave empty (only test/prediction) -> direct loading from Nifty, information specified in PREDICTION
 project: NORA  # project name
-exp_name: exp0  # experiment name (used for storage)
+exp_name: AL_EXP1_NAKO_AT  # experiment name (used for storage)
 
 
 # Seed for fixing the random data
@@ -164,7 +164,7 @@ num_parallel_calls: 1 # number parallel calls of tf.data.dataset
 shuffle: 1 # shuffle seed of tf.data.dataset
 
 # Batch
-batch: 1 # batch size of training model
+batch: 60 # batch size of training model
 evaluate_batch_size: 1 # batch size of evaluating model
 predict_batch_size: 2 # batch size of predicting model
 
@@ -199,6 +199,7 @@ information_estimation: uncertainty   # in which way information content of patc
                                       # choose one of: 'uncertainty', 'margin', 'entropy'
 al_iterations: 3 # Number of epochs of choosing the best patches and training on them
 al_num_instances: 10 # Number of instances chosen by query strathegy every al-iteration
+al_num_init_patches: 5000 # Number of patches to choose for initial training
 
 al_num_workers: 8 # Number of workers used for fitting or predicting, when data is available as keras.Sequence object
 

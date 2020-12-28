@@ -28,7 +28,8 @@ def choose_random_elements(_list, num_elements=5000):
     return _list, choices
 
 
-def query_selection(model, X, config, n_instances=1, al_epoch=None):
+def query_selection(model, X, config, n_instances=1, al_epoch=None,
+                    al_num_workers=5):
     """
         Query the ids of the most promising data
         :parm model: segmentation model that is supposed to be trained by al loop
@@ -43,14 +44,15 @@ def query_selection(model, X, config, n_instances=1, al_epoch=None):
                          'uncertainty': _proba_uncertainty,
                          'margin': _proba_margin}
     utility_function = utility_functions[config['information_estimation']]
-
-    # choose how segmentation is condensed to a single utility value (using utility function from above)
+    # choose how segmentation is condensed to a single utility value
+    # (using utility function from above)
     reduction_functions = {'value_of_means': _value_of_means,
                            'mean_of_values': _mean_of_values}
     reduction_function = reduction_functions[config['reduce_segmentation']]
 
     # utility evaluation using the predictions of the model for the data
-    predictions = model.predict(X, workers=5, use_multiprocessing=True)
+    predictions = model.predict(X, workers=al_num_workers,
+                                use_multiprocessing=True)
     utilities = reduction_function(predictions, utility_function)
 
     # selecting the best instances
@@ -124,11 +126,11 @@ class CustomActiveLearner:
     """
     def __init__(self, config, model, query_strategy, hdf5_path, pool_ids,
                  dataset, fit_batch_size, predict_batch_size,
-                 init_ids=None):
+                 init_ids=None, **fit_kwargs):
         self.model = model
         self.query_strategy = query_strategy
         self.hdf5_path = hdf5_path
-        # create the list that 0
+        # create the list that monitors patches data
         self.pool_ids = pool_ids
         self.train_ids = []
         # for creating the DataGenerator objects
@@ -138,7 +140,11 @@ class CustomActiveLearner:
         self.fit_batch_size = fit_batch_size
         self.predict_batch_size = predict_batch_size
         self.histories = []
-        self.init_ids = init_ids
+        # train on initial data if given
+        if init_ids is not None:
+            print('Training on init data, {0} patches'.format(len(init_ids)))
+            self._fit_on_new(init_ids, **fit_kwargs)
+            self.train_ids.append(init_ids)
 
     def _fit_on_new(self, ids, **fit_kwargs):
         """
@@ -189,14 +195,6 @@ class CustomActiveLearner:
         provided add new label data to data in hdf5 file), then fit the model to
         the new data
         """
-        # the first time train on initial data if given
-        if self.init_ids is not None:
-            print('Training on init data, {0} patches'.format(len(self.init_ids)))
-            self._fit_on_new(self.init_ids, **fit_kwargs)
-            self.train_ids.append(self.init_ids)
-            self.init_ids = None
-
-        # teach methods for normal al loop
         print('teach new patches')
         self._add_training_data(ids, label_data=label_data)
         self._fit_on_new(ids, **fit_kwargs)

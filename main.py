@@ -67,6 +67,7 @@ def main(args):
             config.gpu_options.allow_growth = True
             tf.set_session(tf.Session(config=config))
 
+    print('process id: {0}'.format(os.getpid()))
 
     with open(args.config_path, "r") as yaml_file:
         config = yaml.load(yaml_file.read())
