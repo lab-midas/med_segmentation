@@ -173,6 +173,10 @@ def train_al_process(config, model, paths_train_img, paths_train_label, paths_va
     train_ids, init_ids = choose_random_elements(train_ids,
                                                  num_elements=config['al_num_init_patches'])
 
+    # check if enough train patches are available
+    assert (len(train_ids) > config['al_iterations']*config['al_num_instances'],
+            'not enough training patches for these AL parameters')
+
     # define arguments for fit in active learner
     fit_kwargs = {'epochs': config['epochs'] + init_epoch,
                   'callbacks': cp_callback.append(saver1),

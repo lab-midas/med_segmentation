@@ -246,7 +246,7 @@ img_label_same_shape: True
 
 
 # Epochs and steps
-epochs: 20 # total training epochs
+epochs: 15 # total training epochs
 train_steps_per_epoch: 40 #  steps per one training epoch
 val_steps_per_epoch: 3  # validation steps per epoch
 evaluate_step: 20  # evaluation steps per epoch

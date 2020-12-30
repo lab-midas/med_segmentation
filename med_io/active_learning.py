@@ -2,6 +2,7 @@ import tensorflow as tf
 import numpy as np
 import pickle
 import random
+import os
 from pathlib import Path
 from modAL.utils.selection import multi_argmax
 from scipy.stats import entropy
@@ -60,6 +61,8 @@ def query_selection(model, X, config, n_instances=1, al_epoch=None,
 
     # save utility values of queried instances
     pickle_path = Path(config['result_rootdir'], config['al_utilities_data_file'] + '_' + config['exp_name'] + '.pickle')
+    if not os.path.exists(pickle_path):
+        with open(pickle_path, 'w'): pass
     with open(pickle_path, 'rb+') as f:
         if al_epoch == 0:
             data = np.empty((config['al_iterations'], n_instances))
