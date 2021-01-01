@@ -65,7 +65,7 @@ def train(config, restore=False):
 
         # Create a callback that saves the model's weights every X epochs.
         cp_callback = [tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path, verbose=1, save_weights_only=False,
-                                                         period=config['save_training_model_period']),
+                                                          period=config['save_training_model_period']),
                        tf.keras.callbacks.TensorBoard(os.path.dirname(checkpoint_path), histogram_freq=1)]
 
         # Initial epoch of training data
@@ -174,8 +174,9 @@ def train_al_process(config, model, paths_train_img, paths_train_label, paths_va
                                                  num_elements=config['al_num_init_patches'])
 
     # check if enough train patches are available
-    assert (len(train_ids) > config['al_iterations']*config['al_num_instances'],
-            'not enough training patches for these AL parameters')
+    assert len(train_ids) > config['al_iterations'] * config['al_num_instances'], \
+        ('not enough training patches for these AL parameters! Reduce num of '
+         'al iterations and/or num of instances queried every iteration.')
 
     # define arguments for fit in active learner
     fit_kwargs = {'epochs': config['epochs'] + init_epoch,
@@ -214,6 +215,7 @@ def train_al_process(config, model, paths_train_img, paths_train_label, paths_va
         hours = mins // 60
         mins = mins % 60
         print("AL loop took {0}:{1}:{2}".format(int(hours), int(mins), sec))
+
     time_lapsed = time.time() - start_time
     time_convert(time_lapsed)
 

@@ -190,7 +190,7 @@ active_learning: True # use AL for training the model
 
 al_patches_data_dir: ./patches_data_hdf5     # dir and filename where the patches data is saved for the keras data
 al_patches_data_file: al_NAKO_AT_complete.hdf5       # generator pipeline needed for AL
-al_utilities_data_file: al_utilities        # base of filename for utilities data (base + exp_name + .pickle)
+al_utilities_data_file: al_utilities        # base of filename for utilities data (name: base + exp_name + .pickle)
 
 reduce_segmentation: mean_of_values   # determines the way the multiple predictions of segmentation (one for each pixel)
                                       # get condensed to a single utility measure. Choose one of: 'mean_of_values'
@@ -201,7 +201,7 @@ al_iterations: 15 # Number of epochs of choosing the best patches and training o
 al_num_instances: 900 # Number of instances chosen by query strategy every al-iteration
 al_num_init_patches: 2250 # Number of patches to choose for initial training
 
-al_num_workers: 8 # Number of workers used for fitting or predicting, when data is available as keras.Sequence object
+al_num_workers: 10 # Number of workers used for fitting or predicting, when data is available as keras.Sequence object
 
 ##----------------------------------------------------------------------------------------------------------------------
 ## MODEL ##

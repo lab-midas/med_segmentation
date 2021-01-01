@@ -34,11 +34,13 @@ def query_selection(model, X, config, n_instances=1, al_epoch=None,
     """
         Query the ids of the most promising data
         :parm model: segmentation model that is supposed to be trained by al loop
-        :parm X: Data for prediction e.g. DataGenerator object
+        :parm X: Data for prediction, type list of Datasets e.g. DataGenerator objects
+                The form as list is so that never too much data at once is in calculation
         :parm config: config parameters
         :return: indices of the queried (best) data
-        Note: the ids returned are the indices in the data provided, not the
-              indices of the hdf5 file used in CustomActiveLearner!
+        Note: the ids returned are the indices of the position in the data
+              provided, not the indices of the hdf5 file used in
+              CustomActiveLearner!
     """
     # choose the type of utility function used for calculation of utility
     utility_functions = {'entropy': _proba_entropy,
@@ -52,9 +54,13 @@ def query_selection(model, X, config, n_instances=1, al_epoch=None,
     reduction_function = reduction_functions[config['reduce_segmentation']]
 
     # utility evaluation using the predictions of the model for the data
-    predictions = model.predict(X, workers=al_num_workers,
-                                use_multiprocessing=True)
-    utilities = reduction_function(predictions, utility_function)
+    utilities = np.array([])
+    for data in X:
+        print('Calculating utilities of {0} batches'.format(len(data)))
+        predictions = model.predict(data, workers=al_num_workers,
+                                    use_multiprocessing=True)
+        _utilities = reduction_function(predictions, utility_function)
+        utilities = np.concatenate((utilities, _utilities))
 
     # selecting the best instances
     query_idx = multi_argmax(utilities, n_instances=n_instances)
@@ -126,10 +132,12 @@ class CustomActiveLearner:
     :val_dataset: tf dataset with validation data (doesn't work with Sequence object)
     :dataset: name of dataset used
     :init_ids: ids of data with which the model gets trained before al starts
+    :max_predict_num: max num of patches that are processed at once in query
+                      (limited to avoid too high memory usage)
     """
     def __init__(self, config, model, query_strategy, hdf5_path, pool_ids,
                  dataset, fit_batch_size, predict_batch_size,
-                 init_ids=None, **fit_kwargs):
+                 init_ids=None, max_predict_num=10000, **fit_kwargs):
         self.model = model
         self.query_strategy = query_strategy
         self.hdf5_path = hdf5_path
@@ -143,6 +151,7 @@ class CustomActiveLearner:
         self.fit_batch_size = fit_batch_size
         self.predict_batch_size = predict_batch_size
         self.histories = []
+        self.max_predict_num = max_predict_num
         # train on initial data if given
         if init_ids is not None:
             print('Training on init data, {0} patches'.format(len(init_ids)))
@@ -175,18 +184,37 @@ class CustomActiveLearner:
         for train_id in ids:
             self.pool_ids.remove(train_id)
 
+    def _get_split_pool(self):
+        # assure that length of split parts is multiple of batch size
+        split_length = (self.max_predict_num // self.predict_batch_size) * self.predict_batch_size
+
+        # split pool_ids list into manageable pieces
+        num_of_pieces = len(self.pool_ids) // split_length
+        split_pool_ids = [self.pool_ids[i*split_length:(i+1)*split_length]
+                          for i in range(num_of_pieces)]
+        split_pool_ids.append(self.pool_ids[num_of_pieces*split_length:])
+
+        # create a DataGenerator object for every split part
+        pool_data_list = []
+        for pool_ids in split_pool_ids:
+            pool_data = DataGenerator(self.hdf5_path, pool_ids,
+                                      dim=self.patch_size,
+                                      n_channels=self.n_channels,
+                                      n_classes=self.n_classes,
+                                      batch_size=self.predict_batch_size,
+                                      shuffle=False)
+            pool_data_list.append(pool_data)
+        return pool_data_list
+
     def query(self, *query_args, **query_kwargs):
         """
         Query the ids of most promising data with help of the query_strategy
         """
-        pool_data = DataGenerator(self.hdf5_path, self.pool_ids,
-                                  dim=self.patch_size,
-                                  n_channels=self.n_channels,
-                                  n_classes=self.n_classes,
-                                  batch_size=self.predict_batch_size,
-                                  shuffle=False)
+        # build DataGenerator for prediction of data (split into manageable chunks)
+        pool_data_list = self._get_split_pool()
+
         print('Querying new patches')
-        query_result = self.query_strategy(self.model, pool_data,
+        query_result = self.query_strategy(self.model, pool_data_list,
                                            *query_args, **query_kwargs)
         # indices returned by query strategy note position in pool_ids not ids themself!
         query_ids = [self.pool_ids[i] for i in query_result]
