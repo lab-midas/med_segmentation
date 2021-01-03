@@ -179,8 +179,9 @@ def train_al_process(config, model, paths_train_img, paths_train_label, paths_va
          'al iterations and/or num of instances queried every iteration.')
 
     # define arguments for fit in active learner
+    cp_callback.append(saver1) # combine callbacks in one list
     fit_kwargs = {'epochs': config['epochs'] + init_epoch,
-                  'callbacks': cp_callback.append(saver1),
+                  'callbacks': cp_callback,
                   'initial_epoch': init_epoch,
                   'shuffle': False,
                   'validation_data': val_data,

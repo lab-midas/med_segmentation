@@ -6,7 +6,7 @@
 dataset : [NAKO_AT] # either known database [NAKO_AT,DIXON,TULIP1_5T,TULIP3T,NAKO,KORA]
     #(i.e. converting and loading as TFRecords) or leave empty (only test/prediction) -> direct loading from Nifty, information specified in PREDICTION
 project: NORA  # project name
-exp_name: AL_Exp1_NAKO_AT  # experiment name (used for storage)
+exp_name: AL_Exp2_NAKO_AT  # experiment name (used for storage)
 
 
 # Seed for fixing the random data
@@ -195,7 +195,7 @@ al_utilities_data_file: al_utilities        # base of filename for utilities dat
 reduce_segmentation: mean_of_values   # determines the way the multiple predictions of segmentation (one for each pixel)
                                       # get condensed to a single utility measure. Choose one of: 'mean_of_values'
                                       # or 'value_of_means'
-information_estimation: uncertainty   # in which way information content of patches will be estimated
+information_estimation: entropy   # in which way information content of patches will be estimated
                                       # choose one of: 'uncertainty', 'margin', 'entropy'
 al_iterations: 15 # Number of epochs of choosing the best patches and training on them
 al_num_instances: 900 # Number of instances chosen by query strategy every al-iteration
