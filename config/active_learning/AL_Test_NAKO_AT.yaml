@@ -6,7 +6,7 @@
 dataset : [NAKO_AT] # either known database [NAKO_AT,DIXON,TULIP1_5T,TULIP3T,NAKO,KORA]
     #(i.e. converting and loading as TFRecords) or leave empty (only test/prediction) -> direct loading from Nifty, information specified in PREDICTION
 project: NORA  # project name
-exp_name: AL_Exp2_NAKO_AT  # experiment name (used for storage)
+exp_name: AL_Exp3_NAKO_AT  # experiment name (used for storage)
 
 
 # Seed for fixing the random data
@@ -192,6 +192,8 @@ al_patches_data_dir: ./patches_data_hdf5     # dir and filename where the patche
 al_patches_data_file: al_NAKO_AT_complete.hdf5       # generator pipeline needed for AL
 al_utilities_data_file: al_utilities        # base of filename for utilities data (name: base + exp_name + .pickle)
 
+query_strategy: random_sampling       # choose query strategy, one of: uncertainty_sampling, random_sampling
+# the following 2 parameters are only relevant for query strategy query_sampling
 reduce_segmentation: mean_of_values   # determines the way the multiple predictions of segmentation (one for each pixel)
                                       # get condensed to a single utility measure. Choose one of: 'mean_of_values'
                                       # or 'value_of_means'

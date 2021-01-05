@@ -22,15 +22,27 @@ def choose_random_elements(_list, num_elements=5000):
     :param num_elements: number of elements to be chosen
     :return: tuple (original list without elements, list with chosen elements)
     """
-    indices = random.sample(list(range(len(_list))), k=num_elements)
+    indices = random.sample(range(len(_list)), k=num_elements)
     choices = []
     for index in sorted(indices, reverse=True):
         choices.append(_list.pop(index))
     return _list, choices
 
 
+def query_random(*args, n_instances=1, nr_patches_in_pool=None, **kwargs):
+    """
+    Select random ids from supplied data
+    :param nr_patches_in_pool: Nr of patches that are in the pool
+    :param n_instances: number of instances to be queried
+    :return: List of randomly selected ids of instances from pool
+    Note: the arguments X, model and config are only for consistency and are not
+          used in the function
+    """
+    return random.sample(range(nr_patches_in_pool), k=n_instances)
+
+
 def query_selection(model, X, config, n_instances=1, al_epoch=None,
-                    al_num_workers=5):
+                    al_num_workers=5, **kwargs):
     """
         Query the ids of the most promising data
         :parm model: segmentation model that is supposed to be trained by al loop
@@ -206,7 +218,7 @@ class CustomActiveLearner:
             pool_data_list.append(pool_data)
         return pool_data_list
 
-    def query(self, *query_args, **query_kwargs):
+    def query(self, **query_kwargs):
         """
         Query the ids of most promising data with help of the query_strategy
         """
@@ -215,7 +227,8 @@ class CustomActiveLearner:
 
         print('Querying new patches')
         query_result = self.query_strategy(self.model, pool_data_list,
-                                           *query_args, **query_kwargs)
+                                           nr_patches_in_pool=len(self.pool_ids),
+                                           **query_kwargs)
         # indices returned by query strategy note position in pool_ids not ids themself!
         query_ids = [self.pool_ids[i] for i in query_result]
         return query_ids

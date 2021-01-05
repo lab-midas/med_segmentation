@@ -7,13 +7,15 @@ from utils.TensorBoardTool import *
 from plot.plot_figure import *
 from tensorflow.keras.models import load_model
 from med_io.keras_data_generator import DataGenerator, tf_records_as_hdf5
-from med_io.active_learning import CustomActiveLearner, query_selection, choose_random_elements
+from med_io.active_learning import CustomActiveLearner, query_selection, \
+                                   choose_random_elements, query_random
 from models.load_model import load_model_file
 import time
 import pickle
 import datetime
 import os
 import random
+from pathlib import Path
 
 
 def train(config, restore=False):
@@ -193,16 +195,22 @@ def train_al_process(config, model, paths_train_img, paths_train_label, paths_va
     # start timer for analysis how long loop takes
     start_time = time.time()
 
+    # choose query strategy
+    query_strategies = {'uncertainty_sampling': query_selection,
+                        'random_sampling': query_random}
+    query_strategy = query_strategies[config['query_strategy']]
+
     # instantiate an active learner that manages active learning
     print('Initializing active learner object')
-    learner = CustomActiveLearner(config, model, query_selection, hdf5_path,
+    learner = CustomActiveLearner(config, model, query_strategy, hdf5_path,
                                   train_ids, dataset, config['batch'],
                                   config['predict_batch_size'],
                                   init_ids=init_ids, **fit_kwargs)
 
     for al_epoch in range(config['al_iterations']):
         print('AL epoch ' + str(al_epoch))
-        query_ids = learner.query(config, n_instances=config['al_num_instances'],
+        query_ids = learner.query(config=config,
+                                  n_instances=config['al_num_instances'],
                                   al_epoch=al_epoch)
 
         # labeling of unlabeled data can later be implemented here
@@ -221,6 +229,10 @@ def train_al_process(config, model, paths_train_img, paths_train_label, paths_va
     time_convert(time_lapsed)
 
     history = learner.histories
+    pickle_path = Path(config['result_rootdir'],
+                       'histories' + '_' + config['exp_name'] + '.pickle')
+    with open(pickle_path, 'wb') as f:
+        pickle.dump(history, f)
 
     return model, history
 
