@@ -8,7 +8,7 @@ from plot.plot_figure import *
 from tensorflow.keras.models import load_model
 from med_io.keras_data_generator import DataGenerator, tf_records_as_hdf5
 from med_io.active_learning import CustomActiveLearner, query_selection, \
-                                   choose_random_elements, query_random
+    choose_random_elements, query_random, al_callbacks
 from models.load_model import load_model_file
 import time
 import pickle
@@ -63,12 +63,13 @@ def train(config, restore=False):
             os.makedirs(config['dir_model_checkpoint'] + '/' + config['exp_name'])
         checkpoint_path = config['dir_model_checkpoint'] + '/' + config['exp_name'] + '/cp.hdf5'
 
-        tb_tool = TensorBoardTool(config['dir_model_checkpoint'])  # start the Tensorboard
+        tb_tool = TensorBoardTool(config['dir_model_checkpoint'] + '/' + config['exp_name'])  # start the Tensorboard
 
         # Create a callback that saves the model's weights every X epochs.
         cp_callback = [tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path, verbose=1, save_weights_only=False,
                                                           period=config['save_training_model_period']),
                        tf.keras.callbacks.TensorBoard(os.path.dirname(checkpoint_path), histogram_freq=1)]
+        # Note: (TensorBoard) callbacks for AL are created separately in train_al_process()
 
         # Initial epoch of training data
         init_epoch = 0
@@ -181,9 +182,9 @@ def train_al_process(config, model, paths_train_img, paths_train_label, paths_va
          'al iterations and/or num of instances queried every iteration.')
 
     # define arguments for fit in active learner
-    cp_callback.append(saver1) # combine callbacks in one list
+    # static_callbacks = cp_callback[0] + saver1  # combine callbacks that dont change every al epoch
     fit_kwargs = {'epochs': config['epochs'] + init_epoch,
-                  'callbacks': cp_callback,
+                  'callbacks': None,
                   'initial_epoch': init_epoch,
                   'shuffle': False,
                   'validation_data': val_data,
@@ -201,7 +202,7 @@ def train_al_process(config, model, paths_train_img, paths_train_label, paths_va
     query_strategy = query_strategies[config['query_strategy']]
 
     # instantiate an active learner that manages active learning
-    print('Initializing active learner object')
+    print('Initializing active learner object, with {0} patches in pool'.format(len(train_ids)))
     learner = CustomActiveLearner(config, model, query_strategy, hdf5_path,
                                   train_ids, dataset, config['batch'],
                                   config['predict_batch_size'],
@@ -209,12 +210,16 @@ def train_al_process(config, model, paths_train_img, paths_train_label, paths_va
 
     for al_epoch in range(config['al_iterations']):
         print('AL epoch ' + str(al_epoch))
+
+        # query new patches
         query_ids = learner.query(config=config,
                                   n_instances=config['al_num_instances'],
                                   al_epoch=al_epoch)
 
         # labeling of unlabeled data can later be implemented here
 
+        # teach model with new patches and log the data
+        fit_kwargs['callbacks'] = al_callbacks(config, str(al_epoch))
         learner.teach(query_ids, **fit_kwargs)
 
     # print time required for AL  (inspired by https://www.codespeedy.com/how-to-create-a-stopwatch-in-python/)
@@ -229,10 +234,6 @@ def train_al_process(config, model, paths_train_img, paths_train_label, paths_va
     time_convert(time_lapsed)
 
     history = learner.histories
-    pickle_path = Path(config['result_rootdir'],
-                       'histories' + '_' + config['exp_name'] + '.pickle')
-    with open(pickle_path, 'wb') as f:
-        pickle.dump(history, f)
 
     return model, history
 

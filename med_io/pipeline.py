@@ -38,7 +38,8 @@ def pipeline(config, dataset_image_path, dataset_label_path, dataset=None, no_sh
     patches_indices = get_fixed_patches_index(config, max_data_size, patch_size,
                                               overlap_rate=config['patch_overlap_rate'],
                                               start=config['patch_start'],
-                                              end=config['patch_end'])
+                                              end=config['patch_end'],
+                                              max_patch_num=config['max_patch_num'])
 
     # Reformat data path list: [[path1],[path2], ...] ->[[path1, path2, ...]]
     data_path_image_list = [[t[i] for t in dataset_image_path] for i in range(len(dataset_image_path[0]))]

@@ -78,7 +78,8 @@ def query_selection(model, X, config, n_instances=1, al_epoch=None,
     query_idx = multi_argmax(utilities, n_instances=n_instances)
 
     # save utility values of queried instances
-    pickle_path = Path(config['result_rootdir'], config['al_utilities_data_file'] + '_' + config['exp_name'] + '.pickle')
+    pickle_path = Path(config['result_rootdir'],
+                       config['al_utilities_data_file'] + '_' + config['exp_name'] + '.pickle')
     if not os.path.exists(pickle_path):
         with open(pickle_path, 'w'): pass
     with open(pickle_path, 'rb+') as f:
@@ -93,9 +94,9 @@ def query_selection(model, X, config, n_instances=1, al_epoch=None,
     return query_idx
 
 
-
 """ functions that enable the reduction of an entire segmentation prediction to
     a single value, using one of the functions below (71-85)"""
+
 
 def _value_of_means(predictions, utility_function):
     mean_predictions = np.mean(predictions, (1, 2, 3))
@@ -130,6 +131,20 @@ def _proba_entropy(proba):
     return entropy(proba, axis=-1)
 
 
+# utility function for creating al callbacks in train.py
+def al_callbacks(config, epoch_name, additional_callbacks=None):
+    """ create the callbacks for use in fit() in al training, dir name will include
+        epoch_name - has to be unique every time"""
+    logdir = Path(config['dir_model_checkpoint'], config['exp_name'],
+                  'al_epoch_{0}'.format(epoch_name))
+    logdir.mkdir(parents=True, exist_ok=True)
+    callbacks = [tf.keras.callbacks.TensorBoard(logdir, histogram_freq=1)]
+    if additional_callbacks is not None:
+        return additional_callbacks.append(callbacks)
+    else:
+        return callbacks
+
+
 # Define ActiveLearner class to manage active learning loop. The class is inspired
 # by ActiveLearner class from modAL but designed to work with the DataGenerator class
 class CustomActiveLearner:
@@ -147,6 +162,7 @@ class CustomActiveLearner:
     :max_predict_num: max num of patches that are processed at once in query
                       (limited to avoid too high memory usage)
     """
+
     def __init__(self, config, model, query_strategy, hdf5_path, pool_ids,
                  dataset, fit_batch_size, predict_batch_size,
                  init_ids=None, max_predict_num=10000, **fit_kwargs):
@@ -167,6 +183,7 @@ class CustomActiveLearner:
         # train on initial data if given
         if init_ids is not None:
             print('Training on init data, {0} patches'.format(len(init_ids)))
+            fit_kwargs['callbacks'] = al_callbacks(config, 'init')
             self._fit_on_new(init_ids, **fit_kwargs)
             self.train_ids.append(init_ids)
 
@@ -202,9 +219,9 @@ class CustomActiveLearner:
 
         # split pool_ids list into manageable pieces
         num_of_pieces = len(self.pool_ids) // split_length
-        split_pool_ids = [self.pool_ids[i*split_length:(i+1)*split_length]
+        split_pool_ids = [self.pool_ids[i * split_length:(i + 1) * split_length]
                           for i in range(num_of_pieces)]
-        split_pool_ids.append(self.pool_ids[num_of_pieces*split_length:])
+        split_pool_ids.append(self.pool_ids[num_of_pieces * split_length:])
 
         # create a DataGenerator object for every split part
         pool_data_list = []
