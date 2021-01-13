@@ -7,6 +7,7 @@ import math
 from PIL import Image, ImageDraw, ImageFont
 import PIL
 import scipy.io as sio
+import cv2 as cv
 
 
 def save_histories_plot_images(history, dataset, config, mode='train_val',k_fold_index=0):
@@ -80,8 +81,10 @@ def color_set(num_categories, costum_colormap=None, random_colormap=False, costu
     if costum_colormap is None and random_colormap == False:
 
         # Edit here if more default colors are needed
-        default_colormap = (np.array([[0, 0, 0.8], [0, 0.8, 0], [0.8, 0, 0], [0.1, 0, 0.8], [0.3, 0.5, 0.1],
-                                      [0, 0, 0.7], [0, 0.7, 0], [0.7, 0, 0], [0.1, 0, 0.7], [0.2, 0.5, 0.1],
+        default_colormap = (np.array([[0, 0, 0.8], [0, 0.8, 0], [0.8, 0, 0], [0.2,0.8,0.7],
+                                      [0.4, 0.3, 0.8], [0.4, 0.6, 0.1],[0.6, 0.2, 0.3], [0.2, 0.7, 0.6],
+
+                                      [0.7, 0, 0], [0.1, 0, 0.7], [0.2, 0.5, 0.1],
                                       [0, 0, 0.7], [0, 0.7, 0], [0.7, 0, 0], [0.1, 0, 0.7], [0.2, 0.5, 0.1],
                                       [0, 0.1, 0.6], [0.5, 0.7, 0], [0.7, 0.1, 0], [0.2, 0.1, 0.7], [0.3, 0.4, 0.2],
                                       [0, 0.3, 0.7], [0, 0.7, 0.1], [0.4, 0.5, 0.3], [0.1, 0.2, 0.6], [0.2, 0.4, 0.3]])
@@ -105,7 +108,8 @@ def color_set(num_categories, costum_colormap=None, random_colormap=False, costu
 
 
 def plot_mosaic(config, mask, slice_dim=2, colormap=None, vspace=2, hspace=2, col=5, rotate_k=None, flip_axis=None,
-                origin_image=None, alpha_origin=0.3, dataset='0', name_ID='0',client_save_rootdir=None,image_type='predict'):
+                origin_image=None, alpha_origin=0.3, dataset='0', name_ID='0',client_save_rootdir=None,image_type='predict'
+                ):
     """
  Plot the result of 3D category map or 3D grey image, layout in mosaic style.
     :param config: type dict: config parameter
@@ -127,6 +131,12 @@ def plot_mosaic(config, mask, slice_dim=2, colormap=None, vspace=2, hspace=2, co
     """
     # Define variable h(height), w(width), and slices
     mask_shape = mask.shape[:3]
+    if origin_image is not None:
+        shape_1,shape_2=origin_image.shape,mask.shape
+        shape_=np.minimum(shape_1,shape_2)
+
+        origin_image= origin_image[0: shape_[0],0: shape_[1],0:shape_[2]]
+        mask = mask[0: shape_[0], 0: shape_[1], 0:shape_[2]]
 
     if slice_dim == 2:
         h, w, slices = mask_shape[0], mask_shape[1], mask_shape[2]
@@ -135,7 +145,7 @@ def plot_mosaic(config, mask, slice_dim=2, colormap=None, vspace=2, hspace=2, co
     else:
         h, w, slices = mask_shape[1], mask_shape[2], mask_shape[0]
 
-    if rotate_k==1 or rotate_k==3 or rotate_k==-1 or rotate_k==-3:
+    if rotate_k==1 or rotate_k==3 or rotate_k==-1 or rotate_k==-3: # +1 represent 90 degree rotation
         h,w=w,h
 
     num_category = len(np.unique(mask))
@@ -154,11 +164,13 @@ def plot_mosaic(config, mask, slice_dim=2, colormap=None, vspace=2, hspace=2, co
                 indice_ = tuple(indice)
 
                 color_image = colormap[mask[indice_].astype(int) % num_category].astype('uint8')
+
                 if rotate_k:
                     color_image= np.rot90(color_image, k=rotate_k)
 
                 if flip_axis:
                     color_image=np.flip(color_image,axis=flip_axis)
+
 
                 im = Image.fromarray(color_image)
                 im = im.convert("RGBA")
@@ -171,17 +183,19 @@ def plot_mosaic(config, mask, slice_dim=2, colormap=None, vspace=2, hspace=2, co
                     if rotate_k:
                         origin_image_slice= np.rot90(origin_image_slice, k=rotate_k)
                     if flip_axis:
-                        origin_image_slice = np.rot90(origin_image_slice, k=rotate_k)
+                        origin_image_slice = np.flip(origin_image_slice, axis=flip_axis)
+
 
                     origin_image_slice = Image.fromarray(origin_image_slice).convert("RGBA")
 
                     im = Image.blend(im, origin_image_slice, alpha=alpha_origin)
 
                 # Draw slice index on the left top of the image
-                #draw = ImageDraw.Draw(im)
+                draw = ImageDraw.Draw(im)
+                # In Linux, "arial.ttf" should be changed
                 #font = ImageFont.truetype("arial.ttf", 14)
                 #draw.text((7, 7), str(slice_index+1), font=font)
-                figure.paste(im, (col_index * (w + vspace), row_index * (h + hspace)))
+                #figure.paste(im, (col_index * (w + vspace), row_index * (h + hspace)))
 
     dir_figures = config['result_rootdir'] + '/' + config['model'] + '/figures/plot_mosaic/' + dataset + '/' + name_ID
     if client_save_rootdir is not None:
@@ -290,6 +304,165 @@ def plot_area_ratio(config, list_images_series, slice_dim=2, merge_channel_plot=
         plt.yticks(np.linspace(0, 100, 11))
         plt.grid()
         line_style = ['-', '--', '-.', ':']
+
+        labb=['_BG', '_LT', '_VAT', '_SCAT']
+        for i in range(len(list_images_series)):
+
+            colorset = color_set(num_categories=channel, costum_max_value=1, costum_start=i * channel)
+            for ch in range(channel):
+                # Plot standard variation gap
+                if not plot_mean_only:
+                    plt.fill_between(indexes, (mean_map_series[i][:, ch] - std_map_series[i][:, ch]),
+                                     (mean_map_series[i][:, ch] + std_map_series[i][:, ch]),
+                                     alpha=0.5, color=colorset[ch % channel])  # , color=colorset[ch % channel]
+
+                # Plot mean line
+                plt.plot(indexes, mean_map_series[i][:, ch], line_style[i % len(line_style)],
+                         label=plot_label_series[i] +  labb[ch],                                   #"_channel_" + str(ch),
+                         color=colorset[ch % channel])  # , color=colorset[ch % channel]
+        plt.yscale(yscale)
+        plt.legend(loc="upper right")
+
+        # Save figure
+        path_dir = config['result_rootdir'] + '/' + config['model'] + '/figures/plot_area_ratio/' + dataset
+        if client_save_rootdir is not None:
+            path_dir = client_save_rootdir + '/' + path_dir
+        if not os.path.exists(path_dir): os.makedirs(path_dir)
+
+        path_figures = path_dir + '/area_ratio_merged_plot.svg'
+        path_figures_pdf = path_dir + '/area_ratio_merged_plot.pdf'
+
+        plt.savefig(path_figures)
+        plt.savefig(path_figures_pdf)
+        plt.close(1)
+
+    else:  # Merge the plots from different series in individual channel, save the figures by each channel,
+        for ch in range(channel):
+            plt.figure(ch)
+            plt.xlabel("Slice index")
+            plt.ylabel("Average volumes percentage(%)")
+            max_slice = max(max_slice_series)
+            plt.xticks(list(range(0, max_slice + 1, 50)))
+            indexes = list(range(0, max_slice))
+            plt.ylim(*(0, 100))
+            plt.yticks(np.linspace(0, 100, 11))
+            plt.grid()
+            len_series = len(list_images_series)
+            colorset = color_set(num_categories=len_series, costum_max_value=1, costum_start=ch * len_series)
+            line_style = ['-', '--', '-.', ':']
+            for i in range(len(list_images_series)):
+                # Plot standard variation gap
+                if not plot_mean_only:
+                    plt.fill_between(indexes, (mean_map_series[i][:, ch] - std_map_series[i][:, ch]),
+                                     (mean_map_series[i][:, ch] + std_map_series[i][:, ch]),
+                                     alpha=0.5, color=colorset[i % len_series])
+
+                # Plot mean line
+                plt.plot(indexes, mean_map_series[i][:, ch], line_style[i % len(line_style)],
+                         color=colorset[i % len_series],
+                         label=plot_label_series[i] + "_channel_" + str(ch))
+            plt.yscale(yscale)
+            plt.legend(loc="upper right")
+
+            # Save figure
+            path_dir = config['result_rootdir'] + '/' + config['model'] + '/figures/plot_area_ratio/' + dataset
+            if client_save_rootdir is not None:
+                path_dir = client_save_rootdir + '/' + path_dir
+            if not os.path.exists(path_dir): os.makedirs(path_dir)
+            path_figures = path_dir + '/area_ratio_merged_plot_channel_' + str(ch) + '.png'
+            plt.savefig(path_figures)
+            plt.close(ch)
+def save_plotdata_area_ratio_single( list_images, slice_dim=2, name_ID='0',dataset='data'):
+
+    channel = list_images[0].shape[-1]
+    area_ratio_map_collect=dict()
+    for list_index, list_img in enumerate(list_images):  # for each sublist,
+
+        shape = list_img.shape[:3]
+        area, slice_ = shape[slice_dim - 2] * shape[slice_dim - 1], shape[slice_dim]
+
+        if slice_dim == 2:
+
+            img_channels_area_ratio = np.array(
+                [[np.sum(img[:, :, i, j]) / float(area) * 100 for j in range(channel)] for i
+                 in range(slice_)])
+        elif slice_dim == 1:
+            img_channels_area_ratio = np.array(
+                [[np.sum(img[:, i, :, j]) / float(area) * 100 for j in range(channel)] for i
+                 in range(slice_)])
+        else:
+            img_channels_area_ratio = np.array(
+                [[np.sum(img[i, :, :, j]) / float(area) * 100 for j in range(channel)] for i
+                 in range(slice_)])
+
+        area_ratio_map_collect['area_ratio_'+str(list_index)]=img_channels_area_ratio
+    path_dir=config['result_rootdir'] + '/' + config['model'] + '/figures/plot_area_ratio/' + dataset+'/single_area_ratio'
+    if not os.path.exists(path_dir): os.makedirs(path_dir)
+    sio.savemat('area_ratio'+name_ID+'.mat', area_ratio_map_collect)
+
+def plot_area_ratio_from_saved_mat(config, mat_dir,  merge_channel_plot=False, yscale='linear',
+                    plot_label_series=None, dataset='data', figsize=None,plot_mean_only=False,client_save_rootdir=None):
+
+
+    list_dir=os.listdir(mat_dir)
+    sum_= len(list_dir)
+    data_dict = sio.loadmat(mat_dir[0] + '/' + list_dir[0])
+    key_num=len(data_dict.keys())
+    area_ratio_series=[list()]*key_num
+
+    slice_collect=[]
+    channel=0
+    mean_map_series = []
+    std_map_series = []
+    max_slice_series = []
+
+    for filename in list_dir:
+        slice_=0
+        data_dict=sio.loadmat(mat_dir+'/'+filename)
+        for  i, data in enumerate(data_dict.keys()):
+            area_ratio_series[i].append(data)
+            if i ==0:
+                slice_=data.shape[0]
+                channel=data.shape[1]
+        slice_collect.append(slice_)
+    max_slice=max(slice_collect)
+
+    for sum_ratio in area_ratio_series:
+        sum_map = np.ones((sum_, max_slice, channel)) * -1
+        # Fill the calculated data from above into the sum map
+        for n in range(sum_):
+            sum_map[n, 0:sum_ratio[n].shape[0], 0:sum_ratio[n].shape[1]] = sum_ratio[n]
+
+        # Initialize mean (standard variation) map, fill with 0
+        mean_map, std_map = np.zeros((max_slice, channel)), np.zeros((max_slice, channel))
+        for sl in range(max_slice):
+            for ch in range(channel):
+                # Get area ratio data in the same slice index and the same channel index from all patients.
+                sub_slice = sum_map[:, sl, ch]
+                # Remove the invalid data
+                sub_slice = sub_slice[sub_slice != -1]
+                # Calculate mean (standard variation) and store them into the mean map (standard variation map).
+                mean_map[sl, ch], std_map[sl, ch] = np.mean(sub_slice), np.std(sub_slice)
+
+        mean_map_series.append(mean_map)
+        std_map_series.append(std_map)
+        max_slice_series.append(max_slice)
+
+    if plot_label_series is None: plot_label_series = ['predict', 'label']
+
+    if merge_channel_plot:  # Merge all series and all channels in one figure.
+        if figsize is not None: figsize = tuple(figsize)
+        plt.figure(1, figsize=figsize)
+        plt.xlabel("Slice index")
+        plt.ylabel("Average volumes percentage(%)")
+
+        max_slice = max(max_slice_series)
+        plt.xticks(list(range(0, max_slice + 1, 50)))
+        indexes = list(range(0, max_slice))
+        plt.ylim(*(0, 100))
+        plt.yticks(np.linspace(0, 100, 11))
+        plt.grid()
+        line_style = ['-', '--', '-.', ':']
         for i in range(len(list_images_series)):
 
             colorset = color_set(num_categories=channel, costum_max_value=1, costum_start=i * channel)
@@ -355,66 +528,84 @@ def plot_area_ratio(config, list_images_series, slice_dim=2, merge_channel_plot=
             plt.close(ch)
 
 
-
-
-def plot_combine(image, heatmap, alpha=0.4, display=False, save_path=None,  verbose=False,
-            rotate=False, pred_thresholds=[], real_thresholds=[]):
+def plot_combine(config,image, heatmap, alpha=0.6, display=False, save_path=None,  verbose=False,
+            rotate=False, pred_thresholds=None, real_thresholds=[], dataset="TULIP3T",client_save_rootdir=None,name_ID='0'):
     """Still working..."""
 
     '''Combine image with heatmap, plot and save'''
+
+    plt.rcParams["font.family"] = "Times New Roman"
+    if image.shape!=heatmap.shape:
+        image = cv.resize(image, dsize=heatmap.shape[::-1], interpolation=cv.INTER_CUBIC)
+
     aspect = 0.1
     if len(real_thresholds) == 0:
         real_thresholds = np.zeros(pred_thresholds.shape)
 
+    if real_thresholds is None:
+        real_thresholds=np.zeros(pred_thresholds.shape)
     if rotate:
         image = np.rot90(image, k=1, axes=(1, 0))
         heatmap = np.rot90(heatmap, k=1, axes=(1, 0))
-        aspect = 1.0 / aspect
 
     # Discrete color scheme
-    cMap = ListedColormap(['midnightblue', 'darkslateblue', 'darkcyan', 'olive', 'goldenrod'])
-
+    cMap = ListedColormap(config['colormap'])
     # Display
     fig, ax = plt.subplots()
     image = ax.pcolormesh(image)
     heatmap = ax.pcolor(heatmap, alpha=alpha, cmap=cMap)
-    ax.set_aspect(aspect=aspect)
 
     cbar = plt.colorbar(heatmap)
+
     landmark_dict = {0: 'Wrists', 1: 'Shoulders', 2: 'Liver_dome', 3: 'Hips', 4: 'Heels', 5: 'Below'}
-    cbar.ax.set_ylabel('Class')
+    if 'plot_fontsize'in config:
+        font_size=config['plot_fontsize']
+    else:
+        font_size=20
+    cbar.ax.set_ylabel('Class',fontsize=font_size)
     cbar.ax.get_yaxis().set_ticks([])
     for j, lab in enumerate(landmark_dict):
-        cbar.ax.text(.5, (2 * j + 1) / 10.0, landmark_dict[j], ha='center', va='center', rotation=90)
-    cbar.ax.get_yaxis().labelpad = 5
+        #cbar.ax.text(1.7, (2 * j +2) / 2.4-0.4, landmark_dict[j],rotation=90,  ha='center', va='center',fontsize=18) #rotation=90 ,
+        cbar.ax.text(1.9, (2 * j + 2) / 2.4 -0.5, landmark_dict[j], rotation=90, ha='center', va='center',
+                     fontsize=16)  # rotation=90 ,
+    cbar.ax.get_yaxis().labelpad = 3
     cbar.ax.invert_yaxis()
 
     real_thresholds = np.flip(real_thresholds, 0)
-    for t in range(pred_thresholds.size):
-        plt.axhline(y=pred_thresholds[t], color='r', ls='dashed', label='Predicted Threshold')
-        plt.axhline(y=int(real_thresholds[t]), color='w', ls='dotted', label='Real Threshold')
+    for t in range(real_thresholds.size):
+        plt.axhline(y=pred_thresholds[t], color='r', ls='dashed', label='Predicted Threshold',linewidth=3)
+
+        plt.axhline(y=int(real_thresholds[t]), color='y', ls='dotted', label='Real Threshold',linewidth=3)
     handles, _ = ax.get_legend_handles_labels()
+
     ax.legend(handles=handles[:2], labels=['Predicted Threshold', 'Real Threshold'], loc='upper center',
-              bbox_to_anchor=(0.5, -0.1), ncol=2)
+              bbox_to_anchor=(0.5, -0.05), ncol=2, fontsize=20)
     #    ax.legend.get_frame().set_facecolor('0.5')
 
-    plt.title('Decision Map')
-    plt.ylabel('HF Slice Number')
-    plt.xlabel('LR Slice Number')
+    plt.title('Decision Map',fontsize=20)
+    plt.ylabel('HF Slice Number',fontsize=20)
+    plt.xlabel('LR Slice Number',fontsize=20)
 
     zoom = 2
     w, h = fig.get_size_inches()
-    fig.set_size_inches(w * zoom, h * zoom)
+    fig.set_size_inches(h * zoom, w * zoom)
 
     if display:
         plt.show()
 
-    if save_path is not None:
-        if verbose:
-            print('Heatmap with image saved at ', save_path)
-        save_name = save_path + '/heatmap_' + str(alpha)
-        plt.savefig(save_name + '.png', bbox_inches='tight', pad_inches=0)
-        plt.savefig(save_name + '.svg', bbox_inches='tight', pad_inches=0)
+    # Save figure
+    dir_figures = config['result_rootdir'] + '/' + config[
+            'model'] + '/figures/plot_combine/' + dataset + '/' + name_ID
+    if client_save_rootdir is not None:
+        path_dir = client_save_rootdir + '/' + dir_figures
+    if not os.path.exists(dir_figures): os.makedirs(dir_figures)
+    path_figures = dir_figures + '/plot_combine' + '.png'
+    plt.savefig(path_figures,bbox_inches='tight', pad_inches=0)
+
+
+
+
+
 
 
 def plot_by_slice(config, masks_list, slice_, channel_only=None, slice_dim=2, space=1, title_list=None,
@@ -491,6 +682,7 @@ def plot_by_slice(config, masks_list, slice_, channel_only=None, slice_dim=2, sp
         # Show title on the top
         if title_list is not None:
             draw = ImageDraw.Draw(im)
+            # In Linux, "arial.ttf" should be changed
             #font = ImageFont.truetype("arial.ttf", 10)
             #draw.text((2, 2), title_list[image_index], font=font)
 
