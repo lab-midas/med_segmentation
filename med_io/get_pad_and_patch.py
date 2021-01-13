@@ -75,8 +75,12 @@ def get_fixed_patches_index(config, max_fix_img_size, patch_size, overlap_rate=0
     assert (len(start) == len(overlap_rate) == dim)
     patch_size = [tf.math.minimum(max_fix_img_size[i], patch_size[i]) for i in range(dim)]
 
+
     end1 = [max_fix_img_size[i] - patch_size[i] for i in range(dim)]  # stop int list
     
+
+    end1 = [max_fix_img_size[i] - patch_size[i] for i in range(dim)]  # int list
+
     if end is not None:
         for i in range(dim):
             if end[i] > end1[i]: end[i] = end1[i]
