@@ -83,6 +83,7 @@ class ModelSet:
         else:
             return create_and_compile_model(inputs, out, config)
 
+    # 3D DenseNet network
     def model_DenstNet_3D(self, config):
         conv_param_global = config['convolution_parameter']
         in_shape = (*config['patch_size'],) + (config['channel_img_num'],)
@@ -165,6 +166,7 @@ class ModelSet:
         else:
             return create_and_compile_model(in_, out, config)
 
+    # modified 3D DenseNet
     def model_DenstNet_3Dv2(self, config):
         conv_param = config['convolution_parameter']
 
@@ -219,6 +221,7 @@ class ModelSet:
         else:
             return create_and_compile_model(inputs, out, config)
 
+    # Dilated DenseNet
     def model_dilated_DenseNet(self, config, len_dense=None, base_filter=32, param_dense_filter=None):
 
         conv_param = config['convolution_parameter']
@@ -271,8 +274,7 @@ class ModelSet:
         else:
             return create_and_compile_model(inputs, out, config)
 
-    # UNet with double decoder
-
+    # UNet
     def model_U_net(self, config):
 
         conv_param = config['convolution_parameter']
@@ -336,6 +338,7 @@ class ModelSet:
         else:
             return create_and_compile_model(inputs, out, config)
 
+    # body identification network for 2D coronal
     def model_body_identification_hybrid(self, config):
         '''
         Model is build after Philip Wolfs (ISS master student) model
@@ -409,6 +412,7 @@ class ModelSet:
         else:
             return create_and_compile_model(inputs, [landmark_class_probability, direct_regression], config)
 
+    # body identification classification in 2D coronal
     def model_body_identification_classification(self, config):
         '''
         Model is build after Philip Wolfs (ISS master student) model
