@@ -173,13 +173,16 @@ def train_al_process(config, model, paths_train_img, paths_train_label, paths_va
                              n_classes=len(config['output_channel'][dataset]))
 
     # choose patches from training data for initial training
-    train_ids, init_ids = choose_random_elements(train_ids,
-                                                 num_elements=config['al_num_init_patches'])
+#    train_ids, init_ids = choose_random_elements(train_ids,
+#                                                 num_elements=config['al_num_init_patches'])
+#
+#    # check if enough train patches are available
+#    assert len(train_ids) > config['al_iterations'] * config['al_num_instances'], \
+#        ('not enough training patches for these AL parameters! Reduce num of '
+#         'al iterations and/or num of instances queried every iteration.')
 
-    # check if enough train patches are available
-    assert len(train_ids) > config['al_iterations'] * config['al_num_instances'], \
-        ('not enough training patches for these AL parameters! Reduce num of '
-         'al iterations and/or num of instances queried every iteration.')
+    #for testing
+    init_ids, train_ids = train_ids , None
 
     # define arguments for fit in active learner
     # static_callbacks = cp_callback[0] + saver1  # combine callbacks that dont change every al epoch
@@ -202,25 +205,25 @@ def train_al_process(config, model, paths_train_img, paths_train_label, paths_va
     query_strategy = query_strategies[config['query_strategy']]
 
     # instantiate an active learner that manages active learning
-    print('Initializing active learner object, with {0} patches in pool'.format(len(train_ids)))
+#    print('Initializing active learner object, with {0} patches in pool'.format(len(train_ids)))
     learner = CustomActiveLearner(config, model, query_strategy, hdf5_path,
                                   train_ids, dataset, config['batch'],
                                   config['predict_batch_size'],
                                   init_ids=init_ids, **fit_kwargs)
 
-    for al_epoch in range(config['al_iterations']):
-        print('AL epoch ' + str(al_epoch))
-
-        # query new patches
-        query_ids = learner.query(config=config,
-                                  n_instances=config['al_num_instances'],
-                                  al_epoch=al_epoch)
-
-        # labeling of unlabeled data can later be implemented here
-
-        # teach model with new patches and log the data
-        fit_kwargs['callbacks'] = al_callbacks(config, str(al_epoch))
-        learner.teach(query_ids, **fit_kwargs)
+#    for al_epoch in range(config['al_iterations']):
+#        print('AL epoch ' + str(al_epoch))
+#
+#        # query new patches
+#        query_ids = learner.query(config=config,
+#                                  n_instances=config['al_num_instances'],
+#                                  al_epoch=al_epoch)
+#
+#        # labeling of unlabeled data can later be implemented here
+#
+#        # teach model with new patches and log the data
+#        fit_kwargs['callbacks'] = al_callbacks(config, str(al_epoch))
+#        learner.teach(query_ids, **fit_kwargs)
 
     # print time required for AL  (inspired by https://www.codespeedy.com/how-to-create-a-stopwatch-in-python/)
     def time_convert(sec):
