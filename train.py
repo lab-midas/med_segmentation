@@ -223,6 +223,10 @@ def train_al_process(config, model, paths_train_img, paths_train_label, paths_va
         fit_kwargs['callbacks'] = al_callbacks(config, str(al_epoch))
         learner.teach(query_ids, **fit_kwargs)
 
+        # update training epochs for next al_epoch
+        #fit_kwargs['epochs'] = fit_kwargs['epochs'] + fit_kwargs['initial_epoch']
+        #fit_kwargs['initial_epoch'] = config['epochs'] + fit_kwargs['initial_epoch']
+
     # print time required for AL  (inspired by https://www.codespeedy.com/how-to-create-a-stopwatch-in-python/)
     def time_convert(sec):
         mins = sec // 60
