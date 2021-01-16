@@ -181,18 +181,16 @@ def train_al_process(config, model, paths_train_img, paths_train_label, paths_va
         ('not enough training patches for these AL parameters! Reduce num of '
          'al iterations and/or num of instances queried every iteration.')
 
-
     # define arguments for fit in active learner
     # static_callbacks = cp_callback[0] + saver1  # combine callbacks that dont change every al epoch
-    fit_kwargs = {'epochs': config['epochs'] + init_epoch,
-                  'callbacks': None,
-                  'initial_epoch': init_epoch,
+    fit_kwargs = {'callbacks': al_callbacks(config, 'complete'),
                   'shuffle': False,
                   'validation_data': val_data,
                   'validation_freq': config['validation_freq'],
                   'verbose': config['train_verbose_mode'],
                   'workers': config['al_num_workers'],
                   'use_multiprocessing': config['al_num_workers'] is not None}
+    # Note: the epoch parameters are defined in the active learner
 
     # start timer for analysis how long loop takes
     start_time = time.time()
@@ -220,12 +218,9 @@ def train_al_process(config, model, paths_train_img, paths_train_label, paths_va
         # labeling of unlabeled data can later be implemented here
 
         # teach model with new patches and log the data
-        fit_kwargs['callbacks'] = al_callbacks(config, str(al_epoch))
+        # fit_kwargs['callbacks'] = al_callbacks(config, str(al_epoch))
         learner.teach(query_ids, **fit_kwargs)
 
-        # update training epochs for next al_epoch
-        #fit_kwargs['epochs'] = fit_kwargs['epochs'] + fit_kwargs['initial_epoch']
-        #fit_kwargs['initial_epoch'] = config['epochs'] + fit_kwargs['initial_epoch']
 
     # print time required for AL  (inspired by https://www.codespeedy.com/how-to-create-a-stopwatch-in-python/)
     def time_convert(sec):

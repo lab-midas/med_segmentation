@@ -180,10 +180,14 @@ class CustomActiveLearner:
         self.predict_batch_size = predict_batch_size
         self.histories = []
         self.max_predict_num = max_predict_num
+        # keep track of epoch parameters
+        self.fit_epoch_kwargs = {'epochs': config['epochs'],
+                                 'initial_epoch': 0}
+        self.epochs = config['epochs']
         # train on initial data if given
         if init_ids is not None:
             print('Training on init data, {0} patches'.format(len(init_ids)))
-            fit_kwargs['callbacks'] = al_callbacks(config, 'init')
+            # fit_kwargs['callbacks'] = al_callbacks(config, 'init')
             self._fit_on_new(init_ids, **fit_kwargs)
             self.train_ids.append(init_ids)
 
@@ -198,7 +202,13 @@ class CustomActiveLearner:
                                        n_classes=self.n_classes,
                                        batch_size=self.fit_batch_size,
                                        shuffle=True)
-        history = self.model.fit(x=data_generator, **fit_kwargs)
+        history = self.model.fit(x=data_generator,
+                                 **fit_kwargs,
+                                 **self.fit_epoch_kwargs)
+        # update epoch arguments
+        self.fit_epoch_kwargs['epochs'] += self.epochs
+        self.fit_epoch_kwargs['initial_epoch'] += self.epochs
+
         self.histories.append(history)
 
     def _add_training_data(self, ids, label_data=None):
