@@ -186,10 +186,10 @@ class CustomActiveLearner:
         self.epochs = config['epochs']
         # train on initial data if given
         if init_ids is not None:
-            print('Training on init data, {0} patches'.format(len(init_ids)))
+            print('Training on init data')
             # fit_kwargs['callbacks'] = al_callbacks(config, 'init')
             self._fit_on_new(init_ids, **fit_kwargs)
-            self.train_ids.append(init_ids)
+            self.train_ids += init_ids
 
     def _fit_on_new(self, ids, **fit_kwargs):
         """
@@ -202,6 +202,29 @@ class CustomActiveLearner:
                                        n_classes=self.n_classes,
                                        batch_size=self.fit_batch_size,
                                        shuffle=True)
+        print('Training on new data, {0} patches'.format(len(ids)))
+        history = self.model.fit(x=data_generator,
+                                 **fit_kwargs,
+                                 **self.fit_epoch_kwargs)
+        # update epoch arguments
+        self.fit_epoch_kwargs['epochs'] += self.epochs
+        self.fit_epoch_kwargs['initial_epoch'] += self.epochs
+
+        self.histories.append(history)
+
+    def _fit_on_all(self, **fit_kwargs):
+        """
+        Fit the model to the data in the labeled set
+        (data is saved in hdf5 file), save history in history attribute
+        """
+        data_generator = DataGenerator(self.hdf5_path,
+                                       self.train_ids,
+                                       dim=self.patch_size,
+                                       n_channels=self.n_channels,
+                                       n_classes=self.n_classes,
+                                       batch_size=self.fit_batch_size,
+                                       shuffle=True)
+        print('Training on all labeled data, {0} patches'.format(len(self.train_ids)))
         history = self.model.fit(x=data_generator,
                                  **fit_kwargs,
                                  **self.fit_epoch_kwargs)
@@ -219,9 +242,12 @@ class CustomActiveLearner:
         if label_data is not None:
             # later add option to add label data to hdf5 file for unlabled data
             pass
-        self.train_ids.append(ids)
+        self.train_ids += ids
         for train_id in ids:
             self.pool_ids.remove(train_id)
+
+        print('Added new patches; unlabeled pool: {0} ; labeled data: {1}'.format(
+            len(self.pool_ids), len(self.train_ids)))
 
     def _get_split_pool(self):
         # assure that length of split parts is multiple of batch size
@@ -260,7 +286,7 @@ class CustomActiveLearner:
         query_ids = [self.pool_ids[i] for i in query_result]
         return query_ids
 
-    def teach(self, ids, label_data=None, **fit_kwargs):
+    def teach(self, ids, only_new=True, label_data=None, **fit_kwargs):
         """
         Add the ids of new training data to list of training data ids (and if
         provided add new label data to data in hdf5 file), then fit the model to
@@ -268,4 +294,9 @@ class CustomActiveLearner:
         """
         print('teach new patches')
         self._add_training_data(ids, label_data=label_data)
-        self._fit_on_new(ids, **fit_kwargs)
+
+        # train the model either only on the new data or on entire labeled set
+        if only_new:
+            self._fit_on_new(ids, **fit_kwargs)
+        else:
+            self._fit_on_all(**fit_kwargs)

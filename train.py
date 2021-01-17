@@ -219,8 +219,7 @@ def train_al_process(config, model, paths_train_img, paths_train_label, paths_va
 
         # teach model with new patches and log the data
         # fit_kwargs['callbacks'] = al_callbacks(config, str(al_epoch))
-        learner.teach(query_ids, **fit_kwargs)
-
+        learner.teach(query_ids, only_new=config['al_only_new'], **fit_kwargs)
 
     # print time required for AL  (inspired by https://www.codespeedy.com/how-to-create-a-stopwatch-in-python/)
     def time_convert(sec):
