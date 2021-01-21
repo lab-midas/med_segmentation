@@ -6,7 +6,7 @@
 dataset : [NAKO_AT] # either known database [NAKO_AT,DIXON,TULIP1_5T,TULIP3T,NAKO,KORA]
     #(i.e. converting and loading as TFRecords) or leave empty (only test/prediction) -> direct loading from Nifty, information specified in PREDICTION
 project: NORA  # project name
-exp_name: AL_Test6_NAKO_AT  # experiment name (used for storage)
+exp_name: AL_Exp6_NAKO_AT  # experiment name (used for storage)
 
 
 # Seed for fixing the random data
@@ -178,7 +178,7 @@ predict_patch_overlap_rate: 0.0 #value in [0,1)
 unpatch_overlap_rate: 0.2  # value in [0,1)
 random_shift_patch: False  # shift the patch or not for augmention
 patch_probability_distribution:
-    use:   True # True if patch by pdf
+    use:   False # True if patch by pdf
     normal: #   True if use normal distribution
         use:
         mu:     # list of 3 floats/integers
@@ -190,10 +190,10 @@ max_patch_num: 300 # max number of patches per image if patch_probability_distri
 active_learning: True # use AL for training the model
 
 al_patches_data_dir: ./patches_data_hdf5     # dir and filename where the patches data is saved for the keras data
-al_patches_data_file: al_NAKO_AT_uniform_distribution.hdf5  # generator pipeline needed for AL
+al_patches_data_file: al_NAKO_AT_complete.hdf5  # generator pipeline needed for AL
 al_utilities_data_file: al_utilities        # base of filename for utilities data (name: base + exp_name + .pickle)
 
-query_strategy: uncertainty_sampling       # choose query strategy, one of: uncertainty_sampling, random_sampling
+query_strategy: random_sampling       # choose query strategy, one of: uncertainty_sampling, random_sampling
 # the following 2 parameters are only relevant for query strategy query_sampling
 reduce_segmentation: mean_of_values   # determines the way the multiple predictions of segmentation (one for each pixel)
                                       # get condensed to a single utility measure. Choose one of: 'mean_of_values'
@@ -250,12 +250,12 @@ img_label_same_shape: True
 
 
 # Epochs and steps
-epochs: 15 # total training epochs
+epochs: 50 # total training epochs
 train_steps_per_epoch: 40 #  steps per one training epoch
 val_steps_per_epoch: 3  # validation steps per epoch
 evaluate_step: 20  # evaluation steps per epoch
 save_training_model_period: 15 #  epoch for saving the model
-validation_freq: 5 # num epoch for one validation process
+validation_freq: 1 # num epoch for one validation process
 
 # Verbose
 evaluate_verbose_mode: 1
