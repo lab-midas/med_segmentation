@@ -144,7 +144,7 @@ def train_process(config, model, paths_train_img, paths_train_label, paths_val_i
         history = model.fit(ds_train,
                             epochs=config['epochs'] + init_epoch,
                             steps_per_epoch=config['train_steps_per_epoch'],
-                            callbacks=[cp_callback, saver1],
+                            callbacks=[cp_callback[1]], #.append(saver1),
                             initial_epoch=init_epoch,
                             validation_data=ds_validation,
                             validation_steps=config['val_steps_per_epoch'],
