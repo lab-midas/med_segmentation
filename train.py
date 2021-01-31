@@ -170,7 +170,8 @@ def train_al_process(config, model, paths_train_img, paths_train_label, paths_va
                              batch_size=config['evaluate_batch_size'],
                              dim=config['patch_size'],
                              n_channels=len(config['input_channel'][dataset]),
-                             n_classes=len(config['output_channel'][dataset]))
+                             n_classes=len(config['output_channel'][dataset]),
+                             steps_per_epoch=config['val_steps_per_epoch'])
 
     # for testing determin num as ratio
     num_init_patches = round(1*len(train_ids))
@@ -207,7 +208,9 @@ def train_al_process(config, model, paths_train_img, paths_train_label, paths_va
     learner = CustomActiveLearner(config, model, query_strategy, hdf5_path,
                                   train_ids, dataset, config['batch'],
                                   config['predict_batch_size'],
-                                  init_ids=init_ids, **fit_kwargs)
+                                  init_ids=init_ids,
+                                  train_steps_per_epoch=config['train_steps_per_epoch'],
+                                  **fit_kwargs)
 
 #    for al_epoch in range(config['al_iterations']):
 #        print('AL epoch ' + str(al_epoch))
