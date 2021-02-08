@@ -165,7 +165,8 @@ class CustomActiveLearner:
 
     def __init__(self, config, model, query_strategy, hdf5_path, pool_ids,
                  dataset, fit_batch_size, predict_batch_size,
-                 init_ids=None, max_predict_num=10000, **fit_kwargs):
+                 train_steps_per_epoch=None, init_ids=None,
+                 max_predict_num=10000, **fit_kwargs):
         self.model = model
         self.query_strategy = query_strategy
         self.hdf5_path = hdf5_path
@@ -180,6 +181,7 @@ class CustomActiveLearner:
         self.predict_batch_size = predict_batch_size
         self.histories = []
         self.max_predict_num = max_predict_num
+        self.train_steps_per_epoch = train_steps_per_epoch
         # keep track of epoch parameters
         self.fit_epoch_kwargs = {'epochs': config['epochs'],
                                  'initial_epoch': 0}
@@ -201,7 +203,8 @@ class CustomActiveLearner:
                                        n_channels=self.n_channels,
                                        n_classes=self.n_classes,
                                        batch_size=self.fit_batch_size,
-                                       shuffle=True)
+                                       shuffle=True,
+                                       steps_per_epoch=self.train_steps_per_epoch)
         print('Training on new data, {0} patches'.format(len(ids)))
         history = self.model.fit(x=data_generator,
                                  **fit_kwargs,
@@ -223,7 +226,8 @@ class CustomActiveLearner:
                                        n_channels=self.n_channels,
                                        n_classes=self.n_classes,
                                        batch_size=self.fit_batch_size,
-                                       shuffle=True)
+                                       shuffle=True,
+                                       steps_per_epoch=self.train_steps_per_epoch)
         print('Training on all labeled data, {0} patches'.format(len(self.train_ids)))
         history = self.model.fit(x=data_generator,
                                  **fit_kwargs,

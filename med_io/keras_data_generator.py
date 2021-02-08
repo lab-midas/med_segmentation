@@ -97,7 +97,7 @@ class DataGenerator(tf.keras.utils.Sequence):
     'Generates data for Keras'
 
     def __init__(self, hdf5_data_path, list_IDs, batch_size=32, dim=(32, 32, 32), n_channels=1,
-                 n_classes=4, shuffle=True):
+                 n_classes=4, shuffle=True, steps_per_epoch=None):
         'Initialization'
         self.dim = dim
         self.batch_size = batch_size
@@ -107,10 +107,14 @@ class DataGenerator(tf.keras.utils.Sequence):
         self.list_IDs = list_IDs
         self.hdf5_data_path = hdf5_data_path
         self.on_epoch_end()
+        self.steps_per_epoch = steps_per_epoch
 
     def __len__(self):
         'Denotes the number of batches per epoch'
-        return int(np.floor(len(self.list_IDs) / self.batch_size))
+        if self.steps_per_epoch is None:
+            return int(np.floor(len(self.list_IDs) / self.batch_size))
+        else:
+            return self.steps_per_epoch
 
     def __getitem__(self, index):
         'Generate one batch of data'
