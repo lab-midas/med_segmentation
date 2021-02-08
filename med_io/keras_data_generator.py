@@ -9,6 +9,22 @@ from med_io.pipeline import pipeline
 def tf_records_as_hdf5(dataset_train_image_path, dataset_train_label_path,
                        dataset_val_image_path, dataset_val_label_path,
                        config, dataset=None):
+    """
+    Load and patch the tf record data (train and val) through the pipeline.py
+    and save the patches in a hdf5 file. Filter out patches that only contain 0
+    (i.e. no information). Number every patch with a unique ID. Create lists that
+    include all IDs of train and val patches.
+    Note: if the path to the hdf5 file (as defined in config) already exists the
+    function assumes the data was already converted and uses the hdf5 file that
+    is already there!
+    :dataset_train_image_path: paths to tf record files of train images
+    :dataset_train_label_path: paths to tf record files of train labels
+    :dataset_val_image_path: paths to tf record files of val images
+    :dataset_val_label_path: paths to tf record files of val labels
+    :config: dict with config parameters
+    :dataset: name of the dataset used
+    :return: path to the hdf5 file, list of train IDs, list of val IDs
+    """
     # create file path, where the data is (going to be) stored
     hdf5_path = Path(config['al_patches_data_dir'])
     hdf5_path.mkdir(exist_ok=True)
@@ -89,7 +105,7 @@ def contains_only_zeros(image_data):
     return (non_zero_values.size == 0)
 
 
-"""This code is inspired by the blog post https://stanford.edu/~shervine/blog/keras-how-to-generate-data-on-the-fly# 
+"""The following code is inspired by the blog post https://stanford.edu/~shervine/blog/keras-how-to-generate-data-on-the-fly# 
     and is an adapted version of code provided there"""
 
 
@@ -98,7 +114,19 @@ class DataGenerator(tf.keras.utils.Sequence):
 
     def __init__(self, hdf5_data_path, list_IDs, batch_size=32, dim=(32, 32, 32), n_channels=1,
                  n_classes=4, shuffle=True, steps_per_epoch=None):
-        'Initialization'
+        """
+        Initialize DataGenerator object
+        :hdf5_data_path: path where the data (patches) are stored
+        :list_IDs: list with the IDs that identify the patches to be used in the
+        hdf5 file
+        :batch_size: batch size
+        :dim: type tupel, dimensions of the patches
+        :n_channels: number of channels in the input image
+        :n_classes: number of classes in the output (label)
+        :shuffle: if True, shuffle the patches after every epoch
+        :steps_per_epoch: number of batches per epoch, use max number of batches
+        if steps_per_epoch is None
+        """
         self.dim = dim
         self.batch_size = batch_size
         self.n_channels = n_channels
@@ -110,7 +138,7 @@ class DataGenerator(tf.keras.utils.Sequence):
         self.steps_per_epoch = steps_per_epoch
 
     def __len__(self):
-        'Denotes the number of batches per epoch'
+        'return the number of batches per epoch'
         if self.steps_per_epoch is None:
             return int(np.floor(len(self.list_IDs) / self.batch_size))
         else:

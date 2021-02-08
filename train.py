@@ -8,7 +8,7 @@ from plot.plot_figure import *
 from tensorflow.keras.models import load_model
 from med_io.keras_data_generator import DataGenerator, tf_records_as_hdf5
 from med_io.active_learning import CustomActiveLearner, query_selection, \
-    choose_random_elements, query_random, al_callbacks
+    choose_random_elements, query_random
 from models.load_model import load_model_file
 import time
 import pickle
@@ -159,6 +159,9 @@ def train_process(config, model, paths_train_img, paths_train_label, paths_val_i
 def train_al_process(config, model, paths_train_img, paths_train_label, paths_val_img, paths_val_label, dataset,
                      cp_callback,
                      saver1, k_fold_index=0, init_epoch=0):
+    """
+    Train with Active Learning (AL): alternative to the train_process() function. Uses the same parameters.
+    """
     # convert the tf_records data to hdf5 if this hasn't already happened
     print('Making shure data is available as hdf5 file')
     hdf5_path, train_ids, val_ids = tf_records_as_hdf5(paths_train_img, paths_train_label,
@@ -183,8 +186,7 @@ def train_al_process(config, model, paths_train_img, paths_train_label, paths_va
          'al iterations and/or num of instances queried every iteration.')
 
     # define arguments for fit in active learner
-    # static_callbacks = cp_callback[0] + saver1  # combine callbacks that dont change every al epoch
-    fit_kwargs = {'callbacks': al_callbacks(config, 'complete'),
+    fit_kwargs = {'callbacks': cp_callback + saver1,
                   'shuffle': False,
                   'validation_data': val_data,
                   'validation_freq': config['validation_freq'],

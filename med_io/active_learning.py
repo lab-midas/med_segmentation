@@ -132,17 +132,17 @@ def _proba_entropy(proba):
 
 
 # utility function for creating al callbacks in train.py
-def al_callbacks(config, epoch_name, additional_callbacks=None):
-    """ create the callbacks for use in fit() in al training, dir name will include
-        epoch_name - has to be unique every time"""
-    logdir = Path(config['dir_model_checkpoint'], config['exp_name'],
-                  'al_epoch_{0}'.format(epoch_name))
-    logdir.mkdir(parents=True, exist_ok=True)
-    callbacks = [tf.keras.callbacks.TensorBoard(logdir, histogram_freq=1)]
-    if additional_callbacks is not None:
-        return additional_callbacks.append(callbacks)
-    else:
-        return callbacks
+# def al_callbacks(config, epoch_name, additional_callbacks=None):
+#    """ create the callbacks for use in fit() in al training, dir name will include
+#        epoch_name - has to be unique every time"""
+#    logdir = Path(config['dir_model_checkpoint'], config['exp_name'],
+#                  'al_epoch_{0}'.format(epoch_name))
+#    logdir.mkdir(parents=True, exist_ok=True)
+#    callbacks = [tf.keras.callbacks.TensorBoard(logdir, histogram_freq=1)]
+#    if additional_callbacks is not None:
+#        return additional_callbacks.append(callbacks)
+#    else:
+#        return callbacks
 
 
 # Define ActiveLearner class to manage active learning loop. The class is inspired
@@ -158,6 +158,7 @@ class CustomActiveLearner:
     :pool_ids: ids of data (in hdf5 file) that are available to be queried
     :val_dataset: tf dataset with validation data (doesn't work with Sequence object)
     :dataset: name of dataset used
+    :train_steps_per_epoch: number of batches per epoch of training, use all if None
     :init_ids: ids of data with which the model gets trained before al starts
     :max_predict_num: max num of patches that are processed at once in query
                       (limited to avoid too high memory usage)
@@ -217,7 +218,7 @@ class CustomActiveLearner:
 
     def _fit_on_all(self, **fit_kwargs):
         """
-        Fit the model to the data in the labeled set
+        Fit the model to all data in the labeled set
         (data is saved in hdf5 file), save history in history attribute
         """
         data_generator = DataGenerator(self.hdf5_path,
@@ -254,6 +255,11 @@ class CustomActiveLearner:
             len(self.pool_ids), len(self.train_ids)))
 
     def _get_split_pool(self):
+        """
+        Create the data generator objects of the data in the pool for querying,
+        split the data in manageable parts if the number of patches is too big
+        (according to max_predict_num)
+        """
         # assure that length of split parts is multiple of batch size
         split_length = (self.max_predict_num // self.predict_batch_size) * self.predict_batch_size
 
