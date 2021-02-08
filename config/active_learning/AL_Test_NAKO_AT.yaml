@@ -6,7 +6,7 @@
 dataset : [NAKO_AT] # either known database [NAKO_AT,DIXON,TULIP1_5T,TULIP3T,NAKO,KORA]
     #(i.e. converting and loading as TFRecords) or leave empty (only test/prediction) -> direct loading from Nifty, information specified in PREDICTION
 project: NORA  # project name
-exp_name: AL_Troubleshooting3_NAKO_AT  # experiment name (used for storage)
+exp_name: AL_Experiment7-2_NAKO_AT  # experiment name (used for storage)
 
 
 # Seed for fixing the random data
@@ -164,7 +164,7 @@ num_parallel_calls: 1 # number parallel calls of tf.data.dataset
 shuffle: 1 # shuffle seed of tf.data.dataset
 
 # Batch
-batch: 16 # batch size of training model
+batch: 64 # batch size of training model
 evaluate_batch_size: 32 # batch size of evaluating model
 predict_batch_size: 16 # batch size of predicting model
 
@@ -250,9 +250,9 @@ img_label_same_shape: True
 
 
 # Epochs and steps
-epochs: 50 # total training epochs
-train_steps_per_epoch: 40 #  steps per one training epoch
-val_steps_per_epoch: 3  # validation steps per epoch
+epochs: 60 # total training epochs
+train_steps_per_epoch: #40 #  steps per one training epoch
+val_steps_per_epoch: #3  # validation steps per epoch
 evaluate_step: 20  # evaluation steps per epoch
 save_training_model_period: 15 #  epoch for saving the model
 validation_freq: 1 # num epoch for one validation process
