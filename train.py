@@ -174,7 +174,7 @@ def train_al_process(config, model, paths_train_img, paths_train_label, paths_va
                              steps_per_epoch=config['val_steps_per_epoch'])
 
     # for testing determin num as ratio
-    num_init_patches = round(0.5*len(train_ids))
+    num_init_patches = round(0.75*len(train_ids))
     # choose patches from training data for initial training
     train_ids, init_ids = choose_random_elements(train_ids,
                                                  num_elements=num_init_patches) #config['al_num_init_patches'])
@@ -185,8 +185,7 @@ def train_al_process(config, model, paths_train_img, paths_train_label, paths_va
 #         'al iterations and/or num of instances queried every iteration.')
 
     # define arguments for fit in active learner
-    # static_callbacks = cp_callback[0] + saver1  # combine callbacks that dont change every al epoch
-    fit_kwargs = {'callbacks': al_callbacks(config, 'complete'),
+    fit_kwargs = {'callbacks': cp_callback + [saver1],
                   'shuffle': False,
                   'validation_data': val_data,
                   'validation_freq': config['validation_freq'],
