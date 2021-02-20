@@ -174,7 +174,7 @@ def train_al_process(config, model, paths_train_img, paths_train_label, paths_va
                              steps_per_epoch=config['val_steps_per_epoch'])
 
     # for testing determin num as ratio
-    num_init_patches = round(0.75*len(train_ids))
+    num_init_patches = round(0.01*len(train_ids))
     # choose patches from training data for initial training
     train_ids, init_ids = choose_random_elements(train_ids,
                                                  num_elements=num_init_patches) #config['al_num_init_patches'])

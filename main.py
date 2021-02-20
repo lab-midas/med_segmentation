@@ -114,7 +114,8 @@ def main(args):
         evaluate(config,datasets=config['dataset'])
         print("Evaluation finished for %s" % (config['result_rootdir']+os.sep+config['exp_name']))
     if args.predict:  # predict and generate output masks of a trained model
-        predict(config, datasets=config['dataset'], save_predict_data=config['save_predict_data'])
+        predict(config, datasets=config['dataset'], save_predict_data=config['save_predict_data'],
+                name_ID=config['image_ID'])
         print("Prediction finished for %s" % (config['result_rootdir']+os.sep+config['exp_name']))
 
 if __name__ == '__main__':
