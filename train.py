@@ -97,7 +97,7 @@ def train(config, restore=False):
                 file1.write("\n")
                 file1.close()
 
-        saver1 = Additional_Saver()
+        saver1 = [Additional_Saver()]
 
         print('Now training data: ', dataset)
         k_fold = config['k_fold'][dataset]
