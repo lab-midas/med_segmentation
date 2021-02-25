@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 from modAL.utils.selection import multi_argmax
 from scipy.stats import entropy
-from med_io.keras_data_generator import DataGenerator
+from med_io.keras_data_generator import DataGenerator, save_used_patches_IDs
 
 """
 Active learning parts for training
@@ -171,9 +171,10 @@ class CustomActiveLearner:
         self.model = model
         self.query_strategy = query_strategy
         self.hdf5_path = hdf5_path
-        # create the list that monitors patches data
+        # create the list that monitors patches data + param for saving used IDs
         self.pool_ids = pool_ids
         self.train_ids = []
+        self.save_id_config = {k: config[k] for k in ['result_rootdir', 'exp_name']}
         # for creating the DataGenerator objects
         self.n_channels = len(config['input_channel'][dataset])
         self.n_classes = len(config['output_channel'][dataset])
@@ -206,6 +207,10 @@ class CustomActiveLearner:
                                        batch_size=self.fit_batch_size,
                                        shuffle=True,
                                        steps_per_epoch=self.train_steps_per_epoch)
+        # save the ids of the patches used
+        save_used_patches_IDs(self.save_id_config,
+                              'epoch'+str(self.fit_epoch_kwargs['initial_epoch']), ids)
+        # fit on the data
         print('Training on new data, {0} patches'.format(len(ids)))
         history = self.model.fit(x=data_generator,
                                  **fit_kwargs,
@@ -229,6 +234,10 @@ class CustomActiveLearner:
                                        batch_size=self.fit_batch_size,
                                        shuffle=True,
                                        steps_per_epoch=self.train_steps_per_epoch)
+        # save the ids of the patches used
+        save_used_patches_IDs(self.save_id_config,
+                              'epoch'+str(self.fit_epoch_kwargs['epochs']), self.train_ids)
+        # fit on the data
         print('Training on all labeled data, {0} patches'.format(len(self.train_ids)))
         history = self.model.fit(x=data_generator,
                                  **fit_kwargs,

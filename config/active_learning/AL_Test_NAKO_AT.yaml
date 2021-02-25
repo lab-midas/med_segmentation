@@ -200,6 +200,7 @@ reduce_segmentation: mean_of_values   # determines the way the multiple predicti
                                       # or 'value_of_means'
 information_estimation: entropy   # in which way information content of patches will be estimated
                                       # choose one of: 'uncertainty', 'margin', 'entropy'
+
 al_iterations: 19 # Number of epochs of choosing the best patches and training on them
 al_num_instances: 1472 # Number of instances chosen by query strategy every al-iteration
 al_num_init_patches: 1472 # Number of patches to choose for initial training

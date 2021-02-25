@@ -2,6 +2,7 @@ import tensorflow as tf
 import numpy as np
 import keras
 import h5py
+import pickle
 from pathlib import Path
 from med_io.pipeline import pipeline
 
@@ -104,6 +105,42 @@ def contains_only_zeros(image_data):
     non_zero_values = image_data[image_data != 0]
     return (non_zero_values.size == 0)
 
+
+def save_used_patches_IDs(config, name, info, first_time=False):
+    """
+    :param config: config parameters from config file
+    :param name: name under which the data should be saved e.g. epoch
+    :param info: data to be saved under name, i.e. IDs of the patches used
+    :param first_time: type bool; True if this is the first time to save data in
+                       this path the function will create the pickle file and
+                       save the name of the hdf5 file where the data is stored
+    Save the specified info in a dict and dump it in a pickle file i.e. the IDs
+    to enable later analysis of the data used in the training.
+    Note: info and name can also be passed a list (make sure they have the same
+          length) to add multiple pairs of name:info
+    """
+    dir_path = Path(config['result_rootdir'], 'patches_info')
+    dir_path.mkdir(parents=True, exist_ok=True)
+
+    save_path = dir_path / (config['exp_name'] + '-patches_info.pickle')
+
+    # get dict with info from pickle file (or create if first time)
+    if first_time:
+        patches_data = {}
+    else:
+        with open(save_path, 'rb') as f:
+            patches_data = pickle.load(f)
+
+    # save the information under the corresponding names
+    if isinstance(name, list) and isinstance(info, list):
+        for n, i in zip(name, info):
+            patches_data[n] = i
+    else:
+        patches_data[name] = info
+
+    # save the dict in pickle file again
+    with open(save_path, 'wb') as f:
+        pickle.dump(patches_data, f)
 
 """The following code is inspired by the blog post https://stanford.edu/~shervine/blog/keras-how-to-generate-data-on-the-fly# 
     and is an adapted version of code provided there"""
