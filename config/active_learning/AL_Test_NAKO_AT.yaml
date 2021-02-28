@@ -6,13 +6,13 @@
 dataset : [NAKO_AT] # either known database [NAKO_AT,DIXON,TULIP1_5T,TULIP3T,NAKO,KORA]
     #(i.e. converting and loading as TFRecords) or leave empty (only test/prediction) -> direct loading from Nifty, information specified in PREDICTION
 project: NORA  # project name
-exp_name: AL_Experiment7-9_NAKO_AT  # experiment name (used for storage)
+exp_name: AL_Experiment9-1_NAKO_AT  # experiment name (used for storage)
 
 
 # Seed for fixing the random data
 tensorflow_seed: 1
 numpy_seed: 1
-random_seed: 1
+random_seed: 2
 seed_random_split: 1 # random seed of splitting data
 
 ##----------------------------------------------------------------------------------------------------------------------
@@ -190,7 +190,7 @@ max_patch_num: 300 # max number of patches per image if patch_probability_distri
 active_learning: True # use AL for training the model
 
 al_patches_data_dir: ./patches_data_hdf5     # dir and filename where the patches data is saved for the keras data
-al_patches_data_file: al_NAKO_AT_uniform_distribution.hdf5  # generator pipeline needed for AL
+al_patches_data_file: al_NAKO_AT_uniform_distribution-28-02-21.hdf5  # generator pipeline needed for AL
 al_utilities_data_file: al_utilities        # base of filename for utilities data (name: base + exp_name + .pickle)
 
 query_strategy: random_sampling       # choose query strategy, one of: uncertainty_sampling, random_sampling
@@ -206,6 +206,11 @@ al_num_init_patches: 1000 # Number of patches to choose for initial training
 al_only_new: False # Train model each al_epoch only on new queried patches, if False train on all patches in labeled set
 
 al_num_workers: 10 # Number of workers used for fitting or predicting, when data is available as keras.Sequence object
+
+# temporary parameters for test - only use one - determine which part of the dataset should be used as training data
+test_num_patches:  # number of batches to use for init training
+test_part_patches: 1 # factor * len(train patches) = num of patches used for init training (code manipulated for test so
+                    # that only initial training is performed
 
 ##----------------------------------------------------------------------------------------------------------------------
 ## MODEL ##
@@ -250,7 +255,7 @@ img_label_same_shape: True
 
 
 # Epochs and steps
-epochs: 600 # total training epochs
+epochs: 15 # total training epochs
 train_steps_per_epoch: #40 #  steps per one training epoch
 val_steps_per_epoch: #3  # validation steps per epoch
 evaluate_step: 20  # evaluation steps per epoch

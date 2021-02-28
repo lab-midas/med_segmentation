@@ -177,8 +177,12 @@ def train_al_process(config, model, paths_train_img, paths_train_label, paths_va
                              n_classes=len(config['output_channel'][dataset]),
                              steps_per_epoch=config['val_steps_per_epoch'])
 
-    # for testing determine num as ratio
-    num_init_patches = 64*2 #round(0.01*len(train_ids))
+    # only for testing determine num of patches as ratio of all or number of batches
+    if config['test_part_patches'] is not None:
+        num_init_patches = round(config['test_part_patches']*len(train_ids))
+    elif config['test_num_patches'] is not None:
+        num_init_patches = config['batch']*config['test_num_patches']
+
     # choose patches from training data for initial training
     train_ids, init_ids = choose_random_elements(train_ids,
                                                  num_elements=num_init_patches) #config['al_num_init_patches'])
