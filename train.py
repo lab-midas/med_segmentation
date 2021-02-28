@@ -7,7 +7,7 @@ from utils.TensorBoardTool import *
 from plot.plot_figure import *
 from tensorflow.keras.models import load_model
 from med_io.keras_data_generator import DataGenerator, tf_records_as_hdf5, \
-    save_used_patches_IDs
+    save_used_patches_ids
 from med_io.active_learning import CustomActiveLearner, query_selection, \
     choose_random_elements, query_random
 from models.load_model import load_model_file
@@ -182,7 +182,7 @@ def train_al_process(config, model, paths_train_img, paths_train_label, paths_va
                                                  config['al_num_init_patches'])
 
     # save info of IDs and patches
-    save_used_patches_IDs(config, ['hdf5_file', 'train_ids', 'init_ids', 'val_ids'],
+    save_used_patches_ids(config, ['hdf5_file', 'train_ids', 'init_ids', 'val_ids'],
                           [(config['al_patches_data_dir']+'/'+config['al_patches_data_file']),
                            train_ids, init_ids, val_ids],
                           first_time=True)

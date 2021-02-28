@@ -68,27 +68,47 @@ def convert_tf_records_hdf5(dataset_train_image_path, dataset_train_label_path,
 
         # training data: get the data from pipeline and store as hdf5
         train_ids, val_ids = [], []
-        for img_num, (image_data, label_data) in dataset_train.enumerate(0):
+        patch_info = {'fields': ('image number', 'patch position',
+                                 'image path', 'label path')}
+        for patch_num, (image_data, label_data, patch_pos) in dataset_train.enumerate(0):
             image_data = image_data.numpy()
             label_data = label_data.numpy()
-            grp_images.create_dataset(str(img_num.numpy()), data=image_data)
-            grp_labels.create_dataset(str(img_num.numpy()), data=label_data)
-            # filter out the patches that only contain padding/ zeros
+            grp_images.create_dataset(str(patch_num.numpy()), data=image_data)
+            grp_labels.create_dataset(str(patch_num.numpy()), data=label_data)
+            # save info about the origin of the patch
+            img_num = patch_num//config['max_patch_num']
+            patch_info[str(patch_num.numpy())] = (img_num, patch_pos,
+                                                  dataset_train_image_path[img_num],
+                                                  dataset_train_label_path[img_num])
+            # filter out the patches that only contain padding/ zeros from id list
             if not contains_only_zeros(image_data):
-                train_ids.append(str(img_num.numpy()))
+                train_ids.append(str(patch_num.numpy()))
         # save the indices of all training data in a list (conversion to ascii necessary)
         grp_id_lists.create_dataset('train_ids', data=[s.encode('ascii') for s in train_ids])
 
+        img_num_offset = img_num+1
+
         # validation data: get the data from pipeline and store as hdf5
-        for img_num, (image_data, label_data) in dataset_val.enumerate(img_num + 1):
+        for patch_num, (image_data, label_data, patch_pos) in dataset_val.enumerate(patch_num + 1):
             image_data = image_data.numpy()
             label_data = label_data.numpy()
-            grp_images.create_dataset(str(img_num.numpy()), data=image_data)
-            grp_labels.create_dataset(str(img_num.numpy()), data=label_data)
-            # filter out the patches that only contain padding/ zeros
+            grp_images.create_dataset(str(patch_num.numpy()), data=image_data)
+            grp_labels.create_dataset(str(patch_num.numpy()), data=label_data)
+            # save info about the origin of the patch
+            img_num = patch_num//config['max_patch_num']
+            patch_info[str(patch_num.numpy())] = (img_num, patch_pos,
+                                                  dataset_val_image_path[img_num-img_num_offset],
+                                                  dataset_val_label_path[img_num-img_num_offset])
+            # filter out the patches that only contain padding/ zeros from id list
             if not contains_only_zeros(image_data):
-                val_ids.append(str(img_num.numpy()))
+                val_ids.append(str(patch_num.numpy()))
+        # save the indices of all validation data in a list (conversion to ascii necessary)
         grp_id_lists.create_dataset('val_ids', data=[s.encode('ascii') for s in val_ids])
+
+    # save the infos of the patches in a separate file (dict in hdf5 not possible)
+    patches_info_path = hdf5_path.with_name(hdf5_path.stem + '-patches_info.pickle')
+    with open(patches_info_path, 'wb') as f:
+        pickle.dump(patch_info, f)
 
     return train_ids, val_ids
 
@@ -106,7 +126,7 @@ def contains_only_zeros(image_data):
     return (non_zero_values.size == 0)
 
 
-def save_used_patches_IDs(config, name, info, first_time=False):
+def save_used_patches_ids(config, name, info, first_time=False):
     """
     :param config: config parameters from config file
     :param name: name under which the data should be saved e.g. epoch
@@ -141,6 +161,7 @@ def save_used_patches_IDs(config, name, info, first_time=False):
     # save the dict in pickle file again
     with open(save_path, 'wb') as f:
         pickle.dump(patches_data, f)
+
 
 """The following code is inspired by the blog post https://stanford.edu/~shervine/blog/keras-how-to-generate-data-on-the-fly# 
     and is an adapted version of code provided there"""

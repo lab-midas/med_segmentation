@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 from modAL.utils.selection import multi_argmax
 from scipy.stats import entropy
-from med_io.keras_data_generator import DataGenerator, save_used_patches_IDs
+from med_io.keras_data_generator import DataGenerator, save_used_patches_ids
 
 """
 Active learning parts for training
@@ -208,8 +208,8 @@ class CustomActiveLearner:
                                        shuffle=True,
                                        steps_per_epoch=self.train_steps_per_epoch)
         # save the ids of the patches used
-        save_used_patches_IDs(self.save_id_config,
-                              'epoch'+str(self.fit_epoch_kwargs['initial_epoch']), ids)
+        save_used_patches_ids(self.save_id_config,
+                              'epoch' + str(self.fit_epoch_kwargs['initial_epoch']), ids)
         # fit on the data
         print('Training on new data, {0} patches'.format(len(ids)))
         history = self.model.fit(x=data_generator,
@@ -235,8 +235,8 @@ class CustomActiveLearner:
                                        shuffle=True,
                                        steps_per_epoch=self.train_steps_per_epoch)
         # save the ids of the patches used
-        save_used_patches_IDs(self.save_id_config,
-                              'epoch'+str(self.fit_epoch_kwargs['epochs']), self.train_ids)
+        save_used_patches_ids(self.save_id_config,
+                              'epoch' + str(self.fit_epoch_kwargs['epochs']), self.train_ids)
         # fit on the data
         print('Training on all labeled data, {0} patches'.format(len(self.train_ids)))
         history = self.model.fit(x=data_generator,

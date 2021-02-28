@@ -190,7 +190,7 @@ max_patch_num: 300 # max number of patches per image if patch_probability_distri
 active_learning: True # use AL for training the model
 
 al_patches_data_dir: ./patches_data_hdf5     # dir and filename where the patches data is saved for the keras data
-al_patches_data_file: al_NAKO_AT_uniform_distribution.hdf5  # generator pipeline needed for AL
+al_patches_data_file: test27.02.21.hdf5 #al_NAKO_AT_uniform_distribution.hdf5  # generator pipeline needed for AL
 al_utilities_data_file: al_utilities        # base of filename for utilities data (name: base + exp_name + .pickle)
 
 query_strategy: random_sampling       # choose query strategy, one of: uncertainty_sampling, random_sampling
