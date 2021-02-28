@@ -1,7 +1,8 @@
 import tensorflow as tf
 import numpy as np
-import keras
+import pandas as pd
 import h5py
+import pickle
 from pathlib import Path
 from med_io.pipeline import pipeline
 
@@ -9,6 +10,22 @@ from med_io.pipeline import pipeline
 def tf_records_as_hdf5(dataset_train_image_path, dataset_train_label_path,
                        dataset_val_image_path, dataset_val_label_path,
                        config, dataset=None):
+    """
+    Load and patch the tf record data (train and val) through the pipeline.py
+    and save the patches in a hdf5 file. Filter out patches that only contain 0
+    (i.e. no information). Number every patch with a unique ID. Create lists that
+    include all IDs of train and val patches.
+    Note: if the path to the hdf5 file (as defined in config) already exists the
+    function assumes the data was already converted and uses the hdf5 file that
+    is already there!
+    :dataset_train_image_path: paths to tf record files of train images
+    :dataset_train_label_path: paths to tf record files of train labels
+    :dataset_val_image_path: paths to tf record files of val images
+    :dataset_val_label_path: paths to tf record files of val labels
+    :config: dict with config parameters
+    :dataset: name of the dataset used
+    :return: path to the hdf5 file, list of train IDs, list of val IDs
+    """
     # create file path, where the data is (going to be) stored
     hdf5_path = Path(config['al_patches_data_dir'])
     hdf5_path.mkdir(exist_ok=True)
@@ -51,27 +68,51 @@ def convert_tf_records_hdf5(dataset_train_image_path, dataset_train_label_path,
 
         # training data: get the data from pipeline and store as hdf5
         train_ids, val_ids = [], []
-        for img_num, (image_data, label_data) in dataset_train.enumerate(0):
+        patch_info = []
+        for patch_num, (image_data, label_data, patch_pos) in dataset_train.enumerate(0):
             image_data = image_data.numpy()
             label_data = label_data.numpy()
-            grp_images.create_dataset(str(img_num.numpy()), data=image_data)
-            grp_labels.create_dataset(str(img_num.numpy()), data=label_data)
-            # filter out the patches that only contain padding/ zeros
+            grp_images.create_dataset(str(patch_num.numpy()), data=image_data)
+            grp_labels.create_dataset(str(patch_num.numpy()), data=label_data)
+            # save info about the origin of the patch
+            img_num = patch_num//config['max_patch_num']
+            patch_info.append({'patch id': str(patch_num.numpy()),
+                               'image number': img_num.numpy(),
+                               'patch position': patch_pos.numpy(),
+                               'image path': dataset_train_image_path[img_num],
+                               'label path': dataset_train_label_path[img_num]})
+            # filter out the patches that only contain padding/ zeros from id list
             if not contains_only_zeros(image_data):
-                train_ids.append(str(img_num.numpy()))
+                train_ids.append(str(patch_num.numpy()))
         # save the indices of all training data in a list (conversion to ascii necessary)
         grp_id_lists.create_dataset('train_ids', data=[s.encode('ascii') for s in train_ids])
 
+        img_num_offset = img_num+1
+
         # validation data: get the data from pipeline and store as hdf5
-        for img_num, (image_data, label_data) in dataset_val.enumerate(img_num + 1):
+        for patch_num, (image_data, label_data, patch_pos) in dataset_val.enumerate(patch_num + 1):
             image_data = image_data.numpy()
             label_data = label_data.numpy()
-            grp_images.create_dataset(str(img_num.numpy()), data=image_data)
-            grp_labels.create_dataset(str(img_num.numpy()), data=label_data)
-            # filter out the patches that only contain padding/ zeros
+            grp_images.create_dataset(str(patch_num.numpy()), data=image_data)
+            grp_labels.create_dataset(str(patch_num.numpy()), data=label_data)
+            # save info about the origin of the patch
+            img_num = patch_num//config['max_patch_num']
+            patch_info.append({'patch id': str(patch_num.numpy()),
+                               'image number': img_num.numpy(),
+                               'patch position': patch_pos.numpy(),
+                               'image path': dataset_val_image_path[img_num-img_num_offset],
+                               'label path': dataset_val_label_path[img_num-img_num_offset]})
+            # filter out the patches that only contain padding/ zeros from id list
             if not contains_only_zeros(image_data):
-                val_ids.append(str(img_num.numpy()))
+                val_ids.append(str(patch_num.numpy()))
+        # save the indices of all validation data in a list (conversion to ascii necessary)
         grp_id_lists.create_dataset('val_ids', data=[s.encode('ascii') for s in val_ids])
+
+    # save the infos of the patches in a separate file (as dataframe)
+    patches_info_path = hdf5_path.with_name(hdf5_path.stem + '-patches_info.pickle')
+    patch_info = pd.DataFrame(patch_info)
+    with open(patches_info_path, 'wb') as f:
+        pickle.dump(patch_info, f)
 
     return train_ids, val_ids
 
@@ -89,7 +130,44 @@ def contains_only_zeros(image_data):
     return (non_zero_values.size == 0)
 
 
-"""This code is inspired by the blog post https://stanford.edu/~shervine/blog/keras-how-to-generate-data-on-the-fly# 
+def save_used_patches_ids(config, name, info, first_time=False):
+    """
+    :param config: config parameters from config file
+    :param name: name under which the data should be saved e.g. epoch
+    :param info: data to be saved under name, i.e. IDs of the patches used
+    :param first_time: type bool; True if this is the first time to save data in
+                       this path the function will create the pickle file and
+                       save the name of the hdf5 file where the data is stored
+    Save the specified info in a dict and dump it in a pickle file i.e. the IDs
+    to enable later analysis of the data used in the training.
+    Note: info and name can also be passed a list (make sure they have the same
+          length) to add multiple pairs of name:info
+    """
+    dir_path = Path(config['result_rootdir'], 'patches_info')
+    dir_path.mkdir(parents=True, exist_ok=True)
+
+    save_path = dir_path / (config['exp_name'] + '-patches_info.pickle')
+
+    # get dict with info from pickle file (or create if first time)
+    if first_time:
+        patches_data = {}
+    else:
+        with open(save_path, 'rb') as f:
+            patches_data = pickle.load(f)
+
+    # save the information under the corresponding names
+    if isinstance(name, list) and isinstance(info, list):
+        for n, i in zip(name, info):
+            patches_data[n] = i
+    else:
+        patches_data[name] = info
+
+    # save the dict in pickle file again
+    with open(save_path, 'wb') as f:
+        pickle.dump(patches_data, f)
+
+
+"""The following code is inspired by the blog post https://stanford.edu/~shervine/blog/keras-how-to-generate-data-on-the-fly# 
     and is an adapted version of code provided there"""
 
 
@@ -98,7 +176,19 @@ class DataGenerator(tf.keras.utils.Sequence):
 
     def __init__(self, hdf5_data_path, list_IDs, batch_size=32, dim=(32, 32, 32), n_channels=1,
                  n_classes=4, shuffle=True, steps_per_epoch=None):
-        'Initialization'
+        """
+        Initialize DataGenerator object
+        :hdf5_data_path: path where the data (patches) are stored
+        :list_IDs: list with the IDs that identify the patches to be used in the
+        hdf5 file
+        :batch_size: batch size
+        :dim: type tupel, dimensions of the patches
+        :n_channels: number of channels in the input image
+        :n_classes: number of classes in the output (label)
+        :shuffle: if True, shuffle the patches after every epoch
+        :steps_per_epoch: number of batches per epoch, use max number of batches
+        if steps_per_epoch is None
+        """
         self.dim = dim
         self.batch_size = batch_size
         self.n_channels = n_channels
@@ -110,7 +200,7 @@ class DataGenerator(tf.keras.utils.Sequence):
         self.steps_per_epoch = steps_per_epoch
 
     def __len__(self):
-        'Denotes the number of batches per epoch'
+        'return the number of batches per epoch'
         if self.steps_per_epoch is None:
             return int(np.floor(len(self.list_IDs) / self.batch_size))
         else:

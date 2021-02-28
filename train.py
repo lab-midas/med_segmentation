@@ -6,9 +6,10 @@ from util import *
 from utils.TensorBoardTool import *
 from plot.plot_figure import *
 from tensorflow.keras.models import load_model
-from med_io.keras_data_generator import DataGenerator, tf_records_as_hdf5
+from med_io.keras_data_generator import DataGenerator, tf_records_as_hdf5, \
+    save_used_patches_ids
 from med_io.active_learning import CustomActiveLearner, query_selection, \
-    choose_random_elements, query_random, al_callbacks
+    choose_random_elements, query_random
 from models.load_model import load_model_file
 import time
 import pickle
@@ -144,7 +145,7 @@ def train_process(config, model, paths_train_img, paths_train_label, paths_val_i
         history = model.fit(ds_train,
                             epochs=config['epochs'] + init_epoch,
                             steps_per_epoch=config['train_steps_per_epoch'],
-                            callbacks=[cp_callback[1]], #.append(saver1),
+                            callbacks=[cp_callback, saver1],
                             initial_epoch=init_epoch,
                             validation_data=ds_validation,
                             validation_steps=config['val_steps_per_epoch'],
@@ -159,6 +160,9 @@ def train_process(config, model, paths_train_img, paths_train_label, paths_val_i
 def train_al_process(config, model, paths_train_img, paths_train_label, paths_val_img, paths_val_label, dataset,
                      cp_callback,
                      saver1, k_fold_index=0, init_epoch=0):
+    """
+    Train with Active Learning (AL): alternative to the train_process() function. Uses the same parameters.
+    """
     # convert the tf_records data to hdf5 if this hasn't already happened
     print('Making shure data is available as hdf5 file')
     hdf5_path, train_ids, val_ids = tf_records_as_hdf5(paths_train_img, paths_train_label,
@@ -173,11 +177,17 @@ def train_al_process(config, model, paths_train_img, paths_train_label, paths_va
                              n_classes=len(config['output_channel'][dataset]),
                              steps_per_epoch=config['val_steps_per_epoch'])
 
-    # for testing determin num as ratio
+    # for testing determine num as ratio
     num_init_patches = 64*2 #round(0.01*len(train_ids))
     # choose patches from training data for initial training
     train_ids, init_ids = choose_random_elements(train_ids,
                                                  num_elements=num_init_patches) #config['al_num_init_patches'])
+
+    # save info of IDs and patches
+    save_used_patches_ids(config, ['hdf5_file', 'train_ids', 'init_ids', 'val_ids'],
+                          [(config['al_patches_data_dir']+'/'+config['al_patches_data_file']),
+                           train_ids, init_ids, val_ids],
+                          first_time=True)
 
     # check if enough train patches are available
 #    assert len(train_ids) > config['al_iterations'] * config['al_num_instances'], \

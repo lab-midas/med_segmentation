@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 from modAL.utils.selection import multi_argmax
 from scipy.stats import entropy
-from med_io.keras_data_generator import DataGenerator
+from med_io.keras_data_generator import DataGenerator, save_used_patches_ids
 
 """
 Active learning parts for training
@@ -132,17 +132,17 @@ def _proba_entropy(proba):
 
 
 # utility function for creating al callbacks in train.py
-def al_callbacks(config, epoch_name, additional_callbacks=None):
-    """ create the callbacks for use in fit() in al training, dir name will include
-        epoch_name - has to be unique every time"""
-    logdir = Path(config['dir_model_checkpoint'], config['exp_name'],
-                  'al_epoch_{0}'.format(epoch_name))
-    logdir.mkdir(parents=True, exist_ok=True)
-    callbacks = [tf.keras.callbacks.TensorBoard(logdir, histogram_freq=1)]
-    if additional_callbacks is not None:
-        return additional_callbacks.append(callbacks)
-    else:
-        return callbacks
+# def al_callbacks(config, epoch_name, additional_callbacks=None):
+#    """ create the callbacks for use in fit() in al training, dir name will include
+#        epoch_name - has to be unique every time"""
+#    logdir = Path(config['dir_model_checkpoint'], config['exp_name'],
+#                  'al_epoch_{0}'.format(epoch_name))
+#    logdir.mkdir(parents=True, exist_ok=True)
+#    callbacks = [tf.keras.callbacks.TensorBoard(logdir, histogram_freq=1)]
+#    if additional_callbacks is not None:
+#        return additional_callbacks.append(callbacks)
+#    else:
+#        return callbacks
 
 
 # Define ActiveLearner class to manage active learning loop. The class is inspired
@@ -158,6 +158,7 @@ class CustomActiveLearner:
     :pool_ids: ids of data (in hdf5 file) that are available to be queried
     :val_dataset: tf dataset with validation data (doesn't work with Sequence object)
     :dataset: name of dataset used
+    :train_steps_per_epoch: number of batches per epoch of training, use all if None
     :init_ids: ids of data with which the model gets trained before al starts
     :max_predict_num: max num of patches that are processed at once in query
                       (limited to avoid too high memory usage)
@@ -170,9 +171,10 @@ class CustomActiveLearner:
         self.model = model
         self.query_strategy = query_strategy
         self.hdf5_path = hdf5_path
-        # create the list that monitors patches data
+        # create the list that monitors patches data + param for saving used IDs
         self.pool_ids = pool_ids
         self.train_ids = []
+        self.save_id_config = {k: config[k] for k in ['result_rootdir', 'exp_name']}
         # for creating the DataGenerator objects
         self.n_channels = len(config['input_channel'][dataset])
         self.n_classes = len(config['output_channel'][dataset])
@@ -205,6 +207,10 @@ class CustomActiveLearner:
                                        batch_size=self.fit_batch_size,
                                        shuffle=True,
                                        steps_per_epoch=self.train_steps_per_epoch)
+        # save the ids of the patches used
+        save_used_patches_ids(self.save_id_config,
+                              'epoch' + str(self.fit_epoch_kwargs['initial_epoch']), ids)
+        # fit on the data
         print('Training on new data, {0} patches'.format(len(ids)))
         history = self.model.fit(x=data_generator,
                                  **fit_kwargs,
@@ -217,7 +223,7 @@ class CustomActiveLearner:
 
     def _fit_on_all(self, **fit_kwargs):
         """
-        Fit the model to the data in the labeled set
+        Fit the model to all data in the labeled set
         (data is saved in hdf5 file), save history in history attribute
         """
         data_generator = DataGenerator(self.hdf5_path,
@@ -228,6 +234,10 @@ class CustomActiveLearner:
                                        batch_size=self.fit_batch_size,
                                        shuffle=True,
                                        steps_per_epoch=self.train_steps_per_epoch)
+        # save the ids of the patches used
+        save_used_patches_ids(self.save_id_config,
+                              'epoch' + str(self.fit_epoch_kwargs['epochs']), self.train_ids)
+        # fit on the data
         print('Training on all labeled data, {0} patches'.format(len(self.train_ids)))
         history = self.model.fit(x=data_generator,
                                  **fit_kwargs,
@@ -254,6 +264,11 @@ class CustomActiveLearner:
             len(self.pool_ids), len(self.train_ids)))
 
     def _get_split_pool(self):
+        """
+        Create the data generator objects of the data in the pool for querying,
+        split the data in manageable parts if the number of patches is too big
+        (according to max_predict_num)
+        """
         # assure that length of split parts is multiple of batch size
         split_length = (self.max_predict_num // self.predict_batch_size) * self.predict_batch_size
 

@@ -99,7 +99,9 @@ def pipeline(config, dataset_image_path, dataset_label_path, dataset=None, no_sh
 
             # List regularize
             index_list = index_list / (np.array(max_data_size) + 1e-16)
-            if config['feed_pos']:
+            if config['active_learning']:
+                return patchs_imgs, patchs_labels, index_list
+            elif config['feed_pos']:
                 return (patchs_imgs, index_list), patchs_labels
             else:
                 return patchs_imgs, patchs_labels
