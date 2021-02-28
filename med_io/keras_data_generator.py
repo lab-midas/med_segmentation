@@ -1,6 +1,6 @@
 import tensorflow as tf
 import numpy as np
-import keras
+import pandas as pd
 import h5py
 import pickle
 from pathlib import Path
@@ -68,8 +68,7 @@ def convert_tf_records_hdf5(dataset_train_image_path, dataset_train_label_path,
 
         # training data: get the data from pipeline and store as hdf5
         train_ids, val_ids = [], []
-        patch_info = {'fields': ('image number', 'patch position',
-                                 'image path', 'label path')}
+        patch_info = []
         for patch_num, (image_data, label_data, patch_pos) in dataset_train.enumerate(0):
             image_data = image_data.numpy()
             label_data = label_data.numpy()
@@ -77,9 +76,11 @@ def convert_tf_records_hdf5(dataset_train_image_path, dataset_train_label_path,
             grp_labels.create_dataset(str(patch_num.numpy()), data=label_data)
             # save info about the origin of the patch
             img_num = patch_num//config['max_patch_num']
-            patch_info[str(patch_num.numpy())] = (img_num, patch_pos,
-                                                  dataset_train_image_path[img_num],
-                                                  dataset_train_label_path[img_num])
+            patch_info.append({'patch id': str(patch_num.numpy()),
+                               'image number': img_num.numpy(),
+                               'patch position': patch_pos.numpy(),
+                               'image path': dataset_train_image_path[img_num],
+                               'label path': dataset_train_label_path[img_num]})
             # filter out the patches that only contain padding/ zeros from id list
             if not contains_only_zeros(image_data):
                 train_ids.append(str(patch_num.numpy()))
@@ -96,17 +97,20 @@ def convert_tf_records_hdf5(dataset_train_image_path, dataset_train_label_path,
             grp_labels.create_dataset(str(patch_num.numpy()), data=label_data)
             # save info about the origin of the patch
             img_num = patch_num//config['max_patch_num']
-            patch_info[str(patch_num.numpy())] = (img_num, patch_pos,
-                                                  dataset_val_image_path[img_num-img_num_offset],
-                                                  dataset_val_label_path[img_num-img_num_offset])
+            patch_info.append({'patch id': str(patch_num.numpy()),
+                               'image number': img_num.numpy(),
+                               'patch position': patch_pos.numpy(),
+                               'image path': dataset_val_image_path[img_num-img_num_offset],
+                               'label path': dataset_val_label_path[img_num-img_num_offset]})
             # filter out the patches that only contain padding/ zeros from id list
             if not contains_only_zeros(image_data):
                 val_ids.append(str(patch_num.numpy()))
         # save the indices of all validation data in a list (conversion to ascii necessary)
         grp_id_lists.create_dataset('val_ids', data=[s.encode('ascii') for s in val_ids])
 
-    # save the infos of the patches in a separate file (dict in hdf5 not possible)
+    # save the infos of the patches in a separate file (as dataframe)
     patches_info_path = hdf5_path.with_name(hdf5_path.stem + '-patches_info.pickle')
+    patch_info = pd.DataFrame(patch_info)
     with open(patches_info_path, 'wb') as f:
         pickle.dump(patch_info, f)
 
