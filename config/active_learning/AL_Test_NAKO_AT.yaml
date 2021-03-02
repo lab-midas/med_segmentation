@@ -6,7 +6,7 @@
 dataset : [NAKO_AT] # either known database [NAKO_AT,DIXON,TULIP1_5T,TULIP3T,NAKO,KORA]
     #(i.e. converting and loading as TFRecords) or leave empty (only test/prediction) -> direct loading from Nifty, information specified in PREDICTION
 project: NORA  # project name
-exp_name: AL_Experiment9-5_NAKO_AT  # experiment name (used for storage)
+exp_name: AL_Experiment9-6_NAKO_AT  # experiment name (used for storage)
 
 
 # Seed for fixing the random data
@@ -209,7 +209,7 @@ al_num_workers: 10 # Number of workers used for fitting or predicting, when data
 
 # temporary parameters for test - only use one - determine which part of the dataset should be used as training data
 test_num_patches:  # number of batches to use for init training
-test_part_patches: 0.15 # factor * len(train patches) = num of patches used for init training (code manipulated for test
+test_part_patches: 0.10 # factor * len(train patches) = num of patches used for init training (code manipulated for test
                        # so that only initial training is performed
 
 ##----------------------------------------------------------------------------------------------------------------------
@@ -255,7 +255,7 @@ img_label_same_shape: True
 
 
 # Epochs and steps
-epochs: 100 # total training epochs
+epochs: 150 # total training epochs
 train_steps_per_epoch: #40 #  steps per one training epoch
 val_steps_per_epoch: #3  # validation steps per epoch
 evaluate_step: 20  # evaluation steps per epoch
