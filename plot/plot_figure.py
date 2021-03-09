@@ -188,7 +188,8 @@ def plot_mosaic(config, mask, slice_dim=2, colormap=None, vspace=2, hspace=2, co
         dir_figures=client_save_rootdir+'/'+dir_figures
     if not os.path.exists(dir_figures): os.makedirs(dir_figures)
     path_figures = dir_figures + '/mosaic_'+image_type+'_' + config[
-        'model'] + '_' + dataset + '_' + name_ID + '_' + 'slice_dim_' + str(slice_dim) + '.png'
+        'model'] + '_' + config['exp_name'] + '_' + dataset + '_' + name_ID + \
+        '_' + 'slice_dim_' + str(slice_dim) + '.png'
     figure.save(path_figures)
 
 
