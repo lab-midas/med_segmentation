@@ -506,7 +506,8 @@ def plot_by_slice(config, masks_list, slice_, channel_only=None, slice_dim=2, sp
     if client_save_rootdir is not None:
         dir_figures = client_save_rootdir + '/' + dir_figures
     if not os.path.exists(dir_figures): os.makedirs(dir_figures)
-    path_figures = dir_figures + '/profile_' + config['model'] + '_' + name_ID + '_plane_' + str(
+    path_figures = dir_figures + '/profile_' + config['model'] + '_' + \
+        config['exp_name'] + '_' + name_ID + '_plane_' + str(
         slice_dim) + '_slice_' + str(slice_) + '.png'
     figure.save(path_figures)
     return
