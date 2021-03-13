@@ -56,7 +56,9 @@ def analyse_patches_main(hdf5_path, hdf5_info_path, patches_infos_paths, id_set=
         patches_to_analyse = patches_infos[id_set]
 
         # analyse:
+        print('Count patients')
         patient_counts[path] = count_patients(hdf5_info, patches_to_analyse)
+        print('Count classes')
         class_counts[path] = count_classes(hdf5_path, patches_to_analyse)
 
     # save results for later analysis and plotting
@@ -79,7 +81,7 @@ def count_patients(hdf5_info, patches_to_analyse):
 
     counter = {}
     for patch_id in patches_to_analyse:
-        # patch_id = patch_id.decode() if isinstance(patch_id, bytes) else patch_id
+        patch_id = patch_id.decode() if isinstance(patch_id, bytes) else patch_id
         origin_image_id = hdf5_info.loc[patch_id, 'image number']
         if origin_image_id in counter:
             counter[origin_image_id] += 1
