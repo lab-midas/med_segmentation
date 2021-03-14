@@ -346,7 +346,7 @@ regularize_indice_list:
 
 
 # maby not necessary? Pick an image ID for predicting only one image
-image_ID: '102597_30'
+image_ID: '100198_30'
 
 ##------------------
 ## END PREDICTION ##
