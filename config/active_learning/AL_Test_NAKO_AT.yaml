@@ -6,13 +6,13 @@
 dataset : [NAKO_AT] # either known database [NAKO_AT,DIXON,TULIP1_5T,TULIP3T,NAKO,KORA]
     #(i.e. converting and loading as TFRecords) or leave empty (only test/prediction) -> direct loading from Nifty, information specified in PREDICTION
 project: NORA  # project name
-exp_name: AL_Experiment8-1_NAKO_AT  # experiment name (used for storage)
+exp_name: AL_Experiment9-1_NAKO_AT  # experiment name (used for storage)
 
 
 # Seed for fixing the random data
 tensorflow_seed: 1
 numpy_seed: 1
-random_seed: 1
+random_seed: 2
 seed_random_split: 1 # random seed of splitting data
 
 ##----------------------------------------------------------------------------------------------------------------------
@@ -190,7 +190,7 @@ max_patch_num: 300 # max number of patches per image if patch_probability_distri
 active_learning: True # use AL for training the model
 
 al_patches_data_dir: ./patches_data_hdf5     # dir and filename where the patches data is saved for the keras data
-al_patches_data_file: test27.02.21.hdf5 #al_NAKO_AT_uniform_distribution.hdf5  # generator pipeline needed for AL
+al_patches_data_file: al_NAKO_AT_uniform_distribution-28-02-21.hdf5  # generator pipeline needed for AL
 al_utilities_data_file: al_utilities        # base of filename for utilities data (name: base + exp_name + .pickle)
 
 query_strategy: random_sampling       # choose query strategy, one of: uncertainty_sampling, random_sampling
@@ -207,6 +207,11 @@ al_num_init_patches: 1472 # Number of patches to choose for initial training
 al_only_new: True # Train model each al_epoch only on new queried patches, if False train on all patches in labeled set
 
 al_num_workers: 10 # Number of workers used for fitting or predicting, when data is available as keras.Sequence object
+
+# temporary parameters for test - only use one - determine which part of the dataset should be used as training data
+test_num_patches:  # number of batches to use for init training
+test_part_patches: 1 # factor * len(train patches) = num of patches used for init training (code manipulated for test so
+                    # that only initial training is performed
 
 ##----------------------------------------------------------------------------------------------------------------------
 ## MODEL ##
@@ -227,7 +232,7 @@ train_premodel: False # True if continue training the pre-trained model
 # load_weights_only: False , load_premodel: False -> Error
 
 load_weights_only: True #( False: dilated_densenet,Exp_DenseNet_feedpos2-loaded, .., others are True.)
-load_premodel:  True
+load_premodel:  False
 saved_premodels_path:  /mnt/data/projects/Segmentation/cnn_segmentation_results/weights_pretrained_models/AT_NAKO/mrge_final_40.hdf5
 # /weights_pretrained_models/AT_NAKO/mrge_final_40.hdf5
 
@@ -251,7 +256,7 @@ img_label_same_shape: True
 
 
 # Epochs and steps
-epochs: 5 # total training epochs
+epochs: 15 # total training epochs
 train_steps_per_epoch: #40 #  steps per one training epoch
 val_steps_per_epoch: #3  # validation steps per epoch
 evaluate_step: 20  # evaluation steps per epoch
@@ -342,7 +347,7 @@ regularize_indice_list:
 
 
 # maby not necessary? Pick an image ID for predicting only one image
-image_ID: '102597_30'
+image_ID: '100198_30'
 
 ##------------------
 ## END PREDICTION ##
@@ -362,7 +367,7 @@ save_predict_data: False
 # Plot image
 # name of the plotting figure by predicting the dataset. If multiple plots are needed. write: [plot_name_A, plot_name_B ...]
 # further details are specified below
-plot_figure: [plot_mosaic,profile_plot_by_slice,plot_area_ratio ]
+plot_figure: [plot_by_slice]
 
 # Colors of the categories in the plot. type list of list of 3 floats, the float must be in [0,1]
 colormap: [[0, 0, 0.1], [0, 0.2, 0.8], [0, 1, 0.5], [0.8, 0.8, 0.8], [0.2, 0.1, 0.8],
@@ -373,6 +378,7 @@ display_origin_image_channel: 0
 select_image:
     plot_mosaic: [predict_integers,label_integers]   # select predict_integers or label_integers
     profile_plot_by_slice: [predict_integers,label_integers] # select predict_integers or label_integers
+    plot_by_slice: [predict_integers,label_integers] # select predict_integers or label_integers
     plot_area_ratio:  [predict,label] # predict or label
 
 plot_mosaic:
@@ -389,6 +395,19 @@ plot_mosaic:
 profile_plot_by_slice:
     slice_: 80 # type int: slice index of displaying image
     channel_only: 1 # type int, Select only one output channel to display, leave empty if display all channels
+    slice_dim: 2 # slice_dim: type int: dimension index of slicing. For 3D, 0 for Sagittal plain, 1 for Coronal plane, 2 for Axial plane.
+    space: 1 #type int, space between the images
+    title_list: [predict,label]  #type list of str: title of the images
+    origin_image:  # type ndarray: original image (input image)
+    alpha_origin: 0.5 #type float in [0,1]: transparency of :param: origin_image
+    figure_layout: c # type str: layout of subplots, 'c' for column and 'r' for row.
+    colormap:  # type list of list of 3 floats: color value of each category from :param: mask_list
+    name_ID:  # type str: name ID of the plotted image
+    dataset: #type str: name of the dataset
+
+plot_by_slice:
+    slice_: [60,120,180,240] # type int: slice index of displaying image
+    channel_only:  # type int, Select only one output channel to display, leave empty if display all channels
     slice_dim: 2 # slice_dim: type int: dimension index of slicing. For 3D, 0 for Sagittal plain, 1 for Coronal plane, 2 for Axial plane.
     space: 1 #type int, space between the images
     title_list: [predict,label]  #type list of str: title of the images
