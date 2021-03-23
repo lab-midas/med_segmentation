@@ -208,11 +208,6 @@ al_only_new: True # Train model each al_epoch only on new queried patches, if Fa
 
 al_num_workers: 10 # Number of workers used for fitting or predicting, when data is available as keras.Sequence object
 
-# temporary parameters for test - only use one - determine which part of the dataset should be used as training data
-test_num_patches:  # number of batches to use for init training
-test_part_patches: 1 # factor * len(train patches) = num of patches used for init training (code manipulated for test so
-                    # that only initial training is performed
-
 ##----------------------------------------------------------------------------------------------------------------------
 ## MODEL ##
 ##---------
@@ -345,9 +340,6 @@ regularize_indice_list:
     image_shape:  # Bool, scale by current image shape, not for loading tfrecords dataset.
     custom_specified: # list of 3 integers, custom scaling
 
-
-# maby not necessary? Pick an image ID for predicting only one image
-image_ID: '100198_30'
 
 ##------------------
 ## END PREDICTION ##

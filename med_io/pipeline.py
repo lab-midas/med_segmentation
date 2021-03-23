@@ -48,12 +48,10 @@ def pipeline(config, dataset_image_path, dataset_label_path, dataset=None, no_sh
     # Create TFRecordDataset list for each image and label path.
     list_image_TFRecordDataset = [tf.data.TFRecordDataset(i) for i in data_path_image_list]
     list_label_TFRecordDataset = [tf.data.TFRecordDataset(i) for i in data_path_label_list]
-    #paths_dataset = tf.data.Dataset.from_tensor_slices(
-    #    [i for i in zip(data_path_image_list[0], data_path_label_list[0])])
 
     # Zip dataset of images and labels.
     zip_data_path_TFRecordDataset = tf.data.Dataset.zip(
-        (list_image_TFRecordDataset[0], list_label_TFRecordDataset[0])) #, paths_dataset))
+        (list_image_TFRecordDataset[0], list_label_TFRecordDataset[0]))
 
     @tf.function
     def _map(*args):
@@ -65,7 +63,6 @@ def pipeline(config, dataset_image_path, dataset_label_path, dataset=None, no_sh
         """
         images_data, images_shape = parser(args[0])
         labels_data, labels_shape = parser(args[1])
-        #image_path, label_path = args[2]
 
         if not config['read_body_identification']:
             # Change orientation

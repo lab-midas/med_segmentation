@@ -183,13 +183,7 @@ def train_al_process(config, model, paths_train_img, paths_train_label, paths_va
 
     # save info of IDs and patches
     save_used_patches_ids(config, ['hdf5_file', 'train_ids', 'init_ids', 'val_ids'],
-                          [(config['al_patches_data_dir']+'/'+config['al_patches_data_file']),
-                           train_ids, init_ids, val_ids],
-                          first_time=True)
-
-    # save info of IDs and patches
-    save_used_patches_ids(config, ['hdf5_file', 'train_ids', 'init_ids', 'val_ids'],
-                          [(config['al_patches_data_dir']+'/'+config['al_patches_data_file']),
+                          [(config['al_patches_data_dir'] + '/' + config['al_patches_data_file']),
                            train_ids, init_ids, val_ids],
                           first_time=True)
 
@@ -225,7 +219,6 @@ def train_al_process(config, model, paths_train_img, paths_train_label, paths_va
                                   train_steps_per_epoch=config['train_steps_per_epoch'],
                                   **fit_kwargs)
 
-
     for al_epoch in range(config['al_iterations']):
         print('AL epoch ' + str(al_epoch))
 
@@ -238,7 +231,6 @@ def train_al_process(config, model, paths_train_img, paths_train_label, paths_va
 
         # teach model with new patches and log the data
         learner.teach(query_ids, only_new=config['al_only_new'], **fit_kwargs)
-
 
     # print time required for AL  (inspired by https://www.codespeedy.com/how-to-create-a-stopwatch-in-python/)
     def time_convert(sec):
