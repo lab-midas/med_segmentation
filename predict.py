@@ -387,31 +387,22 @@ def convert_result(config, predict_img, label_data_onehot=None, predict_class_nu
 
 def save_img_mat(config, dataset, name_ID, item, data):
     """
-    save the image data, format specified in config
-    :param config: dictionary with config parameters
-    :param dataset: name of dataset
-    :param name_ID:
-    :param item: key, for saving as mat file
-    :param data: image data
+
+    :param config: type dict: config parameter
+    :param dataset: type str:  dataset name
+    :param name_ID: type str: name ID of the patients
+    :param item: type str: mat file data name
+    :param data: type ndarray: saved data
+    :return: None
     """
     # Config experiment
     save_predict_data_dir = config['result_rootdir'] + '/' + config['exp_name'] + '/' + config[
         'model'] + '/predict_result/' + dataset + '/' + name_ID
     if not os.path.exists(save_predict_data_dir): os.makedirs(save_predict_data_dir)
-    if config.get('save_predict_img_datatype', 'mat') == 'mat':
-        # Save the predict data in .mat file.
-        save_path = save_predict_data_dir + '/' + 'predict_' + config['model'] \
-                    + '_' + dataset + '_' + name_ID + '.mat'
-        sio.savemat(save_path, {item: data})
-
-    elif config['save_predict_img_datatype'] == 'nii':
-        # Save the predict data in .nii file (with identity matrix as affine)
-        save_path = save_predict_data_dir + '/' + 'predict_' + config['model'] \
-                    + '_' + dataset + '_' + name_ID + '.nii.gz'
-        nifti_img = nib.Nifti1Image(data, np.eye(4))
-        nib.save(nifti_img, save_path)
-    else:
-        raise Exception('Unknown dataformat for save_predict_img_datatype')
+    save_path = save_predict_data_dir + '/' + 'predict_' + config[
+        'model'] + '_' + dataset + '_' + name_ID + '.mat'
+    # Save the predict data in .mat file.
+    sio.savemat(save_path, {item: data})
 
 
 def read_predict_file(config, data_path_img=None, data_path_label=None, name_ID=None):

@@ -68,7 +68,6 @@ def train(config, restore=False):
         cp_callback = [tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path, verbose=1, save_weights_only=False,
                                                           period=config['save_training_model_period']),
                        tf.keras.callbacks.TensorBoard(os.path.dirname(checkpoint_path), histogram_freq=1)]
-        # Note: (TensorBoard) callbacks for AL are created separately in train_al_process()
 
         # Initial epoch of training data
         init_epoch = 0
@@ -96,7 +95,7 @@ def train(config, restore=False):
                 file1.write("\n")
                 file1.close()
 
-        saver1 = [Additional_Saver()]
+        saver1 = Additional_Saver()
 
         print('Now training data: ', dataset)
         k_fold = config['k_fold'][dataset]
@@ -191,7 +190,7 @@ def train_al_process(config, model, paths_train_img, paths_train_label, paths_va
          'al iterations and/or num of instances queried every iteration.')
 
     # define arguments for fit in active learner
-    fit_kwargs = {'callbacks': cp_callback + saver1,
+    fit_kwargs = {'callbacks': cp_callback + [saver1],
                   'shuffle': False,
                   'validation_data': val_data,
                   'validation_freq': config['validation_freq'],

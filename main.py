@@ -67,7 +67,7 @@ def main(args):
             config.gpu_options.allow_growth = True
             tf.set_session(tf.Session(config=config))
 
-    print('process id: {0}'.format(os.getpid()))
+
 
     with open(args.config_path, "r") as yaml_file:
         config = yaml.load(yaml_file.read())
@@ -114,8 +114,7 @@ def main(args):
         evaluate(config,datasets=config['dataset'])
         print("Evaluation finished for %s" % (config['result_rootdir']+os.sep+config['exp_name']))
     if args.predict:  # predict and generate output masks of a trained model
-        predict(config, datasets=config['dataset'], save_predict_data=config['save_predict_data'],
-                name_ID=config['image_ID'])
+        predict(config, datasets=config['dataset'], save_predict_data=config['save_predict_data'])
         print("Prediction finished for %s" % (config['result_rootdir']+os.sep+config['exp_name']))
 
 if __name__ == '__main__':
