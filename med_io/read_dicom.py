@@ -11,6 +11,8 @@ def read_dicom_dir(dim_dir=None, all_files=False, format=None, order='SliceLocat
     :param dim_dir: type str: Directory to dicom files of one channel of one patient
     :param all_files: type bool: Read the files in dim_dir regardless of suffix name
     :param format: type str: Regular expression for choosing data files
+    :param order: type str:  order of slice by reading the dicom files with package pydicom.
+                             It can be chosen from 'SliceLocation', 'filename_last_8_character','NAKO'
     :return: data_image: type ndarray: numpy array of 3D data
     :return: info_patient: type dict:  Patient info
 
@@ -35,6 +37,7 @@ def read_dicom_dir(dim_dir=None, all_files=False, format=None, order='SliceLocat
 
     # sort the data files with respect to their slice location
     if order == 'SliceLocation':
+
         sorted(dicom_paths, key=lambda dicom_path: pydicom.dcmread(dicom_path).SliceLocation)
 
         # load data in each dicom path
@@ -48,8 +51,8 @@ def read_dicom_dir(dim_dir=None, all_files=False, format=None, order='SliceLocat
                 print('load data by pydicom and simpleITK failed')
                 print('Error info:', e)
 
-    elif order == 'filename_last_5_character':
-        dicom_paths.sort(key=lambda x: int(x[-5:]))
+    elif order == 'filename_last_8_character':
+        dicom_paths.sort(key=lambda x: int(x[-10:-4]))
         try:
             data_image = np.array([pydicom.dcmread(dicom_path).pixel_array for dicom_path in dicom_paths])
         except:
@@ -122,7 +125,8 @@ def read_dicom_dir(dim_dir=None, all_files=False, format=None, order='SliceLocat
 
 def read_dicom_dir_simple_ITK(dim_dir):
     """
-    Alternative to pydicom, since package gdcm is not available in package pydicom
+    Alternative to pydicom, since package gdcm is not available in package pydicom.
+    Especially for KORA dataset.
     :param dim_dir: type str: dir to dicom series
     :return: type ndarray: shape (z,y,x)
     """

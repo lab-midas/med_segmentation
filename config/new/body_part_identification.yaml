@@ -1,0 +1,396 @@
+
+## MedSegmentation configuration
+
+# Name of the data
+# Choose the data for the whole project.
+dataset : [TULIP3T] # either known database [NAKO_AT,DIXON,TULIP1_5T,TULIP3T,NAKO,KORA]
+    #(i.e. converting and loading as TFRecords) or leave empty (only test/prediction) -> direct loading from Nifty, information specified in PREDICTION
+project: NORA  # project name
+exp_name: exp0  # experiment name (used for storage)
+
+
+# Seed for fixing the random data
+tensorflow_seed: 1
+numpy_seed: 1
+random_seed: 1
+seed_random_split: 1 # random seed of splitting data
+
+##----------------------------------------------------------------------------------------------------------------------
+## DATABASES ##
+##-------------
+
+#  Paths for database
+# root dir of data image and label, for more detailed configuration, please define them in med_io/preprocess_raw_dataset.py
+rootdir_raw_data_img:
+    NAKO_AT: /mnt/data/rawdata/NAKO/AT_NAKO/AT_NAKO
+    DIXON: /mnt/data/rawdata/mMR_DIXON
+    TULIP1_5T: /mnt/data/rawdata/TULIP_PLIS/1_5T
+    TULIP3T: /mnt/data/rawdata/TULIP_PLIS/3T
+    NAKO: /mnt/data/rawdata/NAKO/NAKO_200_WB_GRE
+    KORA:  /mnt/data/rawdata/KORA
+
+rootdir_raw_data_label:
+    NAKO_AT: /mnt/data/rawdata/NAKO/AT_NAKO/AT_NAKO
+    DIXON: /mnt/data/rawdata/mMR_DIXON
+    TULIP1_5T: /mnt/data/rawdata/TULIP_PLIS/1_5T
+    TULIP3T: /mnt/data/rawdata/TULIP_PLIS/3T
+   NAKO: /mnt/data/projects/Segmentation/NAKO_labels
+    KORA:  /mnt/data/rawdata/KORA
+# root directory of saving tfrecord files
+rootdir_tfrec:
+    NAKO_AT: ../data/tfrecords/NAKO_AT
+    DIXON: ../data/tfrecords/DIXON
+    TULIP1_5T: ../data/tfrecords/TULIP1_5T
+    TULIP3T: ../data/tfrecords/TULIP3T
+    NAKO: ../data/tfrecords/NAKO
+    KORA:  ../data/tfrecords/KORA
+
+# root dir of creating and saving tfrecord data
+# filename of pickle files of storing the paths tfrecord data
+filename_tfrec_pickle:
+    NAKO_AT: list_NAKO_AT
+    DIXON: list_DIXON
+    TULIP1_5T: list_TULIP1_5T
+    TULIP3T: list_TULIP3T
+    NAKO: list_NAKO
+    KORA:  list_KORA
+
+# filename of pickle files of storing the paths max shape
+filename_max_shape_pickle:
+    NAKO_AT: NAKO_AT_max_shape
+    DIXON: DIXON_max_shape
+    TULIP1_5T: TULIP1_5T_max_shape
+    TULIP3T: TULIP3T_max_shape
+    NAKO: NAKO_max_shape
+    KORA:  KORA_max_shape
+
+
+# Channel Configuration
+# Name of the input data channels
+name_input_channel:
+    NAKO_AT: [F, W, in, opp]
+    DIXON:  [f, umap, w]
+    TULIP1_5T:  [img]
+    TULIP3T:   [img]
+    NAKO:    [DIXF, DIXW, PFP/SAT_1.23, PFP/SAT_2.46]
+    KORA:  [F, in, opp, W]
+
+# Name of the output data channels, i.e. segmentation classes
+name_output_channel:
+    NAKO_AT: [P_AT, P_BG, P_LT, P_VAT]
+    DIXON:  [f, l, w]
+    TULIP1_5T:  [P_AT, P_BG, P_LT, P_VAT]
+    TULIP3T:   [P_AT, P_BG, P_LT, P_VAT]
+    NAKO:    [kidney_left, kidney_right, liver, pancreas, spleen]
+    KORA:  [liver2d, spleen2d]
+channel_img_num:
+channel_label_num:
+# Input and Output channel selection
+# Choose the indices of the channels as format list,
+# for example, name of the channel [A, B, C, D]. if choose channel B and D, write:[1,3]
+# Index number must be no greater than max index of channel. Leave empty if choose all channels.
+# Abbreviations:
+# F/f/iso_F: fat, W/w/iso_W: water, opp/iso_opp: opposed-phase, in/iso_in: in-phase
+# AT: subcutaneous adipose tissue, BG: background, LT/l: lean tissue, VAT: visceral adipose tissue
+input_channel:
+    NAKO_AT: [0,1,2,3]         # name of the channel: [F, W, in, opp]
+    DIXON:   [0,1]    # name of the channel: ['f', 'umap', 'w']
+    TULIP1_5T:      # name of the channel : [img]
+    TULIP3T:  [0]      # name of the channel : [img]
+    NAKO:   [0,1]       # name of the channel:[DIXF, DIXW, PFP/SAT_1.23, PFP/SAT_2.46]
+    KORA:   [0,3]     # name of the channel ['_iso_F_', '_iso_in_', '_iso_opp_', '_iso_W_']
+
+output_channel:
+    NAKO_AT:  [0,1,2,3]      # name of the channel: [AT, BG, LT, VAT]
+    DIXON:          # name of the channel: ['f', 'l', 'w']
+    TULIP1_5T:      # name of the channel: [AT, BG, LT, VAT]
+    TULIP3T: [0]       # name of the channel: [AT, BG, LT, VAT]
+    NAKO: [1,2]    # name of the channel: ['kidney_left', 'kidney_right', 'liver', 'pancreas', 'spleen']
+    KORA:   [0,1]        # name of the channel: ['liver2d', 'spleen2d']
+
+
+# Splitting data
+# Amount of fold of train/val data for each dataset. Leave empty if not use k fold for training of this dataset.
+k_fold:
+    NAKO_AT: 3
+    DIXON:  3
+    TULIP1_5T: 4
+    TULIP3T:
+    NAKO:
+    KORA:
+k_fold_merge_model: False
+
+# select a specific subject for testing. A list of integers pointing into the dataset_info/database_pickle dump . Leave empty to use a random splitting into train, val, test
+test_subject:
+    NAKO_AT:
+    DIXON:
+    TULIP1_5T:
+    TULIP3T:
+    NAKO:
+    KORA:
+
+#  Database for body_identification
+read_body_identification: True
+body_identification_n_classes: 6
+#  Image transform for database-specific corrections
+transpose_permute:
+flip_axis:
+# image intensity scaling/normalization
+globalscale: False  # bool, True: normalization of whole volume, False: axis-independent scaling
+
+# Split dataset
+ratio_test_to_train_val: 0.2 # ratio test to (train and validation) (tfrecords)
+ratio_val_to_train: 0.2 # ratio validation to training (tfrecords)
+##-----------------
+## END DATABASES ##
+##----------------------------------------------------------------------------------------------------------------------
+
+
+##----------------------------------------------------------------------------------------------------------------------
+## PIPELINE ##
+##------------
+
+
+# Saved models dir
+saved_models_dir: ./saved_models
+# Saved result dir
+result_rootdir: ./result
+dir_model_checkpoint: ./model_checkpoint
+dir_dataset_info: ./dataset_info
+dir_list_tfrecord: ./list_tfrecord
+
+# Pipeline tf.dataset Configuration
+num_parallel_calls: 4 # number parallel calls of tf.data.dataset
+shuffle: 60 # shuffle seed of tf.data.dataset
+index_shuffle: True
+
+# Batch
+batch: 100 # batch size of training model
+evaluate_batch_size: 1 # batch size of evaluating model
+predict_batch_size: 2 # batch size of predicting model
+
+# Patch
+patch_size: [1,200,16] # patch size of the model, Type list of n int, n=dimension. # body identification network :[1, X, Y]
+patch_start:           # patch size of the model, Type list of n int, n=dimension.
+patch_end:            # patch size of the model, Type list of n int, n=dimension.
+patch_overlap_rate: 0.0 # value in [0,1)
+squeeze_channel:  True # Type bool, extract the first channel from the input image to the model. (For model body identification=True,others=False)
+predict_patch_overlap_rate: 0.0 #value in [0,1)
+#unpatch_overlap_rate: 0.0  # value in [0,1)
+random_shift_patch: False  # shift the patch or not for augmention
+patch_probability_distribution:
+    use:   False # True if patch by pdf
+    normal: #   True if use normal distribution
+        use: False
+        mu:     # list of 3 floats/integers
+        sigma:  # list of 3 floats/integers
+    uniform: #  True if use uniform distribution
+
+##----------------------------------------------------------------------------------------------------------------------
+## MODEL ##
+##---------
+# Model (to train, evaluate, test)
+model: model_body_identification_classification # model_U_net_double_decoder # model name, must be chosen from class ModelSet in models/ModelSet.py
+                      # or premodel name, (can be chosen from class Premodel_Set in models/Premodel_Set.py)
+filters: 8 #  base number of filters of the model
+feed_pos: False  # True if the position of the patches is input to the model
+pos_noise_stdv: 0.01 # standard variation of feed position
+multi_gpu: False
+train_premodel: False # True if continue training the pre-trained model
+
+# Premodel
+# load_weights_only: True , load_premodel: False -> load model from models/ModelSet.py and saved_models_dir
+# load_weights_only: True , load_premodel: True -> load model from models/Premodel_Set.py and  saved_premodels_path
+# load_weights_only: False , load_premodel: True -> load model from saved_premodels_path without pre-defining its structure
+# load_weights_only: False , load_premodel: False -> Error
+
+load_weights_only: True #( False: dilated_densenet,Exp_DenseNet_feedpos2-loaded, .., others are True.)
+load_premodel: False
+saved_premodels_path:   
+
+select_premodel_output_channel:       # Sometimes the premodel output channels are not corresponded to channels in labels.
+                                          # It must be  set to be the same amount channels as the labels
+                                          # For example, if choose channel 1 and 3 , write [1,3], if choose only channel 1, write [1]
+                                          # Leave empty if num(premodel output channels)= num(label channels)
+model_output_size:  # Sometimes the premodel output size is different from premodel input size. Set the model output size here.
+                                # for example, if 3D output size is 24, write [24,24,24]. e.g. network dilated_densenet
+                                #The values in model_output_size must be no greater than values in patch_size,
+                                # Leave empty if the premodel output size is same as premodel input size.
+
+custom_layer:   # The name of additional layer from the model (e.g. resize_3D in dilated_densenet).
+                         #All the names must be chosen from the class in models/Premodel_Custom_Class.py. Leave empty if not used.
+model_add_background_output: False # Type bool, add one channel from the model output when building the model.  If segmentation has no background label, it better to set True here.
+                                        #
+img_label_same_shape: False
+
+
+
+
+
+# Epochs and steps
+epochs: 10 # total training epochs
+train_steps_per_epoch:   #  steps per one training epoch
+val_steps_per_epoch: 3  # validation steps per epoch
+evaluate_step: 20  # evaluation steps per epoch
+save_training_model_period: 2 #  epoch for saving the model
+validation_freq: 1 # num epoch for one valiation process
+
+# Verbose
+evaluate_verbose_mode: 1
+train_verbose_mode: 1
+
+
+# Parameters of convolution layer if the model has convolution
+convolution_parameter :
+    padding: same
+    num_parallel_calls: 1
+    kernel_regularizer: [l2,0.01]
+    dilation_rate: 1
+    kernel_initializer: he_normal
+
+# Compile model
+# Metrics of model
+tensorflow_metrics: [accuracy] # metric defined in  https://www.tensorflow.org/api_docs/python/tf/keras/metrics categorical_crossentropy
+custom_metrics: [] #[recall_all,recall_per_class] # metric defined by custom, must be chosen from models/loss_function.py/Metric()
+# Loss
+loss_functions: # loss function of the network, must be chosen from models/loss_function.py, if weight=0 it is not considered
+    # loss function name: weight
+    #dice_coefficient_loss: 0
+    #sigmoid_focal_crossentropy: 0
+use_multiple_loss_function: False #  True if use multiple_loss_fuction for multiple network outputs, else loss_functions is applied on single output note.
+multiple_loss_function:
+    # name of notes of neural network outputs, If  key loss_functions is applied on this note, write "loss_functions"
+    # Example of network model_body_identification_hybrid
+    class: binary_crossentropy # model_body_identification_hybrid output 1
+    reg:  MSE # model_body_identification_hybrid output 2
+loss_channel_weight: [1,5,8,2,6,3]
+use_tensorflow_loss_function: True
+tensorflow_loss_function: categorical_crossentropy
+
+# parameter of optimizer , name : must be one in [SGD, Nadam, Adadelta, Adagrad, Adam, Adamax, Ftrl, RMSprop]
+# arg: input of each optimizer function, see https://www.tensorflow.org/api_docs/python/tf/keras/optimizers
+optimizer:
+    name: Adam
+    args:
+        learning_rate: 0.001
+
+
+##-------------
+## END MODEL ##
+##----------------------------------------------------------------------------------------------------------------------
+
+
+
+
+##----------------------------------------------------------------------------------------------------------------------
+## PREDICTION ##
+##--------------
+
+
+load_predict_from_tfrecords: True  # If load nifti, write False, True if loaded from tfrecords.
+
+# Without tfrecords
+predict_data_dir_img: F:/nifti/NIFTI # path of prediction image,  # paths of nifti file which are defined in nifti yaml file can be leave empty here.
+predict_load_label: False  # load label if predict data is available
+predict_data_dir_label: # path of prediction label
+path_yaml_file: # Path of additional yaml file
+    predict_nifti: D:/test_code/medseg/predict_data_processing/process_config/nifti.yaml # Path of prediction nifti yaml file, which more info of nifti can be set (path, orientation etc.)
+                                                                                           # path of pre-trained model for prediction is in item saved_premodels_path.
+
+
+
+# predict config
+set_zero_by_threshold: True               # True if param unpatch_start_threshold is activated
+unpatch_start_threshold: 0.01        # The pixel is set to 0 if the value is smaller than unpatch_start_threshold
+predict_image_scale: 1               #  gain of the predict input image (adjustment if e.g. provided as Nifty)
+predict_output_channel_order:        #  type list of integers, change the order of the output channel from predict result
+
+predict_result_add_background_output: False  # True if adding background of predict result
+label_add_background_output: True #  True if adding background channel in the label
+
+predict_label_datatype: nii
+predict_img_datatype: nii  # string: file type of prediction image (before conversion), 'dicom' or 'mat' or 'nii'
+regularize_indice_list:
+    max_shape:  True # Bool, scale by max shape, for loading tfrecords dataset.
+    image_shape:  # Bool, scale by current image shape, not for loading tfrecords dataset.
+    custom_specified: # list of 3 integers, custom scaling
+
+
+
+
+##------------------
+## END PREDICTION ##
+##----------------------------------------------------------------------------------------------------------------------
+
+
+
+
+##----------------------------------------------------------------------------------------------------------------------
+## OUTPUTS ##
+##-----------
+# For data which has only images and without labels, any 'label_integers','label', 'label_onehot' should be deleted.
+
+# Save predict data
+save_predict_data: False
+
+# Plot image
+# name of the plotting figure by predicting the dataset. If multiple plots are needed. write: [plot_name_A, plot_name_B ...]
+# further details are specified below
+plot_figure: [plot_combine]
+select_body_identification_predict_slice: 85
+
+# Colors of the categories in the plot. type list of list of 3 floats, the float must be in [0,1]
+colormap: [[0, 0, 0.1], [0, 0.2, 0.8], [0, 1, 0.5], [0.8, 0.8, 0.8], [0.2, 0.1, 0.8],
+           [0.8, 0.2, 0.1]]
+
+# Display which channel image is the background of the original image
+display_origin_image_channel: 0
+select_image:
+    plot_mosaic: predict_integers   # select predict_integers or label_integers
+    profile_plot_by_slice: [predict_integers,label_integers] # select predict_integers or label_integers
+    plot_area_ratio:  [predict,label] # predict or label
+
+    plot_combine: predict
+plot_mosaic:
+    slice_dim: 0 # slice_dim: type int: dimension index of slicing. For 3D, 0 for Sagittal plain, 1 for Coronal plane, 2 for Axial plane.
+    colormap: # type list of list of 3 floats: color value of each category from :param: mask
+    vspace: 2  # type int, vertical interval between each mosaic sub-figure. vspace=0 if no space between them.
+    hspace: 2 # type int, horizontal interval between each mosaic sub-figure. vspace=0 if no space between them.
+    col: 5   # type int: the column of mosaic figure
+    origin_image: # type ndarray: original 3D image (input image) with specified channel
+    alpha_origin: 0.6 #  type float in [0,1]: transparency of :param: origin_image
+    dataset:  # type str: name of the dataset
+    name_ID:  # type str: name ID of the plotted image
+
+profile_plot_by_slice:
+    slice_: 80 # type int: slice index of displaying image
+    channel_only: 1 # type int, Select only one output channel to display, leave empty if display all channels
+    slice_dim: 0 # slice_dim: type int: dimension index of slicing. For 3D, 0 for Sagittal plain, 1 for Coronal plane, 2 for Axial plane.
+    space: 1 #type int, space between the images
+    title_list: [predict]  #type list of str: title of the images
+    origin_image:  # type ndarray: original image (input image)
+    alpha_origin: 0.5 #type float in [0,1]: transparency of :param: origin_image
+    figure_layout: c # type str: layout of subplots, 'c' for column and 'r' for row.
+    colormap:  # type list of list of 3 floats: color value of each category from :param: mask_list
+    name_ID:  # type str: name ID of the plotted image
+    dataset: #type str: name of the dataset
+
+plot_area_ratio:
+    slice_dim: 0 # slice_dim:  type int: dimension index of slicing. For 3D, 0 for Sagittal plane, 1 for Coronal plane, 2 for Axial plane.
+    merge_channel_plot: False # type bool, True if plot all in one figure
+    plot_label_series: [predict,label]  # type list of str: name of each series, default: ['predict', 'label']
+    dataset:                   # type str: name of this dataset
+    figsize: [20,40]  # type list of 2 ints, figure size
+
+
+##---------------
+## END OUTPUTS ##
+##----------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+
+

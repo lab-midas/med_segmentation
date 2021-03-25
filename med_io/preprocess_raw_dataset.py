@@ -15,7 +15,7 @@ def preprocess_raw_dataset(config):
     Read raw dataset -> parse dataset into tfrecords ->save tfrecords and data info
     Database specific handling
     :param config: type dict, configuring parameters
-    :return:
+    :return: None
     """
 
     global rootdir_tfrec
@@ -101,8 +101,6 @@ def preprocess_raw_dataset(config):
         else:
             pickle_filename = config['dir_dataset_info'] + '/max_shape_' + dataset + '.pickle'
 
-
-
         pickle.dump(dictionary, open(pickle_filename, 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
 
     # if item in config are str, change them to list
@@ -122,7 +120,7 @@ def preprocess_raw_dataset(config):
 
         print('Start processing dataset: ', dataset, ' ...')
         # Adipose Tissue databases
-
+        print('dataset:',dataset)
         if dataset in ['TULIP1_5T', 'NAKO_AT', 'TULIP3T']:
             # load mat file, which the labels and the images data are stored together
             rootdir = config['rootdir_raw_data_img'][
@@ -140,6 +138,7 @@ def preprocess_raw_dataset(config):
                 for path_mat in paths_mat:
 
                     if not config['read_body_identification']:
+
                         try:
                             imgs_data, labels_data, info = read_mat_file(path=path_mat)
 
@@ -174,10 +173,10 @@ def preprocess_raw_dataset(config):
                         save_max_shape(dataset, max_shape_img, max_shape_label)
                     else:
                         # read body identification data
+
                         try:
                             imgs_data, labels_data, info = read_mat_file_body_identification(path=path_mat,
                                                                                              read_img=True)
-                            #labels_data = np.array([[7, 6, 5, 5, 4, 3], [6, 3, 2, 1, 2, 4],[6, 3, 2, 5, 2, 4],[6, 3, 2, 5, 5, 5]]).astype(np.float32)
                         except Exception as e:
                             print(dataset, ': ', 'Loading mat files of ', name_ID,
                                   'failed. This dataset is abandoned. Error info:')
@@ -204,14 +203,7 @@ def preprocess_raw_dataset(config):
                         save_max_shape(dataset, max_shape_img, max_shape_label)
 
 
-
-
-
-
-
-
         # KORA
-
         elif dataset == 'KORA':
             rootdir_img = config['rootdir_raw_data_img'][dataset]
             rootdir_label = config['rootdir_raw_data_label'][dataset]
@@ -317,12 +309,14 @@ def preprocess_raw_dataset(config):
                 set(os.listdir(rootdir_img)).intersection(set(os.listdir(rootdir_label)))))  # name ID of DIXON Dataset
             channels_image = config['name_input_channel'][dataset]
             channels_label = config['name_output_channel'][dataset]
-
             for name_ID in name_IDs:
+
+
                 # Read image files
                 dir_img = rootdir_img + dir_patterns['images'].replace('*', name_ID)
                 dir_chosen_channel_img = [dir_img + '/' + channel_img for channel_img in channels_image]
                 imgs_data, info = [], []
+
                 for dir_channel in dir_chosen_channel_img:
                     if not os.listdir(dir_channel):
                         print(dataset, ': ', name_ID, ' has no dicom files in ', dir_channel,
@@ -330,7 +324,7 @@ def preprocess_raw_dataset(config):
                         break
 
                     try:
-                        img_data, info_patient = read_dicom_dir(dim_dir=dir_channel, all_files=True)
+                        img_data, info_patient = read_dicom_dir(dim_dir=dir_channel, all_files=True,order='filename_last_8_character')
                     except Exception as e:
                         print(dataset, ': ', 'Loading dicom files of ', name_ID,
                               'failed. This dataset is abandoned. Error info:')
@@ -340,7 +334,6 @@ def preprocess_raw_dataset(config):
                     info.append(info_patient)
                 else:
                     imgs_data = image_reshape(normalize(np.array(imgs_data))).astype(np.float32)
-
                     # Read label files
                     dir_label = rootdir_label + dir_patterns['labels'].replace('*', name_ID)
                     try:
@@ -378,6 +371,9 @@ def preprocess_raw_dataset(config):
                     write_tfrec_and_pickle(imgs_data, dir_tfrec_img, labels_data, dir_tfrec_label, infos,
                                            dir_tfrec_info)
                     save_max_shape(dataset, max_shape_img, max_shape_label)
+                    del imgs_data
+                    del labels_data
+                    del infos
 
         # NAKO
         elif dataset == 'NAKO':

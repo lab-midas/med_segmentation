@@ -66,6 +66,13 @@ def plot_figures_single(config, dict_data, dataset='0', name_ID='0', client_save
             else:
                 plot_by_slice(config, input_img_list, client_save_rootdir=client_save_rootdir,
                                   **config['plot_by_slice'])
+        elif figure_name == 'plot_combine':
+            if isinstance(config['select_image']['plot_combine'],str):
+                plot_combine(config,image=img_data,heatmap=dict_data[config['select_image']['plot_mosaic']],name_ID=name_ID,
+                             pred_thresholds=dict_data['pred_thresholds'],
+                             real_thresholds=dict_data['real_thresholds'])
+                print('finish plot')
+
         else:
             # add figure config here if more figure methods are added.
             pass
