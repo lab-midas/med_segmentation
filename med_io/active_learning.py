@@ -79,7 +79,7 @@ def query_selection(model, X, config, n_instances=1, al_epoch=None,
 
     # save utility values of queried instances
     pickle_path = Path(config['result_rootdir'],
-                       config['al_utilities_data_file'] + '_' + config['exp_name'] + '.pickle')
+                       'al_utilities' + '_' + config['exp_name'] + '.pickle')
     if not os.path.exists(pickle_path):
         with open(pickle_path, 'w'): pass
     with open(pickle_path, 'rb+') as f:
@@ -129,20 +129,6 @@ def _proba_margin(proba):
 
 def _proba_entropy(proba):
     return entropy(proba, axis=-1)
-
-
-# utility function for creating al callbacks in train.py
-# def al_callbacks(config, epoch_name, additional_callbacks=None):
-#    """ create the callbacks for use in fit() in al training, dir name will include
-#        epoch_name - has to be unique every time"""
-#    logdir = Path(config['dir_model_checkpoint'], config['exp_name'],
-#                  'al_epoch_{0}'.format(epoch_name))
-#    logdir.mkdir(parents=True, exist_ok=True)
-#    callbacks = [tf.keras.callbacks.TensorBoard(logdir, histogram_freq=1)]
-#    if additional_callbacks is not None:
-#        return additional_callbacks.append(callbacks)
-#    else:
-#        return callbacks
 
 
 # Define ActiveLearner class to manage active learning loop. The class is inspired
