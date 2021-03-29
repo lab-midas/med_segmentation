@@ -31,6 +31,12 @@ def convert_yaml_config(config):
     custom_metrics = flatten(config['custom_metrics'])
     config['metrics'] = tf_metrics + custom_metrics
 
+    # Check parameters that might not exist in every config for backwards compatibility
+    if 'max_patch_num' not in config.keys():
+        config['max_patch_num'] = None
+    if 'active_learning' not in config.keys():
+        config['active_learning'] = False
+
     return config
 
 
