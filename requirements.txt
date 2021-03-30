@@ -9,7 +9,7 @@ scikit-image ==0.17.2
 scipy == 1.5.2
 pandas == 1.1.0
 keras == 2.3.1
-tensorflow == 2.0.0
+tensorflow == 2.4.0
 SimpleITK == 1.2.4
 nibabel == 3.1.1
 opencv-python == 4.4.0.44
