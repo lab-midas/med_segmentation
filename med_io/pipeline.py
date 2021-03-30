@@ -9,7 +9,7 @@ from .generate_label import *
 import pickle
 
 
-def pipeline(config, dataset_image_path, dataset_label_path, dataset=None):
+def pipeline(config, dataset_image_path, dataset_label_path, dataset=None, no_shuffle_and_batching=False):
     """
     Pipeline of tf.data for importing the data
     :param config: type dict,config parameter
@@ -38,7 +38,8 @@ def pipeline(config, dataset_image_path, dataset_label_path, dataset=None):
     patches_indices = get_fixed_patches_index(config, max_data_size, patch_size,
                                               overlap_rate=config['patch_overlap_rate'],
                                               start=config['patch_start'],
-                                              end=config['patch_end'])
+                                              end=config['patch_end'],
+                                              max_patch_num=config['max_patch_num'])
 
     # Reformat data path list: [[path1],[path2], ...] ->[[path1, path2, ...]]
     data_path_image_list = [[t[i] for t in dataset_image_path] for i in range(len(dataset_image_path[0]))]
@@ -89,14 +90,19 @@ def pipeline(config, dataset_image_path, dataset_label_path, dataset=None):
 
             patchs_imgs, patchs_labels, index_list = get_patches_data(max_data_size, patch_size, images_data,
                                                                       labels_data,
-                                                                      patches_indices, slice_channel_img=input_slice,
+                                                                      patches_indices,
+                                                                      slice_channel_img=input_slice,
                                                                       slice_channel_label=output_slice,
                                                                       output_patch_size=config['model_output_size'],
+                                                                      random_shift_patch=config['random_shift_patch'],
                                                                       squeeze_channel=config['squeeze_channel'])
+
 
             # List regularize
             #index_list = index_list / (np.array(max_data_size) + 1e-16)
-            if config['feed_pos']:
+            if config['active_learning']:
+                return patchs_imgs, patchs_labels, index_list
+            elif config['feed_pos']:
                 return (patchs_imgs, index_list), patchs_labels
             else:
                 return patchs_imgs, patchs_labels
@@ -114,12 +120,12 @@ def pipeline(config, dataset_image_path, dataset_label_path, dataset=None):
 
             patchs_imgs, _, index_list = get_patches_data(max_data_size, patch_size, images_data,
                                                           data_label=None,
-                                                          index_list=patches_indices, slice_channel_img=input_slice,
+                                                          index_list=patches_indices,
+                                                          slice_channel_img=input_slice,
                                                           slice_channel_label=None,
                                                           output_patch_size=config['model_output_size'],
-                                                          squeeze_channel=config['squeeze_channel'])
-
-
+                                                          squeeze_channel=config['squeeze_channel'],
+                                                          random_shift_patch=config['random_shift_patch'])
             # Generate labels by patch indices  according to labels_data(position of hip, wrist etc.)
             generate_labels = generate_label(config, labels_data, patches_indices, patch_size)
 
@@ -137,5 +143,9 @@ def pipeline(config, dataset_image_path, dataset_label_path, dataset=None):
     # Create pipeline and config dataset.
     dataset = zip_data_path_TFRecordDataset.map(map_func=_map, num_parallel_calls=config['num_parallel_calls'])
 
-    dataset = dataset.unbatch().batch(config['batch']).shuffle(config['shuffle']).prefetch(tf.data.experimental.AUTOTUNE)
+    if no_shuffle_and_batching:
+        dataset = dataset.unbatch()
+    else:
+        dataset = dataset.unbatch().batch(config['batch']).shuffle(config['shuffle']).prefetch(
+            tf.data.experimental.AUTOTUNE)
     return dataset

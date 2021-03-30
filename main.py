@@ -21,18 +21,19 @@ def args_argument():
     parser.add_argument('-e', '--exp_name', type=str, default='exp0',
                         help='Name of experiment (subfolder in result_rootdir)')
 
-    parser.add_argument('--preprocess', type=bool, default=False, help='Preprocess the data')
-    parser.add_argument('--train', type=bool, default=True, help='Train the model')
-    parser.add_argument('--evaluate', type=bool, default=False, help='Evaluate the model')
-    parser.add_argument('--predict', type=bool, default=True, help='Predict the model')
-    parser.add_argument('--restore', type=bool, default=False, help='Restore the unfinished trained model')
-    parser.add_argument('-c', '--config_path', type=str, default='./config/config_default.yaml', help='Configuration file of the project')
+    parser.add_argument('--preprocess', action="store_true", help='Preprocess the data')
+    parser.add_argument('--train', action="store_true", help='Train the model')
+    parser.add_argument('--evaluate', action="store_true", help='Evaluate the model')
+    parser.add_argument('--predict', action="store_true", help='Predict the model')
+    parser.add_argument('--restore', action="store_true", help='Restore the unfinished trained model')
+    parser.add_argument('-c', '--config_path', type=str, default='./config/config_default.yaml',
+                        help='Configuration file of the project')
 
     parser.add_argument("--gpu", type=int, default=0, help="Specify the GPU to use")
     parser.add_argument('--gpu_memory', type=float, default=None, help='Set GPU allocation. (in GB) ')
-    parser.add_argument('--calculate_max_shape_only', type=bool, default=True,
+    parser.add_argument('--calculate_max_shape_only', action="store_true",
                         help='Only calculate the max shape of each dataset')
-    parser.add_argument('--split_only', type=bool, default=False,
+    parser.add_argument('--split_only', action="store_true",
                         help='Only split the whole dataset to train, validation, and test dataset')
     parser.add_argument('--train_epoch', type=int, default=None, help='Modify the train epoch in yaml file')
     parser.add_argument('--filters', type=int, default=None, help='Modify the base filters in yaml file')

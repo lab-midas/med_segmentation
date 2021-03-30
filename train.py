@@ -6,6 +6,10 @@ from util import *
 from utils.TensorBoardTool import *
 from plot.plot_figure import *
 from tensorflow.keras.models import load_model
+from med_io.keras_data_generator import DataGenerator, tf_records_as_hdf5, \
+    save_used_patches_ids
+from med_io.active_learning import CustomActiveLearner, query_selection, \
+    choose_random_elements, query_random
 from models.load_model import load_model_file
 import pickle
 import datetime
@@ -70,11 +74,11 @@ def train(config, restore=False):
         checkpoint_path = config['dir_model_checkpoint'] + '/' + config['exp_name'] + '/cp_' + dataset + '_' + config[
             'model'] + '.hdf5'
 
-        tb_tool = TensorBoardTool(config['dir_model_checkpoint'])  # start the Tensorboard
+        tb_tool = TensorBoardTool(config['dir_model_checkpoint'] + '/' + config['exp_name'])  # start the Tensorboard
 
         # Create a callback that saves the model's weights every X epochs.
         cp_callback = [tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path, verbose=1, save_weights_only=False,
-                                                         period=config['save_training_model_period']),
+                                                          period=config['save_training_model_period']),
                        tf.keras.callbacks.TensorBoard(os.path.dirname(checkpoint_path), histogram_freq=1)]
 
         # Initial epoch of training data
@@ -141,29 +145,107 @@ def train_process(config, model, paths_train_img, paths_train_label, paths_val_i
     """Internal function
         Train process"""
 
-    # Building pipelines of training and validation Dataset.
+    # if active learning is configured use al training process otherwise normal
+    if config['active_learning']:
+        print('Using active learning loop for training')
+        return train_al_process(config, model, paths_train_img, paths_train_label,
+                                paths_val_img, paths_val_label, dataset, cp_callback, saver1)
+    else:
+        ds_train = pipeline(config, paths_train_img, paths_train_label, dataset=dataset)
 
-    ds_train = pipeline(config, paths_train_img, paths_train_label, dataset=dataset)
+        ds_validation = pipeline(config, paths_val_img, paths_val_label, dataset=dataset)
 
-    ds_validation = pipeline(config, paths_val_img, paths_val_label, dataset=dataset)
+        # Fit training & validation data into the model
 
-    # Fit training & validation data into the model
-
-    history = model.fit(ds_train,
-                        epochs=config['epochs'] + init_epoch,
-                        steps_per_epoch=config['train_steps_per_epoch'],
-                        callbacks=[cp_callback, saver1],
-                        initial_epoch=init_epoch,
-                        validation_data=ds_validation,
-                        validation_steps=config['val_steps_per_epoch'],
-                        validation_freq=config['validation_freq'],
-                        verbose=config['train_verbose_mode'])
-
-
-    print(history.history)
-    # Save the histories and plot figures
-    if config['save_history_on_train_process']:
+        history = model.fit(ds_train,
+                            epochs=config['epochs'] + init_epoch,
+                            steps_per_epoch=config['train_steps_per_epoch'],
+                            callbacks=[cp_callback, saver1],
+                            initial_epoch=init_epoch,
+                            validation_data=ds_validation,
+                            validation_steps=config['val_steps_per_epoch'],
+                            validation_freq=config['validation_freq'],
+                            verbose=config['train_verbose_mode'])
+        print(history.history)
+        # Save the histories and plot figures
         save_histories_plot_images(history, config=config, dataset=dataset, mode='train_val', k_fold_index=k_fold_index)
+        return model, history
+
+
+def train_al_process(config, model, paths_train_img, paths_train_label, paths_val_img, paths_val_label, dataset,
+                     cp_callback,
+                     saver1, k_fold_index=0, init_epoch=0):
+    """
+    Train with Active Learning (AL): alternative to the train_process() function. Uses the same parameters.
+    """
+    # convert the tf_records data to hdf5 if this hasn't already happened
+    print('Making shure data is available as hdf5 file')
+    hdf5_path, train_ids, val_ids = tf_records_as_hdf5(paths_train_img, paths_train_label,
+                                                       paths_val_img, paths_val_label,
+                                                       config, dataset=dataset)
+
+    # Define validation data DataGenerator (Sequence object)
+    val_data = DataGenerator(hdf5_path, val_ids,
+                             batch_size=config['evaluate_batch_size'],
+                             dim=config['patch_size'],
+                             n_channels=len(config['input_channel'][dataset]),
+                             n_classes=len(config['output_channel'][dataset]),
+                             steps_per_epoch=config['val_steps_per_epoch'])
+
+    # choose patches from training data for initial training
+    train_ids, init_ids = choose_random_elements(train_ids,
+                                                 config['al_num_init_patches'])
+
+    # save info of IDs and patches
+    save_used_patches_ids(config, ['hdf5_file', 'train_ids', 'init_ids', 'val_ids'],
+                          [(config['al_patches_data_dir'] + '/' + config['al_patches_data_file']),
+                           train_ids, init_ids, val_ids],
+                          first_time=True)
+
+    # check if enough train patches are available
+    assert len(train_ids) > config['al_iterations'] * config['al_num_instances'], \
+        ('not enough training patches for these AL parameters! Reduce num of '
+         'al iterations and/or num of instances queried every iteration.')
+
+    # define arguments for fit in active learner
+    fit_kwargs = {'callbacks': cp_callback + [saver1],
+                  'shuffle': False,
+                  'validation_data': val_data,
+                  'validation_freq': config['validation_freq'],
+                  'verbose': config['train_verbose_mode'],
+                  'workers': config['al_num_workers'],
+                  'use_multiprocessing': config['al_num_workers'] is not None}
+    # Note: the epoch parameters are defined in the active learner
+
+    # choose query strategy
+    query_strategies = {'uncertainty_sampling': query_selection,
+                        'random_sampling': query_random}
+    query_strategy = query_strategies[config['query_strategy']]
+
+    # instantiate an active learner that manages active learning
+    print('Initializing active learner object, with {0} patches in pool'.format(len(train_ids)))
+    learner = CustomActiveLearner(config, model, query_strategy, hdf5_path,
+                                  train_ids, dataset, config['batch'],
+                                  config['predict_batch_size'],
+                                  init_ids=init_ids,
+                                  train_steps_per_epoch=config['train_steps_per_epoch'],
+                                  **fit_kwargs)
+
+    for al_epoch in range(config['al_iterations']):
+        print('AL epoch ' + str(al_epoch))
+
+        # query new patches
+        query_ids = learner.query(config=config,
+                                  n_instances=config['al_num_instances'],
+                                  al_epoch=al_epoch)
+
+        # labeling of unlabeled data can later be implemented here
+
+        # teach model with new patches and log the data
+        learner.teach(query_ids, only_new=config['al_only_new'], **fit_kwargs)
+
+    history = learner.histories
+
     return model, history
 
 
