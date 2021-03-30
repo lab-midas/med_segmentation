@@ -86,6 +86,16 @@
         "plugin",
         "maintenance"
       ]
+    },
+    {
+      "login": "CDStark",
+      "name": "CDStark",
+      "avatar_url": "https://avatars.githubusercontent.com/u/64153881?v=4",
+      "profile": "https://github.com/CDStark",
+      "contributions": [
+        "code",
+        "maintenance"
+      ]
     }
   ],
   "contributorsPerLine": 7,
