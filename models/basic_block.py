@@ -82,12 +82,17 @@ def block(f=64, k=3, s=2, order=None, order_param=None, order_priority=False, **
         :return: result tensor        """
 
         def get_k_reg(k_reg):
-            val = k_reg[1]
-            if k_reg[0] == 'l2':
-                func = l2(val)
 
-            elif k_reg[0] == 'l1':
-                func = l1(val)
+            if k_reg is not None:
+                val = k_reg[1]
+                if k_reg[0] == 'l2':
+                    func = l2(val)
+
+                elif k_reg[0] == 'l1':
+                    func = l1(val)
+
+                else:
+                    func = None
 
             else:
                 func = None

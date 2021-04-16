@@ -71,7 +71,7 @@ def read_get_image():
     im_norm = normalize(img_array)
     print("Shape of the image ARRAY is: ", im_norm.shape)
     print("Type of the image rolled is: ", type(im_norm))
-    im_norm = normalize(img_array)
+    im_norm = img_array ##normalize(img_array)
 
     mask_h5 = file['mask'][img_IDs[150]] # mask or label
     print("Shape of the mask_h5 is: ", mask_h5.shape)
@@ -91,15 +91,15 @@ def get_slices(img, slice_cut = 's'):
     slices = []
     if slice_cut =='s':
         for index in range(img.shape[-2]):
-            slices.append(img[:, :, index, 0])
+            slices.append(img[:, :, index, 1])
 
     if slice_cut =='a':
         for index in range(img.shape[1]):
-            slices.append(img[:, index, :, 0])
+            slices.append(img[:, index, :, 1])
 
     if slice_cut =='c':
         for index in range(img.shape[0]):
-            slices.append(img[index, :, :, 0])
+            slices.append(img[index, :, :, 1])
 
     return slices
 
@@ -147,29 +147,30 @@ def test_contrast(img, contrast_factor):
 
     return img, img_cont.numpy()
 
-#img, mask = read_get_image()
-#gamma_list=[0.8, 0.9, 1.2, 1.4]
-#b_list = [0.8]
-#c_list = [0.3, 0.6, 0.9, 1.2, 1.5, 1.7]
-#slice_cut = ['s']
-#slice_list = range(50, 200, 25)
-#transformations = ['gamma', 'brightness', 'contrast']
-#transformations = ['gamma']
+def testing():
+    img, mask = read_get_image()
+    gamma_list=[0.8, 0.9, 1.2, 1.4]
+    b_list = [0.8]
+    c_list = [0.3, 0.6, 0.9, 1.2, 1.5, 1.7]
+    slice_cut = ['s']
+    slice_list = range(50, 200, 25)
+    #transformations = ['gamma', 'brightness', 'contrast']
+    transformations = ['gamma']
 
-#for cut in slice_cut:
-    #for slice in slice_list:
-        #for trans in transformations:
-            #if trans == 'gamma':
-                #for gamma in gamma_list:
-                    #img, img_gamma = test_gamma(img, gamma)
-                    #plot_img(img, img_gamma, gamma, slice, cut, trans)
+    for cut in slice_cut:
+        for slice in slice_list:
+            for trans in transformations:
+                if trans == 'gamma':
+                    for gamma in gamma_list:
+                        img, img_gamma = test_gamma(img, gamma)
+                        plot_img(img, img_gamma, gamma, slice, cut, trans)
 
-            #if trans == 'brightness':
-                #for b in b_list:
-                    #img, img_gamma = test_brightness(img)
-                    #plot_img(img, img_gamma, b, slice, cut, trans)
+                #if trans == 'brightness':
+                    #for b in b_list:
+                        #img, img_gamma = test_brightness(img)
+                        #plot_img(img, img_gamma, b, slice, cut, trans)
 
-            #if trans == 'contrast':
-                #for c in c_list:
-                    #img, img_gamma = test_contrast(img, c)
-                    #plot_img(img, img_gamma, c, slice, cut, trans)
+                if trans == 'contrast':
+                    for c in c_list:
+                        img, img_gamma = test_contrast(img, c)
+                        plot_img(img, img_gamma, c, slice, cut, trans)

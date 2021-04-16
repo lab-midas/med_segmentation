@@ -37,21 +37,35 @@ def validation_preprocessing(volume, label):
     return volume, label
 
 
-def gamma_contrast(data_sample, max_shape, num_patches=324, num_channel=2, shape_data=None,
+def gamma_contrast(data_sample, num_patches=324, num_channel=2, shape_data=None,
                    gamma_range=(0.5, 1.7), invert_image=False, per_channel=False,
                    retain_stats=False):
     epsilon = 1e-7
     data_sample_patch = []
+    gamma_range_tensor = tf.convert_to_tensor(gamma_range)
     for patch in range(num_patches):
 
         if invert_image:
             data_sample = - data_sample
         if not per_channel:
 
-            if np.random.random() < 0.5 and gamma_range[0] < 1:
-                gamma = np.random.uniform(gamma_range[0], 1)
-            else:
-                gamma = np.random.uniform(max(gamma_range[0], 1), gamma_range[1])
+            # if np.random.random() < 0.5 and gamma_range[0] < 1:
+            #    gamma = np.random.uniform(gamma_range[0], 1)
+            # else:
+            # gamma = np.random.uniform(max(gamma_range[0], 1), gamma_range[1])
+            def true_fn():
+                gamma_fn = tf.random.uniform(shape=(), minval=gamma_range[0], maxval=1, seed=1)
+                return gamma_fn
+
+            def false_fn():
+                gamma_fn = tf.random.uniform(shape=(), minval=tf.math.maximum(gamma_range[0], 1),
+                                                         maxval=gamma_range[1], seed=1)
+                return gamma_fn
+
+            cond = tf.math.logical_and(tf.math.less(tf.random.uniform(shape=(), minval=0, maxval=0.99, seed=1), 0.5),
+                                       tf.math.less(gamma_range_tensor[0], 1))
+
+            gamma = tf.cond(cond, true_fn, false_fn)
 
             min_val_ten = tf.math.reduce_min(data_sample[patch, ...])
             range_tensor = tf.math.reduce_max(data_sample[patch, ...]) - min_val_ten
@@ -67,17 +81,25 @@ def gamma_contrast(data_sample, max_shape, num_patches=324, num_channel=2, shape
             data_sample_per_channel = []
             for c in range(num_channel):
 
-                if np.random.random() < 0.5 and gamma_range[0] < 1:
-                    gamma = np.random.uniform(gamma_range[0], 1)
-                else:
-                    gamma = np.random.uniform(max(gamma_range[0], 1), gamma_range[1])
+                def true_fn():
+                    gamma_fn = tf.random_uniform_initializer(minval=gamma_range[0], maxval=1, seed=1)
+                    return gamma_fn
 
+                def false_fn():
+                    gamma_fn = tf.random_uniform_initializer(minval=tf.math.maximum(gamma_range[0], 1),
+                                                             maxval=gamma_range[1], seed=1)
+                    return gamma_fn
+
+                cond = tf.math.logical_and(tf.math.less(tf.random.uniform(shape=(), minval=0, maxval=0.99, seed=1), 0.5),
+                                           tf.math.less(gamma_range_tensor[0], 1))
+
+                gamma = tf.cond(cond, true_fn, false_fn)
                 min_val_ten = tf.math.reduce_min(data_sample[patch, :, :, :, c])
-                rnge_tensor = tf.math.reduce_max(data_sample[patch, :, :, :, c]) - min_val_ten
+                #rnge_tensor = tf.math.reduce_max(data_sample[patch, :, :, :, c]) - min_val_ten
                 data_sample_norm = tf.math.divide(tf.math.subtract(data_sample[patch, ..., c], min_val_ten),
                                                   tf.math.add(range_tensor, epsilon))
                 data_img = tf.image.adjust_gamma(image=data_sample_norm, gamma=gamma,
-                                                                   gain=tf.math.add(range_tensor, epsilon))
+                                                 gain=tf.math.add(range_tensor, epsilon))
                 data_img = tf.math.add(data_img, min_val_ten)
                 data_sample_per_channel.append(data_img)
 
@@ -86,7 +108,7 @@ def gamma_contrast(data_sample, max_shape, num_patches=324, num_channel=2, shape
             data_sample_patch.append(data_sample_channel)
 
     data_sample_return = tf.stack(data_sample_patch)
-    data_sample_return = tf.transpose(data_sample_return, perm=[1, 2, 3, 4, 0])
+    # data_sample_return = tf.transpose(data_sample_return, perm=[1, 2, 3, 4, 0])
 
     return data_sample_return
 
@@ -98,13 +120,15 @@ def brightness_transform(data_sample, mu=0.0, sigma=0.3, num_patches=324, num_ch
     for patch in range(num_patches):
         if not per_channel:
             data_sample_per_channel = []
-            rnd_nb = np.random.normal(mu, sigma)
-            rnd_nb_tensor_1 = tf.multiply(tf.ones(shape=shape_data[:-1], dtype=tf.float32), rnd_nb)
-            rnd_nb_tensor = tf.convert_to_tensor(rnd_nb)
+            #rnd_nb = np.random.normal(mu, sigma)
+            rnd_nb = tf.random.normal(shape=(), mean=mu, stddev=sigma, seed=1)
+            rnd_nb = tf.cast(rnd_nb, dtype=tf.float32)
+            #rnd_nb_tensor_1 = tf.multiply(tf.ones(shape=shape_data[:-1], dtype=tf.float32), rnd_nb)
+            #rnd_nb_tensor = tf.convert_to_tensor(rnd_nb)
             for ch in range(num_channel):
-                if np.random.uniform() <= p_per_channel:
 
-                    sample_channel = tf.math.add(data_sample[patch, ..., ch], rnd_nb_tensor)
+                if np.random.uniform() <= p_per_channel:
+                    sample_channel = tf.math.add(data_sample[patch, ..., ch], rnd_nb)
                     data_sample_per_channel.append(sample_channel)
 
             data_sample_channel = tf.stack(data_sample_per_channel)
@@ -115,10 +139,12 @@ def brightness_transform(data_sample, mu=0.0, sigma=0.3, num_patches=324, num_ch
             data_sample_per_channel = []
             for ch in range(num_channel):
                 if np.random.uniform() <= p_per_channel:
-                    rnd_nb = np.random.normal(mu, sigma)
-                    rnd_nb_tensor_1 = tf.multiply(tf.ones(shape=shape_data[:-1], dtype=tf.float32), rnd_nb)
-                    rnd_nb_tensor = tf.convert_to_tensor(rnd_nb)
-                    sample_channel = tf.math.add(data_sample[patch, ..., ch], rnd_nb_tensor)
+                    #rnd_nb = np.random.normal(mu, sigma)
+                    rnd_nb = tf.random.normal(shape=(), mean=mu, stddev=sigma, seed=1)
+                    rnd_nb = tf.cast(rnd_nb, dtype=tf.float32)
+                    #rnd_nb_tensor_1 = tf.multiply(tf.ones(shape=shape_data[:-1], dtype=tf.float32), rnd_nb)
+                    #rnd_nb_tensor = tf.convert_to_tensor(rnd_nb)
+                    sample_channel = tf.math.add(data_sample[patch, ..., ch], rnd_nb)
                     data_sample_per_channel.append(sample_channel)
 
             data_sample_channel = tf.stack(data_sample_per_channel)
@@ -126,7 +152,7 @@ def brightness_transform(data_sample, mu=0.0, sigma=0.3, num_patches=324, num_ch
             data_sample_patch.append(data_sample_channel)
 
     data_sample_return = tf.stack(data_sample_patch)
-    data_sample_return = tf.transpose(data_sample_return, perm=[1, 2, 3, 4, 0])
+    # data_sample_return = tf.transpose(data_sample_return, perm=[1, 2, 3, 4, 0])
 
     return data_sample_return
 
@@ -135,6 +161,7 @@ def contrast_augmentation_transform(data_sample, contrast_range=(0.75, 1.25), nu
                                     shape_data=None, preserve_range=True, per_channel=True, p_per_sample=1):
     data_sample_patch = []
     for patch in range(num_patches):
+
         if not per_channel:
             mn = tf.math.reduce_mean(data_sample[patch, ...])
 
@@ -142,10 +169,23 @@ def contrast_augmentation_transform(data_sample, contrast_range=(0.75, 1.25), nu
                 min_val_ten = tf.math.reduce_min(data_sample[patch, ...])
                 max_val_tensor = tf.math.reduce_max(data_sample[patch, ...])
 
-            if np.random.random() < 0.5 and contrast_range[0] < 1:
-                factor = np.random.uniform(contrast_range[0], 1)
-            else:
-                factor = np.random.uniform(max(contrast_range[0], 1), contrast_range[1])
+            #if np.random.random() < 0.5 and contrast_range[0] < 1:
+            #    factor = np.random.uniform(contrast_range[0], 1)
+            #else:
+            #    factor = np.random.uniform(max(contrast_range[0], 1), contrast_range[1])
+            def true_fn():
+                factor_fn = tf.random.uniform(shape=(), minval=contrast_range[0], maxval=1, seed=1)
+                return factor_fn
+
+            def false_fn():
+                factor_fn = tf.random.uniform(shape=(), minval=tf.math.maximum(contrast_range[0], 1),
+                                                          maxval=contrast_range[1], seed=1)
+                return factor_fn
+
+            cond = tf.math.logical_and(tf.math.less(tf.random.uniform(shape=(), minval=0, maxval=0.99, seed=1), 0.5),
+                                       tf.math.less(contrast_range[0], 1))
+
+            factor = tf.cond(cond, true_fn, false_fn)
 
             data_sample_dif = tf.math.subtract(data_sample[patch, ...], mn)
             data_sample_mult = tf.math.multiply(data_sample_dif, factor)
@@ -173,17 +213,30 @@ def contrast_augmentation_transform(data_sample, contrast_range=(0.75, 1.25), nu
                     min_val_ten = tf.math.reduce_min(data_sample[patch, ..., c])
                     max_val_tensor = tf.math.reduce_max(data_sample[patch, ..., c])
 
-                if np.random.random() < 0.5 and contrast_range[0] < 1:
-                    factor = np.random.uniform(contrast_range[0], 1)
-                else:
-                    factor = np.random.uniform(max(contrast_range[0], 1), contrast_range[1])
+                #if np.random.random() < 0.5 and contrast_range[0] < 1:
+                #    factor = np.random.uniform(contrast_range[0], 1)
+                #else:
+                #    factor = np.random.uniform(max(contrast_range[0], 1), contrast_range[1])
+                def true_fn():
+                    factor_fn = tf.random.uniform(shape=(), minval=contrast_range[0], maxval=1, seed=1)
+                    return factor_fn
+
+                def false_fn():
+                    factor_fn = tf.random.uniform(shape=(), minval=tf.math.maximum(contrast_range[0], 1),
+                                                              maxval=contrast_range[1], seed=1)
+                    return factor_fn
+
+                cond = tf.math.logical_and(
+                    tf.math.less(tf.random.uniform(shape=(), minval=0, maxval=0.99, seed=1), 0.5),
+                    tf.math.less(contrast_range[0], 1))
+
+                factor = tf.cond(cond, true_fn, false_fn)
 
                 data_sample_dif = tf.math.subtract(data_sample[patch, ..., c], mn)
                 data_sample_mult = tf.math.multiply(data_sample_dif, factor)
                 data_sample_channel = tf.math.add(data_sample_mult, mn)
 
                 if preserve_range:
-
                     min_bool = tf.math.greater(data_sample_channel, min_val_ten)
                     max_bool = tf.math.less(data_sample_channel, max_val_tensor)
 
@@ -197,6 +250,6 @@ def contrast_augmentation_transform(data_sample, contrast_range=(0.75, 1.25), nu
             data_sample_patch.append(data_sample_channel)
 
     data_sample_return = tf.stack(data_sample_patch)
-    data_sample_return = tf.transpose(data_sample_return, perm=[1, 2, 3, 4, 0])
+    # data_sample_return = tf.transpose(data_sample_return, perm=[1, 2, 3, 4, 0])
 
     return data_sample_return

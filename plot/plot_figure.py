@@ -20,9 +20,10 @@ def save_histories_plot_images(history, dataset, config, mode='train_val',k_fold
     :return:
     """
 
-    path_figures = config['result_rootdir'] + '/' + config[
-        'model'] + '/figures/train_loss_and_metrics/' + dataset + '/'
-    path_pickle = config['result_rootdir'] + '/' + config['model'] + '/train_history/' + dataset + '/'
+    path_figures = config['result_rootdir'] + '/' + config['exp_name'] + '/' + config['model'] + \
+                   '/figures/train_loss_and_metrics/' + dataset + '/'
+    path_pickle = config['result_rootdir'] + '/' + config['exp_name'] + '/' + config['model'] \
+                  + '/train_history/' + dataset + '/'
 
     if not os.path.exists(path_figures): os.makedirs(path_figures)
     if not os.path.exists(path_pickle): os.makedirs(path_pickle)
@@ -128,7 +129,7 @@ def plot_mosaic(config, mask, slice_dim=2, colormap=None, vspace=2, hspace=2, co
     """
     # Define variable h(height), w(width), and slices
     mask_shape = mask.shape[:3]
-    mask = mask[:, :, :, 0]
+    mask = mask[:, :, :, 1]
 
     #if mask.shape != origin_image.shape:
     if mask_shape != origin_image.shape:
@@ -204,8 +205,8 @@ def plot_mosaic(config, mask, slice_dim=2, colormap=None, vspace=2, hspace=2, co
                         #print("slice_",  indice_)
                         #print("color_image", color_image)
 
-                    #im = Image.blend(im, origin_image_slice, alpha=alpha_origin)
-                    im = Image.blend(im, origin_image_slice, alpha=0.0)
+                    im = Image.blend(im, origin_image_slice, alpha=alpha_origin)
+                    #im = Image.blend(im, origin_image_slice, alpha=0.0)
 
                 # Draw slice index on the left top of the image
                 #draw = ImageDraw.Draw(im)

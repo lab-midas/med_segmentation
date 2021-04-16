@@ -3,6 +3,7 @@ import random
 import tensorflow as tf
 import scipy.stats
 
+
 def pad_img_label(config, max_data_size, images_data, images_shape, labels_data=None, labels_shape=None):
     """
     1.Pad the gap between image and label shape of [x,y,z]
@@ -45,7 +46,7 @@ def pad_img_label(config, max_data_size, images_data, images_shape, labels_data=
         return images_data
 
 
-def get_fixed_patches_index(config,max_fix_img_size, patch_size, overlap_rate=0.5, start=None, end=None, shuffle=True,
+def get_fixed_patches_index(config, max_fix_img_size, patch_size, overlap_rate=0.5, start=None, end=None, shuffle=True,
                             max_patch_num=None):
     """
     Get fixed patches position list by given image size
@@ -89,32 +90,32 @@ def get_fixed_patches_index(config,max_fix_img_size, patch_size, overlap_rate=0.
 
     else:
         # patching with probability method
-        index_list = [[0]*dim]
-        if not max_patch_num: max_patch_num = 1000 # default max patch number
+        index_list = [[0] * dim]
+        if not max_patch_num: max_patch_num = 1000  # default max patch number
         N = (max_patch_num, 1)
         if config['patch_probability_distribution']['normal']['use']:
             # Patching sampling with truncated normal distribution
-            if  config['patch_probability_distribution']['normal']['mu']:
+            if config['patch_probability_distribution']['normal']['mu']:
                 mu = config['patch_probability_distribution']['normal']['mu']
             else:
-                mu = (start + end) // 2 # default mean value
+                mu = (start + end) // 2  # default mean value
 
-            if  config['patch_probability_distribution']['normal']['sigma']:
+            if config['patch_probability_distribution']['normal']['sigma']:
                 sigma = config['patch_probability_distribution']['normal']['sigma']
             else:
-                sigma = end - start # default std value
-            print(start,end,mu,sigma)
+                sigma = end - start  # default std value
+            print(start, end, mu, sigma)
 
             # Still some problems here, Tensorflow doesn't support type NPY_INT
             lst = [
                 scipy.stats.truncnorm.rvs((start[i] - mu[i]) / sigma, (end[i] - mu[i]) / sigma, loc=mu[i],
                                           scale=sigma[i],
-                                          size=N)[:, 0] for i in range(dim)].astype(np.int32) #
+                                          size=N)[:, 0] for i in range(dim)].astype(np.int32)  #
             index_list = np.stack(lst, axis=-1).astype(np.int32)
 
         if config['patch_probability_distribution']['uniform']:
             # Patching sampling with truncated uniform distribution
-            lst = [np.random.uniform(start[i], end[i], size=N)[:, 0] for i in range(dim)] # [:, 0]
+            lst = [np.random.uniform(start[i], end[i], size=N)[:, 0] for i in range(dim)]  # [:, 0]
             index_list = np.stack(lst, axis=-1).astype(np.int32)
 
     if shuffle: np.random.shuffle(index_list)
@@ -148,7 +149,7 @@ def get_predict_patches_index(data_img, patch_size, overlap_rate=0.5, start=None
     assert (len(patch_size) == len(start) == len(overlap_rate) == dim)
     patch_size = [min(data_size[i], patch_size[i]) for i in range(dim)]
     if output_patch_size is None:
-        step = patch_size - np.round(overlap_rate * patch_size)
+        step = patch_size - np.round(overlap_rate * patch_size)*2
     else:
         step = output_patch_size - np.round(overlap_rate * output_patch_size)
     end = [data_size[i] - patch_size[i] for i in range(dim)]
@@ -172,7 +173,8 @@ def get_predict_patches_index(data_img, patch_size, overlap_rate=0.5, start=None
     return patch_img_collection, index_list
 
 
-def unpatch_predict_image(data_patches, indice_list, patch_size, unpatch_data_size=None, set_zero_by_threshold=True, threshold=0.1,
+def unpatch_predict_image(data_patches, indice_list, patch_size, unpatch_data_size=None, set_zero_by_threshold=True,
+                          threshold=0.1,
                           output_patch_size=None):
     """
     Unpatch the predict image by list of patch images.
@@ -232,7 +234,9 @@ def unpatch_predict_image(data_patches, indice_list, patch_size, unpatch_data_si
                     slice(None, None)],)] += weight_patch
 
     unpatch_img = predict_img / unpatch_weight_map
+    #va1 = np.unique(unpatch_img, return_counts=True)
     if set_zero_by_threshold:  unpatch_img[unpatch_img < threshold] = 0
+    #va2 = np.unique(unpatch_img, return_counts=True)
     return unpatch_img
 
 
@@ -241,6 +245,7 @@ def get_patches_data(data_size, patch_size, data_img, data_label, index_list, ra
                      squeeze_channel=False):
     """
     Get patches from unpatched image and correspondent label by the list of patch positions.
+
     :param data_size: type ndarray: data size of :param: data_img and :param data_label
     :param patch_size: type list of int: patch size images
     :param data_img:  type ndarray: unpatched image data with channel,
@@ -324,30 +329,381 @@ def get_patches_data(data_size, patch_size, data_img, data_label, index_list, ra
                                   patch_label_collection]
     return patch_img_collection, patch_label_collection, index_list
 
-def get_fixed_sampled_patches(data_size, patch_size, data_img, data_label, index_list, random_rate=0.3,
-                     slice_channel_img=None, slice_channel_label=None, output_patch_size=None, random_shift_patch=True,
-                     squeeze_channel=False):
+
+def get_sampled_patches(patch_size_tensor, img_data, label_data, class_p=None, max_class_value=None,
+                        patches_per_subject=10, data_shape=None, dim_patch=3, channel_img=2, channel_label=2,
+                        validation_for_1=0):
     """
-    Get patches from unpatched image and correspondent label by the list of patch positions.
-    :param data_size: type ndarray: data size of :param: data_img and :param data_label
+        Get sampled patches from unpatched image and correspondent label by the list of patch positions.
+
+        :param patch_size_tensor: type ndarray: patch size as tensor.
+        :param img_data: type ndarray: unpatched images, if 3D image, then its shape is [height,width,depth,channel].
+        :param label_data:  type ndarray: unpatched label, if 3D image, then its shape is [height,width,depth,channel].
+        :param class_p: type float: normalized class probability.
+        :param max_class_value: type integer: number of classes in the label.
+        :param patches_per_subject： type integer: number of patches to extract from tensor.
+        :param data_shape： type array of integer: shape of input tensor.
+        :param dim_patch: type integer: dimension of patch size.
+        :param channel_img: type integer: number of channels in image.
+        :param channel_label: type integer: number of channels in label.
+        :param validation_for_1: type integer: 0 or 1. 0 showing no cancer, 1 otherwise.
+
+        :return: patch_img_return: type list of ndarray from images with size equal to patch size.
+        :return: patch_label_return: type list of ndarray from label with size equal to patch size.
+
+    """
+
+    list_patches_img = []
+    list_patches_label = []
+    _label_ax2_any = []
+
+    _label_ax2_any.append([tf.math.reduce_any(label_data[..., 1] == c, axis=2)
+                           for c in range(max_class_value)])
+
+    print("label any: ", _label_ax2_any)
+    print("first element:")
+    print(_label_ax2_any[0])
+    label_data_2_channel = label_data[..., 1]
+
+    for patch in range(patches_per_subject):
+        pos = None
+        min_index_pos = None
+        max_index_pos = None
+        selected_class = 0
+        # selected_class = np.random.choice(range(len(class_p)), p=class_p)
+        selected_class = tf.random.categorical(tf.math.log([tf.convert_to_tensor(class_p)]), num_samples=1)
+        print(selected_class)
+        #selected_class = tf.reshape(selected_class, shape=())
+        print(selected_class)
+        # selected_class = 1
+        print("selected class: ", selected_class)
+
+        def true_selected_class():
+            print("looking for a lesion position ...........................................................")
+
+            def true_fn():
+                valid_idx = tf.where(_label_ax2_any[0][1] == True)
+                idx = tf.random.shuffle(valid_idx, seed=1)
+                idx = tf.gather(idx, indices=0)
+                # Sample additional index along the third axis(=2).
+                # Voxel value should be equal to the class value.
+                valid_idx = label_data_2_channel[idx[0], idx[1], :]
+                valid_idx = tf.where(valid_idx == 1)
+                rnd = tf.random.shuffle(valid_idx, seed=1)
+                rnd = tf.unstack(rnd[0], num=1)
+                u = tf.unstack(idx, num=2)
+                u.append(rnd[0])
+                idx_pos = tf.stack(u)
+                idx_pos = tf.cast(idx_pos, dtype=tf.int32)
+
+                # return idx
+                min_index = tf.math.maximum(tf.math.add(tf.math.subtract(idx_pos, patch_size_tensor), 1), 0)
+                max_index = tf.math.minimum(tf.math.add(tf.math.subtract(data_shape, patch_size_tensor), 1),
+                                            tf.math.add(idx_pos, 1))
+
+                return min_index, max_index
+
+            def false_fn():
+                min_index = tf.convert_to_tensor([0, 0, 0])
+                max_index = tf.math.subtract(data_shape, tf.math.add(patch_size_tensor, 1))
+                return min_index, max_index
+
+            val_for_1 = tf.math.greater(validation_for_1, 0)
+            min_index_pos_true, max_index_pos_true = tf.cond(val_for_1, true_fn, false_fn)
+
+            return min_index_pos_true, max_index_pos_true
+
+        def false_selected_class():
+            min_index_pos_false = tf.convert_to_tensor([0, 0, 0])
+            max_index_pos_false = tf.math.subtract(data_shape, tf.math.add(patch_size_tensor, 1))
+
+            return min_index_pos_false, max_index_pos_false
+
+        cond_selected_class = tf.math.greater(selected_class, 0)
+
+        min_index_pos, max_index_pos = tf.cond(cond_selected_class, true_selected_class, false_selected_class)
+
+        ## here we get the position of that patch to slice
+        index_ini, index_fin = get_random_patch_indices(patch_size_tensor, min_index=min_index_pos, max_index=max_index_pos)
+
+        ## image shape (x, y, z, channel)
+        ## label shape (x, y, z, channel)
+        img_patch_per_ch = []
+        label_patch_per_ch = []
+        for ch in range(channel_img):
+            img_patch_ch = img_data[index_ini[0]:index_fin[0], index_ini[1]:index_fin[1], index_ini[2]:index_fin[2], ch]
+            img_patch_per_ch.append(img_patch_ch)
+
+        for ch in range(channel_label):
+            label_patch_ch = label_data[index_ini[0]:index_fin[0], index_ini[1]:index_fin[1],
+                             index_ini[2]:index_fin[2], ch]
+            label_patch_per_ch.append(label_patch_ch)
+
+        img_patch = tf.stack(img_patch_per_ch)
+        img_patch = tf.transpose(img_patch, perm=[1, 2, 3, 0])
+        label_patch = tf.stack(label_patch_per_ch)
+        label_patch = tf.transpose(label_patch, perm=[1, 2, 3, 0])
+
+        list_patches_img.append(img_patch)
+        list_patches_label.append(label_patch)
+
+    patch_img_return = tf.stack(list_patches_img)
+
+    patch_label_return = tf.stack(list_patches_label)
+
+    return patch_img_return, patch_label_return
+
+
+def get_random_patch_indices(patch_size_tensor, min_index=None, max_index=None):
+    """
+            Get random position of the patch to slice.
+
+            :param patch_size_tensor: type ndarray: patch size as tensor.
+            :param min_index:  type ndarray: minimum index.
+            :param max_index: type ndarray: maximum index.
+
+            :return: index_ini: type ndarray: starting index for patch creation.
+            :return: index_fin: type ndarray: final index for patch creation.
+
+    """
+    # 3d - image array should have shape H,W,D
+
+    # create valid patch boundaries
+    a = tf.math.subtract(max_index, min_index)
+    i = tf.random.uniform(shape=(), minval=min_index[0], maxval=max_index[0], dtype=tf.int32)
+    ii = tf.random.uniform(shape=(), minval=min_index[1], maxval=max_index[1], dtype=tf.int32)
+    iii = tf.random.uniform(shape=(), minval=min_index[2], maxval=max_index[2], dtype=tf.int32)
+    index_ini = tf.stack([i, ii, iii])
+    # index_ini = np.random.randint(low=min_index[0], high=max_index[0])
+    index_fin = tf.math.add(index_ini, patch_size_tensor)
+
+    return index_ini, index_fin
+
+
+def get_grid_patch_sample_test(img_data, label_data, data_shape=None, patch_size=[96, 96, 96], patch_overlap=0.26,
+                               dim_patch=3):
+    """
+            Get patches for evaluation and prediction tasks.
+
+            :param img_data: type ndarray: image data.
+            :param label_data:  type ndarray: label data.
+            :param data_shape: type ndarray: shape of image
+            :param patch_size: type list: patch size.
+            :param patch_overlap:  type float: overlap for adjacent patches.
+            :param dim_patch: type integer: dimension of patches.
+
+            :return: patches_img: type list of ndarray: image patches.
+            :return: patches_label: type list of ndarray: label patches.
+
+    """
+
+    patch_size_array = np.array(patch_size)
+    img_size = data_shape
+    patch_overlap_array = np.around(patch_size_array * patch_overlap).astype(np.int64)
+    cropped_patch_size = patch_size_array - 2 * patch_overlap_array
+    n_patches_dim = tf.cast(tf.math.ceil(tf.math.divide(img_size, cropped_patch_size)), dtype=tf.int32)
+    overhead = tf.math.subtract(cropped_patch_size,
+                                tf.cast(tf.math.floormod(img_size, cropped_patch_size), dtype=tf.int64))
+
+    padded_img = tf.pad(img_data, [[patch_overlap_array[0], patch_overlap_array[0] + overhead[0]],
+                                   [patch_overlap_array[1], patch_overlap_array[1] + overhead[1]],
+                                   [patch_overlap_array[2], patch_overlap_array[2] + overhead[2]], [0, 0]])
+    padded_label = tf.pad(label_data, [[patch_overlap_array[0], patch_overlap_array[0] + overhead[0]],
+                                       [patch_overlap_array[1], patch_overlap_array[1] + overhead[1]],
+                                       [patch_overlap_array[2], patch_overlap_array[2] + overhead[2]], [0, 0]])
+
+    list_patch_ksizes = [1]
+    [list_patch_ksizes.append(patch_size[i]) for i in range(dim_patch)]
+    list_patch_ksizes.append(1)
+
+    list_patch_strides = [1]
+    [list_patch_strides.append(int(patch_size[i] - 2 * patch_overlap * patch_size[i])) for i in range(dim_patch)]
+    list_patch_strides.append(1)
+
+    padded_img = tf.expand_dims(padded_img, 0)
+    padded_label = tf.expand_dims(padded_label, 0)
+
+    patches_img = tf.extract_volume_patches(padded_img, ksizes=list_patch_ksizes,
+                                            strides=list_patch_strides, padding='VALID')
+    patches_label = tf.extract_volume_patches(padded_label, ksizes=list_patch_ksizes,
+                                              strides=list_patch_strides, padding='VALID')
+
+    patches_img = tf.reshape(patches_img, [-1, patch_size[0], patch_size[1], patch_size[2], 2])
+    patches_label = tf.reshape(patches_label, [-1, patch_size[0], patch_size[1], patch_size[2], 2])
+    # patches_img = tf.squeeze(patches_img)
+    # patches_label = tf.squeeze(patches_label)
+
+    return patches_img, patches_label
+
+
+def get_grid_patch_sample(img_data, label_data, data_shape=None, patch_size=[96, 96, 96], patch_overlap=0.26,
+                          dim_patch=3, channel_label=2, list_indices_num=324):
+
+    """Generates grid of overlapping patches.
+        All patches are overlapping (2*patch_overlap per axis).
+        Cropping the original image by patch_overlap.
+        The resulting patches can be re-assembled to the
+        original image shape.
+
+        Additional np.pad argument can be passed via **kwargs.
+        Args:
+            img (np.array): CxHxWxD
+            patch_size (list/np.array): patch shape [H,W,D]
+            patch_overlap (list/np.array): overlap (per axis) [H,W,D]
+
+        Yields:
+            np.array, np.array, int: patch data CxHxWxD,
+                                     patch position [H,W,D],
+                                     patch number
+        """
+    dim = dim_patch
+    patch_size = np.array(patch_size)
+    print(patch_size)
+    img_size = data_shape
+    print(img_size)
+    patch_overlap = np.around(patch_size * patch_overlap).astype(np.int64)
+    print(patch_overlap)
+    cropped_patch_size = patch_size - 2 * patch_overlap
+    print(cropped_patch_size)
+    n_patches_dim = tf.cast(tf.math.ceil(tf.math.divide(img_size, cropped_patch_size)), dtype=tf.int32)
+    print(n_patches_dim)
+    overhead = tf.math.subtract(cropped_patch_size,
+                                tf.cast(tf.math.floormod(img_size, cropped_patch_size), dtype=tf.int64))
+    print(overhead)
+    padded_img = tf.pad(img_data, [[patch_overlap[0], patch_overlap[0] + overhead[0]],
+                                   [patch_overlap[1], patch_overlap[1] + overhead[1]],
+                                   [patch_overlap[2], patch_overlap[2] + overhead[2]], [0, 0]])
+    print(padded_img)
+    padded_label = tf.pad(label_data, [[patch_overlap[0], patch_overlap[0] + overhead[0]],
+                                       [patch_overlap[1], patch_overlap[1] + overhead[1]],
+                                       [patch_overlap[2], patch_overlap[2] + overhead[2]], [0, 0]])
+    print(padded_label)
+
+    ## get the range positions
+    r1 = tf.range(0, tf.math.multiply(n_patches_dim[0], cropped_patch_size[0]), cropped_patch_size[0])
+    print(r1)
+    r2 = tf.range(0, tf.math.multiply(n_patches_dim[1], cropped_patch_size[1]), cropped_patch_size[1])
+    print(r2)
+    r3 = tf.range(0, tf.math.multiply(n_patches_dim[2], cropped_patch_size[2]), cropped_patch_size[2])
+    print(r3)
+    pos_range = tf.stack([r1, r2, r3])
+    print(pos_range)
+    pos = tf.transpose(pos_range, perm=[1, 0])
+    print(pos)
+
+    n_patches = tf.math.multiply(tf.math.multiply(n_patches_dim[0], n_patches_dim[1]), n_patches_dim[2])
+    print(n_patches)
+
+    list_patches_img = []
+    list_patches_label = []
+    count = tf.convert_to_tensor(np.array([0]))
+
+    for i in range(list_indices_num):
+        elem = tf.gather(pos, indices=i)
+
+        im = padded_img[elem[0]:tf.math.add(elem[0], patch_size[0]),
+             elem[1]:tf.math.add(elem[1], patch_size[1]),
+             elem[2]:tf.math.add(elem[2], patch_size[2]), :]
+        label = padded_label[elem[0]:tf.math.add(elem[0], patch_size[0]),
+                elem[1]:tf.math.add(elem[1], patch_size[1]),
+                elem[2]:tf.math.add(elem[2], patch_size[2]), :]
+
+        list_patches_img.append(im)
+        list_patches_label.append(label)
+
+        def true_fn():
+            a = tf.add(count, 1)
+            return a, i
+
+        # @tf.function
+        def false_fn():
+            a = tf.add(count, 0)
+            ii = 324
+            return a, ii
+
+        cond = tf.math.less(count, tf.cast(n_patches, dtype=tf.int64))
+
+        count, i = tf.cond(cond, true_fn, false_fn)
+        print(i)
+
+    patch_img_return = tf.stack(list_patches_img)
+    patch_label_return = tf.stack(list_patches_label)
+    return patch_img_return, patch_label_return
+
+
+def get_fixed_patches_index_evaluation(config, max_fix_img_size, patch_size, overlap_rate=0.5, start=None, end=None,
+                                       shuffle=True,
+                                       max_patch_num=None):
+    """
+    Get fixed patches position list by given image size
+    since tf.function of pipeline in Tensorflow 2.0 is not allowed to iterate the values in tf.Tensor,
+    it cannot iterate the specific (individual and different) image size of each single image.
+    Thus a fix grid of patches is created before creating pipeline.
+    Note:Image and label must have the same size!
+    :param max_fix_img_size: type list of int: size of unpatched image,
+                              the length must be greater than or equal to the length of :param: patch_size
     :param patch_size: type list of int: patch size images
-    :param data_img:  type ndarray: unpatched image data with channel,
-                       if 3D image, then its shape is [height,width,depth,channel].
-    :param data_label: type ndarray: unpatch label data  with channel,
-                        if 3D image, then its shape is [height,width,depth,channel].
-    :param index_list: type list of list of integers: list position of each patch
-    :param slice_channel_img： type list of int:  channel indice chosen for model inputs,
-            if :param squeeze_channel is true, the img dimension remains same, else reduce 1.
-    :param slice_channel_label： type list of int: channel indice chosen for model outputs
-    :param output_patch_size： type list of int: model output size
-    :param random_rate: type float,rate of random shift of position from  :param index_list. random_rate=0 if no shift.
-    :param random_shift_patch: type bool, True if the patches are randomly shift for data augmentation.
-    :param squeeze_channel: type bool, True if select image channel. else all channel will be as input if :param slice_channel_img is False.
-
-    :return: patch_img_collection: type list of ndarray with the shape :param patch_size: list of patches images.
-    :return: patch_label_collection type list of ndarray with the shape :param patch_size: list of patches labels.
-    :return: index_list: type list of int. Position  of the patch.
-
+    :param overlap_rate: type float or list of float in [0,1), overlape rate between two patches,
+                          the list length must be equal to the length of :param: patch_size
+    :param start: type int or list of int: start point of patching
+                  the list length must be equal to the length of :param: patch_size
+    :param end: type int or list of int: end point of patching
+                  the list length must be equal to the length of :param: patch_size
+    :param shuffle: type bool: True if shuffle the output list
+    :param max_patch_num: type int: max number of patches from a unpatched image. max_patch_num=None if take all patches.
+    :return: index_list type list of int list: list of patched position.
     """
+    dim = len(patch_size)
+    if isinstance(overlap_rate, float): overlap_rate = np.array([overlap_rate] * dim)
+    if start is None: start = np.array([0] * dim)
+    assert (len(start) == len(overlap_rate) == dim)
+    patch_size = [tf.math.minimum(max_fix_img_size[i], patch_size[i]) for i in range(dim)]
+    end1 = [max_fix_img_size[i] - patch_size[i] for i in range(dim)]  # stop int list
+    if end is not None:
+        for i in range(dim):
+            if end[i] > end1[i]: end[i] = end1[i]
+    else:
+        end = end1
+    if not config['patch_probability_distribution']['use']:
+        # Patching with tiling method
+        step = patch_size - np.round(overlap_rate * patch_size) * 2
+        for st in step:
+            if st <= 0: raise ValueError('step of patches must greater than 0.')
 
-    return patches_list
+        # Sampling patch index with start, end, step
+        slice_ = (*[slice(start[i], end[i] + step[i] - 1, step[i]) for i in range(dim)],)
+        index_list = np.array(np.mgrid[slice_].reshape(dim, -1).T, dtype=np.int)
+
+    else:
+        # patching with probability method
+        index_list = [[0] * dim]
+        if not max_patch_num: max_patch_num = 1000  # default max patch number
+        N = (max_patch_num, 1)
+        if config['patch_probability_distribution']['normal']['use']:
+            # Patching sampling with truncated normal distribution
+            if config['patch_probability_distribution']['normal']['mu']:
+                mu = config['patch_probability_distribution']['normal']['mu']
+            else:
+                mu = (start + end) // 2  # default mean value
+
+            if config['patch_probability_distribution']['normal']['sigma']:
+                sigma = config['patch_probability_distribution']['normal']['sigma']
+            else:
+                sigma = end - start  # default std value
+            print(start, end, mu, sigma)
+
+            # Still some problems here, Tensorflow doesn't support type NPY_INT
+            lst = [
+                scipy.stats.truncnorm.rvs((start[i] - mu[i]) / sigma, (end[i] - mu[i]) / sigma, loc=mu[i],
+                                          scale=sigma[i],
+                                          size=N)[:, 0] for i in range(dim)].astype(np.int32)  #
+            index_list = np.stack(lst, axis=-1).astype(np.int32)
+
+        if config['patch_probability_distribution']['uniform']:
+            # Patching sampling with truncated uniform distribution
+            lst = [np.random.uniform(start[i], end[i], size=N)[:, 0] for i in range(dim)]  # [:, 0]
+            index_list = np.stack(lst, axis=-1).astype(np.int32)
+
+    if shuffle: np.random.shuffle(index_list)
+    if max_patch_num: index_list = index_list[:max_patch_num]
+    return index_list

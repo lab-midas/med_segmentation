@@ -74,7 +74,7 @@ def read_get_image(file, img_IDs, index=0):
     im_norm = normalize(img_array)
     print("Shape of the image ARRAY is: ", im_norm.shape)
     print("Type of the image rolled is: ", type(im_norm))
-    im_norm = normalize(img_array)
+    im_norm = img_array ##normalize(img_array)
 
     mask_h5 = file['mask'][img_IDs[index]]  # mask or label
     print("Shape of the mask_h5 is: ", mask_h5.shape)

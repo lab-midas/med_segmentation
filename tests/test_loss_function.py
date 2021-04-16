@@ -167,6 +167,5 @@ def test_loss_function():
         print("loss tf " + str(index) + ": ", loss_tf)
         print("loss torch " + str(index) + ": ", loss_torch)
 
-#for i in range(15):
- #   obj = test_loss_function()
-  #  print("file read:", i)
+##-- in case the test is to be performed, uncomment the next line and run just the test file
+#test_loss_function()

@@ -128,20 +128,22 @@ def train_process(config, model, paths_train_img, paths_train_label, paths_val_i
 
         print("reading pipeline for Melanom dataset")
 
-        ds_train = pipeline_melanom(config, paths_train_img, paths_train_label, dataset=dataset, augment=True)
+        ds_train = pipeline_melanom(config, paths_train_img, paths_train_label,
+                                    dataset=dataset, augment=True, training=True)
 
-        ds_validation = pipeline_melanom(config, paths_val_img, paths_val_label, dataset=dataset, augment=False)
+        ds_validation = pipeline_melanom(config, paths_val_img, paths_val_label,
+                                         dataset=dataset, augment=False, training=True)
 
         # Fit training & validation data into the model
         # ds_validation_it_next = ds_validation_it.get_next()
 
         history = model.fit(ds_train,
                             epochs=config['epochs'] + init_epoch,
-                            steps_per_epoch=config['train_steps_per_epoch'],
+                            #steps_per_epoch=config['train_steps_per_epoch'],
                             callbacks=[cp_callback, saver1],
                             initial_epoch=init_epoch,
                             validation_data=ds_validation,
-                            validation_steps=config['val_steps_per_epoch'],
+                            #validation_steps=config['val_steps_per_epoch'],
                             validation_freq=config['validation_freq'],
                             verbose=config['train_verbose_mode'])
         print(history.history)

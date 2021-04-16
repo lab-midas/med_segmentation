@@ -189,7 +189,7 @@ def focal_loss(y_true, y_pred, config, alpha=0.25, gamma=2.0):
 def jaccard_dist_loss(y_true, y_pred, config):
     smooth = 1E-16
     sum_loss, weight_sum = 0, 0
-    for class_index in range(config['channel_label_num']):
+    for class_index in range(config['num_classes']):
         y_t = y_true[..., class_index]
         y_p = y_pred[..., class_index]
 

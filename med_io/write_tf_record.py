@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 import os
 
-def write_tfrecord(data, path):
+def write_tfrecord(data, validation_for_cancer, path):
     """
     writing data to a single tf_record to the path
     saving images and images shape only.
@@ -17,6 +17,7 @@ def write_tfrecord(data, path):
             example = tf.train.Example(features=tf.train.Features(feature={
                 'image': tf.train.Feature(bytes_list=tf.train.BytesList(value=[data.tobytes()])),
                 'image_shape': tf.train.Feature(bytes_list=tf.train.BytesList(value=[np.int32(np.array(data.shape)).tobytes()])),
+                'validation_for_cancer': tf.train.Feature(int64_list=tf.train.Int64List(value=[validation_for_cancer]))
             }))
             writer.write(example.SerializeToString())
 

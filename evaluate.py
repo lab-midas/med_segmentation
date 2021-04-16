@@ -34,8 +34,9 @@ def evaluate(config, datasets=None):
         # Set the config files
         config = channel_config(config, dataset, evaluate=True)
         # create pipeline dataset
-        ds_test = pipeline_melanom(config, dataset_image_path, dataset_label_path, dataset=dataset, augment=False)
+        ds_test = pipeline_melanom(config, dataset_image_path, dataset_label_path, dataset=dataset, evaluate=True)
 
+        #ds_test = pipeline(config, dataset_image_path, dataset_label_path, dataset=dataset)
         # Choose the training model.
         model = load_model_file(config, dataset)
 
@@ -54,7 +55,7 @@ def evaluate(config, datasets=None):
         #print("printing metrics from evaluation.......")
         #print(list_loss_and_metrics)
 
-        path_pickle = config['result_rootdir'] + '/' + config['exp_name']+ '/'+config['model']+'/evaluate_loss_and_metrics/'
+        path_pickle = config['result_rootdir'] + '/' + config['exp_name']+ '/' + config['model']+'/evaluate_loss_and_metrics/'
         if not os.path.exists(path_pickle): os.makedirs(path_pickle)
 
         dictionary=dict()

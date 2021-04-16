@@ -46,6 +46,26 @@ class Metric:
         precision = precision_func(self, selected_class, y_true, y_pred, config)
         return (2 * recall * precision + smooth) / (recall + precision + smooth)
 
+    def dice_coef_per_class(self, selected_class, y_true, y_pred, config):
+        """ Dice coefficient for Melanoma network
+                            y_true: true targets tensor.
+                            y_pred: predictions tensor.
+                            Dice calculation with smoothing to avoid division by zero
+        """
+        # smooth = 1E-16
+        # assert y_true.shape == y_pred.shape
+        smooth = K.epsilon()
+        sum_metric, weight_sum = 0, 0
+
+        y_t = y_true[..., selected_class]
+        y_p = y_pred[..., selected_class]
+        intersection = tf.math.reduce_sum(y_t * y_p) * config['loss_channel_weight'][selected_class]
+        denominator = tf.math.reduce_sum(y_t) + tf.math.reduce_sum(y_p) + smooth
+        dice_coef = (2. * intersection / denominator)
+
+        #y_mean = sum_metric / weight_sum
+        return dice_coef
+
     """
     one against-rest metrics
     """

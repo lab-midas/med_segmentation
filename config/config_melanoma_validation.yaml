@@ -5,7 +5,7 @@
 dataset : [MELANOM] # either known database [NAKO_AT,DIXON,TULIP1_5T,TULIP3T,NAKO,KORA]
     #(i.e. converting and loading as TFRecords) or leave empty (only test/prediction) -> direct loading from Nifty, information specified in PREDICTION
 project: MELANOM  # project name
-exp_name: Melanoma_6  # experiment name (used for storage)
+exp_name: Melanoma_3  # experiment name (used for storage)
 
 
 # Seed for fixing the random data
@@ -258,9 +258,9 @@ convolution_parameter :
     convolution:
         padding: same
         num_parallel_calls: 1
-        kernel_regularizer: #[l2,0.01]#
+        kernel_regularizer: None #[l2,0.01]
         dilation_rate: 1
-        kernel_initializer: he_uniform  #he_normal
+        kernel_initializer: he_normal
         bias: False
     activation_function:
         alpha: 1.0 ## for the case of using ELU activation function

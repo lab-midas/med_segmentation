@@ -11,12 +11,12 @@ def plot_img_augmentation(img, slice_cut, patch):
     img_slices = get_slices(img, slice_cut, patch=patch)
     img_aug = tf.convert_to_tensor(np.expand_dims(img, axis=0))
 
-    img_gamma = gamma_contrast(img_aug, [96, 96, 96], num_patches=1, num_channel=2, shape_data=None,
+    img_bright = brightness_transform(img_aug, mu=0.9, sigma=0.35, num_patches=1, num_channel=2,
+                                      shape_data=img.shape, per_channel=True, p_per_channel=1)
+
+    img_gamma = gamma_contrast(img_bright, [96, 96, 96], num_patches=1, num_channel=2, shape_data=None,
                                gamma_range=(1.6, 1.8), invert_image=False, per_channel=False,
                                retain_stats=False)
-
-    img_bright = brightness_transform(img_gamma, mu=0.9, sigma=0.35, num_patches=1, num_channel=2,
-                                      shape_data=img.shape, per_channel=True, p_per_channel=1)
 
     img_contrast = contrast_augmentation_transform(img_bright, contrast_range=(1.5, 1.7), num_patches=1, num_channel=2,
                                                    shape_data=img.shape, preserve_range=True, per_channel=True,
@@ -29,9 +29,9 @@ def plot_img_augmentation(img, slice_cut, patch):
         ax[0, 0].imshow(slice_img[..., 0])
         ax[0, 0].set_title(slice_cut + " normal")
         ax[0, 1].imshow(slice_gamma[..., 0])
-        ax[0, 1].set_title(slice_cut + " gamma augmentation")
-        ax[1, 0].imshow(slice_brigh[..., 0])
-        ax[1, 0].set_title(slice_cut + " brightness augmentation")
+        ax[0, 1].set_title(slice_cut + " brightness augmentation")
+        ax[1, 0].imshow(slice_gamma[..., 0])
+        ax[1, 0].set_title(slice_cut + " gamma augmentation")
         ax[1, 1].imshow(slice_cont[..., 0])
         ax[1, 1].set_title(slice_cut + " contrast augmentation")
         plt.show()
@@ -78,4 +78,5 @@ def test_augmentation():
         plot_img_augmentation_batch(patch_img, slice_cut, patch=patch_size)
 
 
-test_augmentation()
+##-- in case the test is to be performed, uncomment the next line and run just the test file
+#test_augmentation()

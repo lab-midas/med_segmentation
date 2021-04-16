@@ -90,8 +90,7 @@ def pipeline(config, dataset_image_path, dataset_label_path, dataset=None):
 
             # Pad and patch the data
             images_data, labels_data = pad_img_label(config, max_data_size, images_data, images_shape, labels_data,
-                                                     labels_shape,
-                                                     )
+                                                     labels_shape)
 
             patchs_imgs, patchs_labels, index_list = get_patches_data(max_data_size, patch_size, images_data,
                                                                       labels_data,
@@ -141,11 +140,6 @@ def pipeline(config, dataset_image_path, dataset_label_path, dataset=None):
 
     dataset = dataset.unbatch().batch(config['batch']).shuffle(config['shuffle']).prefetch(
         tf.data.experimental.AUTOTUNE)
-    """
-    while True:
-        for elem ,elem2 in dataset:
-            print(elem)
-            print(elem2)
-"""
+
 
     return dataset

@@ -16,14 +16,14 @@ from packaging import version
 from tests import test_pipeline
 from tests import test_sampling
 
-
 import argparse
 
 
 def args_argument():
     parser = argparse.ArgumentParser(prog='MedSeg')
-    parser.add_argument('-e', '--exp_name', type=str, default='exp0', help='Name of experiment (subfolder in result_rootdir)')
-    
+    parser.add_argument('-e', '--exp_name', type=str, default='exp0',
+                        help='Name of experiment (subfolder in result_rootdir)')
+
     parser.add_argument('--preprocess', type=bool, default=False, help='Preprocess the data')
     parser.add_argument('--train', type=bool, default=False, help='Train the model')
     parser.add_argument('--evaluate', type=bool, default=False, help='Evaluate the model')
@@ -31,9 +31,10 @@ def args_argument():
     parser.add_argument('--postprocessing', type=bool, default=False, help='Postprocessing after prediction')
     parser.add_argument('--validation', type=bool, default=False, help='Validation after prediction')
     parser.add_argument('--restore', type=bool, default=False, help='Restore the unfinished trained model')
-    #parser.add_argument('-c', '--config_path', type=str, default='./config/bi.yaml', help='Configuration file of the project')
-    parser.add_argument('-c', '--config_path', type=str, default='/config/config_melanoma.yaml', help='Configuration file of the project')
-    #parser.add_argument('-c', '--config_path', type=str, default='./config/nifti_AT.yaml', help='Configuration file of the project')
+    # parser.add_argument('-c', '--config_path', type=str, default='./config/bi.yaml', help='Configuration file of the project')
+    parser.add_argument('-c', '--config_path', type=str, default='/config/config_melanoma.yaml',
+                        help='Configuration file of the project')
+    # parser.add_argument('-c', '--config_path', type=str, default='./config/nifti_AT.yaml', help='Configuration file of the project')
 
     parser.add_argument("--gpu", type=int, default=0, help="Specify the GPU to use")
     parser.add_argument('--gpu_memory', type=float, default=None, help='Set GPU allocation. (in GB) ')
@@ -90,7 +91,7 @@ def main(args):
         random.seed(config['random_seed'])
 
     if args.exp_name:
-        config['exp_name']=args.exp_name
+        config['exp_name'] = args.exp_name
 
     if args.train_epoch:
         config['epoch'] = args.train_epoch
@@ -100,7 +101,6 @@ def main(args):
         config['batch'] = args.train_batch
     if args.dataset:
         config['dataset'] = [args.dataset]
-
 
     # preprocess and convert input to TFRecords
     if args.preprocess:
@@ -114,26 +114,27 @@ def main(args):
     if args.split_only:
         split(config)  # split into train, validation and test set
 
-
     if args.train:  # train the model
         train(config, args.restore)
-        print("Training finished for %s" % (config['dir_model_checkpoint']+os.sep+config['exp_name']))
+        print("Training finished for %s" % (config['dir_model_checkpoint'] + os.sep + config['exp_name']))
 
     if args.evaluate:  # evaluate the metrics of a trained model
-        evaluate(config,datasets=config['dataset'])
-        print("Evaluation finished for %s" % (config['result_rootdir']+os.sep+config['exp_name']))
+        evaluate(config, datasets=config['dataset'])
+        print("Evaluation finished for %s" % (config['result_rootdir'] + os.sep + config['exp_name']))
 
     if args.predict:  # predict and generate output masks of a trained model
-        predict(config, datasets=config['dataset'], save_predict_data=config['save_predict_data'])
-        print("Prediction finished for %s" % (config['result_rootdir']+os.sep+config['exp_name']))
+        predict_validation(config, datasets=config['dataset'], save_predict_data=config['save_predict_data'])
+        print("Prediction finished for %s" % (config['result_rootdir'] + os.sep + config['exp_name']))
 
     if args.postprocessing:  # predict and generate output masks of a trained model
         postprocessing(config, datasets=config['dataset'])
-        print("Postprocessing finished for %s" % (config['result_rootdir']+os.sep+config['exp_name']))
+        print("Postprocessing finished for %s" % (config['result_rootdir'] + os.sep + config['exp_name']))
 
     if args.validation:  # predict and generate output masks of a trained model
+        print("starting validation in another main")
         validation(config, datasets=config['dataset'])
-        print("Validation finished for %s" % (config['result_rootdir']+os.sep+config['exp_name']))
+        print("Validation finished for %s" % (config['result_rootdir'] + os.sep + config['exp_name']))
+
 
 if __name__ == '__main__':
     main(args_argument())

@@ -59,11 +59,11 @@ def preprocess_raw_dataset(config):
         :return:
         """
         if imgs_data is not None:
-            write_tfrecord(imgs_data, path=dir_tfrec_img + '/'+img_tf_name+'.tfrecords')
+            write_tfrecord(imgs_data, info['validation_for_cancer'], path=dir_tfrec_img + '/'+img_tf_name+'.tfrecords')
             print("Image succesfully written")
 
         if labels_data is not None:
-            write_tfrecord(labels_data, path=dir_tfrec_label + '/'+label_tf_name+'.tfrecords')
+            write_tfrecord(labels_data, info['validation_for_cancer'], path=dir_tfrec_label + '/'+label_tf_name+'.tfrecords')
             print("Mask succesfully written")
 
         if info is not None:
@@ -466,7 +466,6 @@ def preprocess_raw_dataset(config):
         ## for Melanom dataset
         elif dataset == 'MELANOM':
 
-            #test_augmentation()
             # directories in server for the HD5F files
             # directory of images and masks are the same
             rootdir_file = config['rootdir_raw_data_img'][dataset]
@@ -485,21 +484,27 @@ def preprocess_raw_dataset(config):
             img_IDs = Data_Reader.img_IDs
             file_keys = Data_Reader.file_keys
 
+            i=0
             ## iterate over the IDs in order to save each image as tfrecord
             for img_ID in img_IDs:
 
-                #num_channels = file[file_keys[0]][img_ID].shape[0]
-
-                #assert num_channels == 2, "the file has more than 2 channels"
 
                 #for channel in range(num_channels): # (PET, CT)
+                print("------------------------------------------------------------------")
+                print("ID: ", img_ID)
 
                 img_h5 = Data_Reader.file[file_keys[0]][img_ID]
                 print("Shape of the image is: ", img_h5.shape)
                 # the form of the images are  (channel, H, W, D)
 
-                mask_h5 = Data_Reader.file[file_keys[2]][img_ID] # mask or label
-                print("Shape of the mask_h5 is: ", mask_h5.shape)
+                mask_type = config['keys_reader'][1]
+                if mask_type == 'mask_iso':
+                    mask_h5 = Data_Reader.file[file_keys[2]][img_ID] # mask iso
+                    print("Shape of the mask_h5 is: ", mask_h5.shape)
+
+                else:
+                    mask_h5 = Data_Reader.file[file_keys[1]][img_ID]  # mask
+                    print("Shape of the mask_h5 is: ", mask_h5.shape)
 
                 img_array = np.rollaxis(np.float32(np.array(img_h5)), 0, 4)
                 print("Shape of the image ARRAY is: ", img_array.shape)
@@ -514,11 +519,28 @@ def preprocess_raw_dataset(config):
                 values_b = np.unique(mask_array)
                 ##assert values_b == [0.0,1.0], "Labels do not contain only 0s and 1s"
                 mask_one_hot = to_categorical(mask_array, num_classes=config['num_classes'])
-                values_1 = np.unique(mask_one_hot[...,0])
-                values_2 = np.unique(mask_one_hot[..., 1])
+                #values_1 = np.unique(mask_one_hot[...,0])
+                #values_2 = np.unique(mask_one_hot[..., 1])
                 assert mask_one_hot.shape[-1] == config['num_classes'], "Mask is not in one hot encoded"
 
                 ##--------------------------------------------------------------
+                # some images do not present lesion in the image
+                # for further pipeline development we need to validate them
+                # if they have lesion or not
+                # lesion appears in the mask as 1
+                # Non-lesion appears in the mask as 0
+                # in case an image has lesion and non-lesion parameters
+                # then it must have 2 elements, otherwise just 1
+
+                values_in_array = np.unique(mask_array)
+                print("values in mask: ", values_in_array)
+                validation_for_cancer = False
+
+                if values_in_array.size == 2:
+                    validation_for_cancer = True
+
+                print("validation for cancer: ", validation_for_cancer)
+                ##-------------------------------------------------------------------
 
                 max_shape_img = calculate_max_shape(max_shape_img, img_array)
                 print("MaxShape of the image is: ", max_shape_img)
@@ -536,7 +558,8 @@ def preprocess_raw_dataset(config):
                 infos = {'name_ID': img_ID,
                          'info_patient': "info",
                          'name_input_channel': config['name_input_channel'][dataset],
-                         'name_output_channel': config['name_output_channel'][dataset]}
+                         'name_output_channel': config['name_output_channel'][dataset],
+                         'validation_for_cancer': validation_for_cancer}
                 #print(img_ID, ': image shape:', img_normalized.shape, ' labels shape:', mask_array.shape)
                 print(img_ID, ': image shape:', img_normalized.shape, ' labels shape:', mask_one_hot.shape)
 
@@ -547,14 +570,13 @@ def preprocess_raw_dataset(config):
                     rootdir_tfrec=rootdir_tfrec)
 
                 ## write tfrec in pickle file
-                #print("Type of image is: ", type(img_normalized))
-                #print("Type of mask is: ", type(mask_h5))
-                #write_tfrec_and_pickle(img_normalized, dir_tfrec_img, mask_array, dir_tfrec_label, infos,
-                                      # dir_tfrec_info)
-                write_tfrec_and_pickle(img_normalized, dir_tfrec_img, mask_one_hot, dir_tfrec_label, infos,
-                                       dir_tfrec_info)
+                write_tfrec_and_pickle(imgs_data=img_normalized, dir_tfrec_img=dir_tfrec_img,
+                                       labels_data=mask_one_hot, dir_tfrec_label=dir_tfrec_label,
+                                       info=infos, dir_tfrec_info=dir_tfrec_info)
                 ##save the max shape
                 save_max_shape(dataset, max_shape_img, max_shape_label)
+
+                i = i+1
 
             print("Melanom Dataset preprocessed")
 
