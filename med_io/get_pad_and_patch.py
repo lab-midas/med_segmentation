@@ -334,7 +334,7 @@ def get_sampled_patches(patch_size_tensor, img_data, label_data, class_p=None, m
                         patches_per_subject=10, data_shape=None, dim_patch=3, channel_img=2, channel_label=2,
                         validation_for_1=0):
     """
-        Get sampled patches from unpatched image and correspondent label by the list of patch positions.
+        Get sampled patches from unpatched image and correspondent label.
 
         :param patch_size_tensor: type ndarray: patch size as tensor.
         :param img_data: type ndarray: unpatched images, if 3D image, then its shape is [height,width,depth,channel].

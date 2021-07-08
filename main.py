@@ -5,16 +5,12 @@ from train import *
 from evaluate import *
 from predict import *
 from med_io.calculate_max_shape import *
-from med_io.postprocessing import *
-from med_io.validation import *
 from util import *
 import numpy as np
 import random
 from Patient.Patient import *
 import os
 from packaging import version
-from tests import test_pipeline
-from tests import test_sampling
 
 
 import argparse
@@ -126,14 +122,6 @@ def main(args):
     if args.predict:  # predict and generate output masks of a trained model
         predict(config, datasets=config['dataset'], save_predict_data=config['save_predict_data'])
         print("Prediction finished for %s" % (config['result_rootdir']+os.sep+config['exp_name']))
-
-    if args.postprocessing:  # predict and generate output masks of a trained model
-        postprocessing(config, datasets=config['dataset'])
-        print("Postprocessing finished for %s" % (config['result_rootdir']+os.sep+config['exp_name']))
-
-    if args.validation:  # predict and generate output masks of a trained model
-        validation(config, datasets=config['dataset'])
-        print("Validation finished for %s" % (config['result_rootdir']+os.sep+config['exp_name']))
 
 if __name__ == '__main__':
     main(args_argument())

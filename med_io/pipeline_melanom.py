@@ -8,8 +8,6 @@ from .generate_label import *
 from .augmentation import *
 import pickle
 from tensorflow.keras import layers
-from tests.test_gamma import *
-from tests.test_patch import *
 import pickle
 from keras.utils.np_utils import to_categorical
 
@@ -182,55 +180,6 @@ def pipeline_melanom(config, dataset_image_path, dataset_label_path, dataset=Non
                               num_parallel_calls=config['num_parallel_calls'])
 
 
-    #elements = dataset.take(3).repeat(4)
-    #i = 0
-    #for elem in dataset:
-    #for elem in elements:
-    #    img_elem = elem[0].numpy()
-    #    mask_elem = elem[1].numpy()
-    #    print("image size: ", elem[0].shape)
-    #    print("image type: ", type(elem[0]))
-    #    print("label size: ", elem[1].shape)
-    #    print("label type: ", type(elem[1]))
-    #    #for i in range(10):
-            #patch_n = np.random.randint(low=0, high=img_elem.shape[0])
-    #    patch_ns = elem[0].shape[0]
-
-    #    for patch_n in range(patch_ns):
-    #        im = img_elem[patch_n, ..., 1]
-    #        #values_im = np.unique(im)
-    #        #print(values_im)
-    #        mask = img_elem[patch_n, ..., 0]
-    #        values_mask = np.unique(mask)
-    #        print("labels in mask: ", np.unique(mask_elem[patch_n, ..., 1]))
-    #        img_slices = []
-    #        mask_slices=[]
-    #        slice_cut = 'a'
-            #patches = np.linspace(20, 96 - 1, int(96 / 12))
-    #        patches = [70]
-    #        if slice_cut == 's':
-    #            for index in patches:
-    #                img_slices.append(im[:, :, int(index)])
-    #                mask_slices.append(mask[:, :, int(index)])
-    #        if slice_cut == 'a':
-    #            for index in patches:
-    #                img_slices.append(im[:, int(index), :])
-    #                mask_slices.append(mask[:, int(index), :])
-
-    #        if slice_cut == 'c':
-    #            for index in patches:
-    #                img_slices.append(im[int(index), :, :])
-    #                mask_slices.append(mask[int(index), :, :])
-    #        for slice_img, slice_mask in zip(img_slices, mask_slices):
-    #            fig, ax = plt.subplots(nrows=1, ncols=2)
-    #            ax[0].imshow(slice_img)
-    #            ax[0].set_title(slice_cut + " elem: " + str(index) + " image")
-    #            ax[1].imshow(slice_mask)
-    #            ax[1].set_title(slice_cut + " elem: " + str(index) + " mask")
-    #            plt.show()
-
-    #    i = i+1
-
     if not evaluate:
 
         dataset = dataset.unbatch().batch(config['batch']).shuffle(config['shuffle']).prefetch(4)
@@ -238,35 +187,5 @@ def pipeline_melanom(config, dataset_image_path, dataset_label_path, dataset=Non
 
         dataset = dataset.unbatch().batch(config['batch_predict']).shuffle(config['shuffle']).prefetch(4)
 
-    # for elem in dataset:
-    #    img_elem = elem[0].numpy()
-    #    mask_elem = elem[1].numpy()
-    #    print("image size: ", elem[0].shape)
-    #    print("image type: ", type(elem[0]))
-    #    print("label size: ", elem[1].shape)
-    #    print("label type: ", type(elem[1]))
-
-    # if not evaluate:
-    #    dataset = dataset.unbatch().batch(config['batch']).shuffle(config['shuffle']).prefetch(4)
-
-    # else:
-    #    dataset = dataset.unbatch().batch(config['batch_predict']).shuffle(config['shuffle']).prefetch(4)
-    # i = 0
-    # for elem in dataset.take(1):
-    #   img_elem = elem[0]
-    #   mask_elem = elem[1]
-    #   print("image size: ", elem[0].shape)
-    #   print("image type: ", type(elem[0]))
-    #   print("label size: ", elem[1].shape)
-    #   print("label type: ", type(elem[1]))
-    # ------------------------------------------------
-    #   path_test = './tests/test_img/pipeline'
-    #   if not os.path.exists(path_test): os.makedirs(path_test)
-    #   with open(path_test + '/' + 'elem_' + str(i) + '.pickle', 'wb') as fp:
-    #       pickle.dump({'image': img_elem, 'mask': mask_elem}, fp, protocol=pickle.HIGHEST_PROTOCOL)
-
-    #   i=i+1
-    # tf.data.experimental.AUTOTUNE)
-    # print("dataset type: ", type(dataset))
 
     return dataset

@@ -40,6 +40,8 @@ def validation_preprocessing(volume, label):
 def gamma_contrast(data_sample, num_patches=324, num_channel=2, shape_data=None,
                    gamma_range=(0.5, 1.7), invert_image=False, per_channel=False,
                    retain_stats=False):
+    """Performs gamma contrast transformation"""
+
     epsilon = 1e-7
     data_sample_patch = []
     gamma_range_tensor = tf.convert_to_tensor(gamma_range)
@@ -115,6 +117,8 @@ def gamma_contrast(data_sample, num_patches=324, num_channel=2, shape_data=None,
 
 def brightness_transform(data_sample, mu=0.0, sigma=0.3, num_patches=324, num_channel=2,
                          shape_data=None, per_channel=True, p_per_channel=1):
+    """Performs additive brightness transformation"""
+
     assert shape_data is not None, "Data shape should not be None"
     data_sample_patch = []
     for patch in range(num_patches):
@@ -159,6 +163,7 @@ def brightness_transform(data_sample, mu=0.0, sigma=0.3, num_patches=324, num_ch
 
 def contrast_augmentation_transform(data_sample, contrast_range=(0.75, 1.25), num_patches=324, num_channel=2,
                                     shape_data=None, preserve_range=True, per_channel=True, p_per_sample=1):
+    """Performs contrast transformation"""
     data_sample_patch = []
     for patch in range(num_patches):
 

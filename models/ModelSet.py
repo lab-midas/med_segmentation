@@ -9,8 +9,6 @@ from .metrics import *
 from util import convert_tf_optimizer
 import copy
 import numpy as np
-from models.Model_Torch import *
-from models.pytorch2keras import *
 from torch.autograd import Variable
 
 
@@ -834,69 +832,6 @@ class ModelSet:
 
         return create_and_compile_model(inputs, x, config)
 
-
-    def ResidualUNet3D_melanom(self, config):
-
-        model = ResidualUNet3D(in_channels=2, out_channels=2, final_sigmoid=False,
-                               f_maps=32, conv_layer_order='cge', num_groups=8,
-                               skip_final_activation=False)
-        ## the input tensor of the application is generated
-        inputs = Input(shape=(*config['patch_size'],) + (config['channel_img_num'],), name='inp1')
-
-        x = inputs
-        input_np = np.random.uniform(0, 1, (*config['patch_size'],) + (config['channel_img_num'],))
-        in_dummy = Variable(torch.FloatTensor(input_np))
-
-        k_model = pytorch_to_keras(model, args=in_dummy, input_shapes=x, verbose=True, name_policy='short')
-
-        x = k_model(x)
-
-        return create_and_compile_model(inputs, x, config)
-
-    def overall_survival_prediction(config, model_encoder):
-
-        ## assume that age, weight, sex are in the config file or
-        ## in the Patient class
-
-        ## we have to categorize the input sex
-        ##-----------------------------------------------
-        ##------------------------------------------------
-
-        ## join everything in order to start the fully connected network
-
-        ## x = .........
-        ## need to flatten the latent space in order to join or concatenate for new inputs
-
-        #latent_space_flatten = Flatten(latent_space)
-        inputs = tf.join(latent_space, Patient.height, Patient.weight, categorical(Patient.Sex))
-
-        x = block_FCN(hidden_layers=2, neurons_layer=[50, 100], activation='r',
-                      classification=False, classes=None)(x)
-
-
-        return create_and_compile_model(inputs, x, config)
-
-    def treatment_response(config, model_encoder):
-
-        ## assume that age, weight, sex are in the config file or
-        ## in the Patient class
-
-        ## we have to categorize the input sex
-        ##-----------------------------------------------
-        ##------------------------------------------------
-
-        ## join everything in order to start the fully connected network
-
-        ## x = .........
-        ## need to flatten the latent space in order to join or concatenate for new inputs
-
-        # latent_space_flatten = Flatten(latent_space)
-        inputs = tf.join(latent_space, Patient.height, Patient.weight, categorical(Patient.Sex))
-
-        x = block_FCN(hidden_layers=2, neurons_layer=[50, 100], activation='r',
-                      classification=True, classes=['responder', 'non-responder'])(x)
-
-        return create_and_compile_model(inputs, x, config)
 
 """
 === end network models
