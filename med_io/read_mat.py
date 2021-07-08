@@ -3,7 +3,7 @@ import scipy.io as sio
 import os
 import numpy as np
 
-def read_mat_file(path=None, channels_img=None,labels_name=None,dim=3,read_label=True, read_img=True,read_info=True):
+def read_mat_file(path=None, channels_img=None,labels_name=None,dim=3,read_label=True, read_img=True,read_info=True,regularize_img=True):
     """
     Read mat file which contains image data and label data.
     Return images data and labels data with shape(x,y.z, channels)
@@ -16,9 +16,12 @@ def read_mat_file(path=None, channels_img=None,labels_name=None,dim=3,read_label
 
     """
     info=None
+
     return_list=[None,None,None]
     if channels_img is None:channels_img = ['img']
+    if not isinstance(channels_img,list): channels_img =[channels_img]
     if labels_name is None: labels_name = ['P_BG', 'P_LT', 'P_VAT', 'P_AT']
+    if not isinstance(labels_name, list): labels_name = [labels_name]
 
     patient_dict = sio.loadmat(path)
     # item : info or auxsave must be contained in the mat file.
@@ -27,6 +30,11 @@ def read_mat_file(path=None, channels_img=None,labels_name=None,dim=3,read_label
     if read_img:
         # imgs_data image as shape (x, y, z,channels)
         imgs_data = np.array([patient_dict[channel_img] for channel_img in channels_img])
+
+        if regularize_img:
+            imgs_data=imgs_data/np.max(imgs_data)*1 # 1 for scale
+
+
 
         # channel at last dimension
         if len(imgs_data.shape)==dim+1:

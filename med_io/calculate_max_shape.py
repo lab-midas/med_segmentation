@@ -15,6 +15,7 @@ def calculate_max_shape(config):
 
     for dataset in config['dataset']:
         if config['read_body_identification']:
+            # save body part identification for a single pickle
             pickle_path = config['dir_list_tfrecord']+'/list_' + dataset +'_bi'
         else:
             pickle_path = config['dir_list_tfrecord'] + '/list_' + dataset
@@ -37,7 +38,7 @@ def calculate_max_shape(config):
         dataset_ = list_image_TFRecordDataset.map(parser)
         img_shape = np.array([elem[1].numpy() for elem in dataset_]) # 0 for data, 1 for data shape
         print('Now calculating max shape of ',dataset)
-        print("Image shape: ", img_shape.shape)
+
         img_shape = [max(img_shape[:, i]) for i in range(img_shape.shape[1])]
 
         dataset_ = list_label_TFRecordDataset.map(parser)

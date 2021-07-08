@@ -6,7 +6,7 @@
 dataset : [NAKO_AT] # either known database [NAKO_AT,DIXON,TULIP1_5T,TULIP3T,NAKO,KORA]
     #(i.e. converting and loading as TFRecords) or leave empty (only test/prediction) -> direct loading from Nifty, information specified in PREDICTION
 project: NORA  # project name
-exp_name: exp0  # experiment name (used for storage)
+exp_name: Test_AL_NAKO_AT  # experiment name (used for storage)
 
 
 # Seed for fixing the random data
@@ -22,7 +22,7 @@ seed_random_split: 1 # random seed of splitting data
 #  Paths for database
 # root dir of data image and label, for more detailed configuration, please define them in med_io/preprocess_raw_dataset.py
 rootdir_raw_data_img:
-    NAKO_AT: /mnt/data/rawdata/NAKO/AT_NAKO/AT_NAKO
+    NAKO_AT: /mnt/data/rawdata/NAKO/AT_NAKO
     DIXON: /mnt/data/rawdata/mMR_DIXON
     TULIP1_5T: /mnt/data/rawdata/TULIP_PLIS/1_5T
     TULIP3T: /mnt/data/rawdata/TULIP_PLIS/3T
@@ -112,9 +112,9 @@ output_channel:
 # Splitting data
 # Amount of fold of train/val data for each dataset. Leave empty if not use k fold for training of this dataset.
 k_fold:
-    NAKO_AT: 3
-    DIXON:  3
-    TULIP1_5T: 4
+    NAKO_AT:
+    DIXON:
+    TULIP1_5T:
     TULIP3T:
     NAKO:
     KORA:
@@ -164,9 +164,9 @@ num_parallel_calls: 1 # number parallel calls of tf.data.dataset
 shuffle: 1 # shuffle seed of tf.data.dataset
 
 # Batch
-batch: 1 # batch size of training model
-evaluate_batch_size: 1 # batch size of evaluating model
-predict_batch_size: 2 # batch size of predicting model
+batch: 64 # batch size of training model
+evaluate_batch_size: 32 # batch size of evaluating model
+predict_batch_size: 16 # batch size of predicting model
 
 # Patch
 patch_size: [32,32,32] # patch size of the model, Type list of n int, n=dimension. # body identification network :[1, X, Y]
@@ -176,26 +176,48 @@ patch_overlap_rate: 0.0 # value in [0,1)
 squeeze_channel:  True # Type bool, extract the first channel from the input image to the model. (For model body identification=True,others=False)
 predict_patch_overlap_rate: 0.0 #value in [0,1)
 unpatch_overlap_rate: 0.2  # value in [0,1)
-random_shift_patch: True  # shift the patch or not for augmention
+random_shift_patch: False  # shift the patch or not for augmention
 patch_probability_distribution:
-    use:   False # True if patch by pdf
+    use:   True # True if patch by pdf
     normal: #   True if use normal distribution
-        use: False
+        use:
         mu:     # list of 3 floats/integers
         sigma:  # list of 3 floats/integers
-    uniform: #  True if use uniform distribution
+    uniform: True #  True if use uniform distribution
+max_patch_num: 300 # max number of patches per image if patch_probability_distribution used
+
+# Active Learning
+active_learning: True # use AL for training the model
+
+al_patches_data_dir: ./patches_data_hdf5     # dir and filename where the patches data is saved for the keras data
+al_patches_data_file: al_NAKO_AT_uniform_distribution-28-02-21.hdf5  # generator pipeline needed for AL
+
+query_strategy: random_sampling       # choose query strategy, one of: uncertainty_sampling, random_sampling
+# the following 2 parameters are only relevant for query strategy query_sampling
+reduce_segmentation: mean_of_values   # determines the way the multiple predictions of segmentation (one for each pixel)
+                                      # get condensed to a single utility measure. Choose one of: 'mean_of_values'
+                                      # or 'value_of_means'
+information_estimation: entropy   # in which way information content of patches will be estimated
+                                      # choose one of: 'uncertainty', 'margin', 'entropy'
+
+al_iterations: 19 # Number of epochs of choosing the best patches and training on them
+al_num_instances: 1472 # Number of instances chosen by query strategy every al-iteration
+al_num_init_patches: 1472 # Number of patches to choose for initial training
+al_only_new: True # Train model each al_epoch only on new queried patches, if False train on all patches in labeled set
+
+al_num_workers: 10 # Number of workers used for fitting or predicting, when data is available as keras.Sequence object
 
 ##----------------------------------------------------------------------------------------------------------------------
 ## MODEL ##
 ##---------
 # Model (to train, evaluate, test)
-model: premodel_MRGE #  model name, must be chosen from class ModelSet in models/ModelSet.py
+model: model_MRGE #  model name, must be chosen from class ModelSet in models/ModelSet.py
                       # or premodel name, (can be chosen from class Premodel_Set in models/Premodel_Set.py)
 filters: 8 #  base number of filters of the model
 feed_pos: False  # True if the position of the patches is input to the model
 pos_noise_stdv: 0.01 # standard variation of feed position
 multi_gpu: False
-train_premodel: True # True if continue training the pre-trained model
+train_premodel: False # True if continue training the pre-trained model
 
 # Premodel
 # load_weights_only: True , load_premodel: False -> load model from models/ModelSet.py and saved_models_dir
@@ -204,8 +226,8 @@ train_premodel: True # True if continue training the pre-trained model
 # load_weights_only: False , load_premodel: False -> Error
 
 load_weights_only: True #( False: dilated_densenet,Exp_DenseNet_feedpos2-loaded, .., others are True.)
-load_premodel:  True
-saved_premodels_path:  /weights_pretrained_models/AT_NAKO/mrge_final_40.hdf5
+load_premodel:  False
+saved_premodels_path:  /mnt/data/projects/Segmentation/cnn_segmentation_results/weights_pretrained_models/AT_NAKO/mrge_final_40.hdf5
 # /weights_pretrained_models/AT_NAKO/mrge_final_40.hdf5
 
 select_premodel_output_channel:       # Sometimes the premodel output channels are not corresponded to channels in labels.
@@ -228,11 +250,11 @@ img_label_same_shape: True
 
 
 # Epochs and steps
-epochs: 50 # total training epochs
-train_steps_per_epoch: 40 #  steps per one training epoch
-val_steps_per_epoch: 3  # validation steps per epoch
+epochs: 15 # total training epochs
+train_steps_per_epoch: #  steps per one training epoch
+val_steps_per_epoch:  # validation steps per epoch
 evaluate_step: 20  # evaluation steps per epoch
-save_training_model_period: 3 #  epoch for saving the model
+save_training_model_period: 15 #  epoch for saving the model
 validation_freq: 1 # num epoch for one validation process
 
 # Verbose
@@ -288,10 +310,10 @@ optimizer:
 ##--------------
 
 
-load_predict_from_tfrecords: False # If load nifti, write False, True if loaded from tfrecords.
+load_predict_from_tfrecords: True  # If load nifti, write False, True if loaded from tfrecords.
 
 # Without tfrecords
-predict_data_dir_img: ./nifti/NIFTI # path of prediction image,  # paths of nifti file which are defined in nifti yaml file can be leave empty here.
+predict_data_dir_img: /mnt/data/projects/Segmentation/Nora/NAKO_AT/NIFTI # path of prediction image,  # paths of nifti file which are defined in nifti yaml file can be leave empty here.
 predict_load_label: False  # load label if predict data is available
 predict_data_dir_label: # path of prediction label
 path_yaml_file: # Path of additional yaml file
@@ -301,7 +323,7 @@ path_yaml_file: # Path of additional yaml file
 
 
 # predict config
-set_zero_by_threshold: True          # True if param unpatch_start_threshold is activated
+set_zero_by_threshold: True               # True if param unpatch_start_threshold is activated
 unpatch_start_threshold: 0.01        # The pixel is set to 0 if the value is smaller than unpatch_start_threshold
 predict_image_scale: 1               #  gain of the predict input image (adjustment if e.g. provided as Nifty)
 predict_output_channel_order:        #  type list of integers, change the order of the output channel from predict result
@@ -311,12 +333,11 @@ label_add_background_output: False #  True if adding background channel in the l
 
 predict_label_datatype: nii
 predict_img_datatype: nii  # string: file type of prediction image (before conversion), 'dicom' or 'mat' or 'nii'
+save_predict_img_datatype: mat # datatype in which prediction gets saved, 'mat' or 'nii' (default mat if empty)
 regularize_indice_list:
-    max_shape:   # Bool, scale by max shape, for loading tfrecords dataset.
-    image_shape: True # Bool, scale by current image shape, not for loading tfrecords dataset.
+    max_shape:  True # Bool, scale by max shape, for loading tfrecords dataset.
+    image_shape:  # Bool, scale by current image shape, not for loading tfrecords dataset.
     custom_specified: # list of 3 integers, custom scaling
-
-
 
 
 ##------------------
@@ -337,7 +358,7 @@ save_predict_data: False
 # Plot image
 # name of the plotting figure by predicting the dataset. If multiple plots are needed. write: [plot_name_A, plot_name_B ...]
 # further details are specified below
-plot_figure: [plot_mosaic,profile_plot_by_slice,plot_area_ratio ]
+plot_figure: [plot_by_slice]
 
 # Colors of the categories in the plot. type list of list of 3 floats, the float must be in [0,1]
 colormap: [[0, 0, 0.1], [0, 0.2, 0.8], [0, 1, 0.5], [0.8, 0.8, 0.8], [0.2, 0.1, 0.8],
@@ -346,12 +367,13 @@ colormap: [[0, 0, 0.1], [0, 0.2, 0.8], [0, 1, 0.5], [0.8, 0.8, 0.8], [0.2, 0.1, 
 # Display which channel image is the background of the original image
 display_origin_image_channel: 0
 select_image:
-    plot_mosaic: [predict_integers]   # select predict_integers or label_integers
-    profile_plot_by_slice: [predict_integers] # select predict_integers or label_integers
-    plot_area_ratio:  [predict] # predict or label
+    plot_mosaic: [predict_integers,label_integers]   # select predict_integers or label_integers
+    profile_plot_by_slice: [predict_integers,label_integers] # select predict_integers or label_integers
+    plot_by_slice: [predict_integers,label_integers] # select predict_integers or label_integers
+    plot_area_ratio:  [predict,label] # predict or label
 
 plot_mosaic:
-    slice_dim: 0 # slice_dim: type int: dimension index of slicing. For 3D, 0 for Sagittal plain, 1 for Coronal plane, 2 for Axial plane.
+    slice_dim: 2 # slice_dim: type int: dimension index of slicing. For 3D, 0 for Sagittal plain, 1 for Coronal plane, 2 for Axial plane.
     colormap: # type list of list of 3 floats: color value of each category from :param: mask
     vspace: 2  # type int, vertical interval between each mosaic sub-figure. vspace=0 if no space between them.
     hspace: 2 # type int, horizontal interval between each mosaic sub-figure. vspace=0 if no space between them.
@@ -364,9 +386,22 @@ plot_mosaic:
 profile_plot_by_slice:
     slice_: 80 # type int: slice index of displaying image
     channel_only: 1 # type int, Select only one output channel to display, leave empty if display all channels
-    slice_dim: 0 # slice_dim: type int: dimension index of slicing. For 3D, 0 for Sagittal plain, 1 for Coronal plane, 2 for Axial plane.
+    slice_dim: 2 # slice_dim: type int: dimension index of slicing. For 3D, 0 for Sagittal plain, 1 for Coronal plane, 2 for Axial plane.
     space: 1 #type int, space between the images
-    title_list: [predict]  #type list of str: title of the images
+    title_list: [predict,label]  #type list of str: title of the images
+    origin_image:  # type ndarray: original image (input image)
+    alpha_origin: 0.5 #type float in [0,1]: transparency of :param: origin_image
+    figure_layout: c # type str: layout of subplots, 'c' for column and 'r' for row.
+    colormap:  # type list of list of 3 floats: color value of each category from :param: mask_list
+    name_ID:  # type str: name ID of the plotted image
+    dataset: #type str: name of the dataset
+
+plot_by_slice:
+    slice_: [60,120,180,240] # type int: slice index of displaying image
+    channel_only:  # type int, Select only one output channel to display, leave empty if display all channels
+    slice_dim: 2 # slice_dim: type int: dimension index of slicing. For 3D, 0 for Sagittal plain, 1 for Coronal plane, 2 for Axial plane.
+    space: 1 #type int, space between the images
+    title_list: [predict,label]  #type list of str: title of the images
     origin_image:  # type ndarray: original image (input image)
     alpha_origin: 0.5 #type float in [0,1]: transparency of :param: origin_image
     figure_layout: c # type str: layout of subplots, 'c' for column and 'r' for row.
@@ -375,9 +410,9 @@ profile_plot_by_slice:
     dataset: #type str: name of the dataset
 
 plot_area_ratio:
-    slice_dim: 0 # slice_dim:  type int: dimension index of slicing. For 3D, 0 for Sagittal plane, 1 for Coronal plane, 2 for Axial plane.
+    slice_dim: 2 # slice_dim:  type int: dimension index of slicing. For 3D, 0 for Sagittal plane, 1 for Coronal plane, 2 for Axial plane.
     merge_channel_plot: False # type bool, True if plot all in one figure
-    plot_label_series: [predict]  # type list of str: name of each series, default: ['predict', 'label']
+    plot_label_series: [predict,label]  # type list of str: name of each series, default: ['predict', 'label']
     dataset:                   # type str: name of this dataset
     figsize: [20,40]  # type list of 2 ints, figure size
 

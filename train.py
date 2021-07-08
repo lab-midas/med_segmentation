@@ -4,14 +4,19 @@ from med_io.pipeline_melanom import *
 from models.ModelSet import *
 from sklearn.model_selection import train_test_split
 from util import *
+from utils.TensorBoardTool import *
 from plot.plot_figure import *
 from tensorflow.keras.models import load_model
+from med_io.keras_data_generator import DataGenerator, tf_records_as_hdf5, \
+    save_used_patches_ids
+from med_io.active_learning import CustomActiveLearner, query_selection, \
+    choose_random_elements, query_random
 from models.load_model import load_model_file
 import pickle
 import datetime
 import os
 import random
-import matplotlib.font_manager
+
 
 
 def train(config, restore=False):
@@ -33,11 +38,23 @@ def train(config, restore=False):
             # Resume dataset.
             with open(config['dir_model_checkpoint'] + '/' + config['exp_name'] + '/' + 'training_info.pickle',
                       'rb') as fp:
-                restore_dataset = pickle.load(fp)[dataset]
-                if restore_dataset != dataset:
-                    continue
-                else:
-                    print('Resume training dataset: ', dataset, '...')
+                restore_dataset = pickle.load(fp)['dataset']
+
+                while True:
+                    if restore_dataset != dataset:
+                        command = input(
+                            'Warning! The stored resuming dataset name last time is not coincident with the dataset this time,'
+                            ' do you want to overwrite? (y/n)')
+                        if command == 'y':
+                            break
+                        elif command == 'n':
+                            dataset = restore_dataset
+                            break
+                        else:
+                            print('Invalid command.')
+                    else:
+                        print('Resume training dataset: ', dataset, '...')
+                        break
 
         config = train_config_setting(config, dataset)
 
@@ -58,13 +75,17 @@ def train(config, restore=False):
 
         print(model.summary())
         # Create checkpoint for saving model during training.
-        if not os.path.exists(config['dir_model_checkpoint'] + '/' + config['exp_name']):
-            os.makedirs(config['dir_model_checkpoint'] + '/' + config['exp_name'])
-        checkpoint_path = config['dir_model_checkpoint'] + '/' + config['exp_name'] + '/cp.hdf5'
+        if not os.path.exists(config['dir_model_checkpoint'] + '/' + config['exp_name']): os.makedirs(
+            config['dir_model_checkpoint'] + '/' + config['exp_name'])
+        checkpoint_path = config['dir_model_checkpoint'] + '/' + config['exp_name'] + '/cp_' + dataset + '_' + config[
+            'model'] + '.hdf5'
+
+        tb_tool = TensorBoardTool(config['dir_model_checkpoint'] + '/' + config['exp_name'])  # start the Tensorboard
 
         # Create a callback that saves the model's weights every X epochs.
-        cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path, verbose=1, save_weights_only=False,
-                                                         period=config['save_training_model_period'])
+        cp_callback = [tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path, verbose=1, save_weights_only=False,
+                                                          period=config['save_training_model_period']),
+                       tf.keras.callbacks.TensorBoard(os.path.dirname(checkpoint_path), histogram_freq=1)]
 
         # Initial epoch of training data
         init_epoch = 0
@@ -78,11 +99,17 @@ def train(config, restore=False):
 
         # Log data at end of training epoch
         class Additional_Saver(tf.keras.callbacks.Callback):
+            """
+            The program on the end of each epoch,
+            Add here if any progress are processed on the end of each epoch
+            """
             def on_epoch_end(self, epoch, logs={}):
+
                 if epoch % config['save_training_model_period'] == 0 and epoch != 0:
                     with open(config['dir_model_checkpoint'] + '/' + config['exp_name'] + '/training_info.pickle',
                               'wb') as fp:
-                        pickle.dump({'epoch': epoch, 'dataype': dataset}, fp, protocol=pickle.HIGHEST_PROTOCOL)
+                        pickle.dump({'epoch': epoch, 'dataset': dataset, 'model': config['model']}, fp,
+                                    protocol=pickle.HIGHEST_PROTOCOL)
                 if not os.path.exists('train_record'): os.makedirs('train_record')
                 file1 = open('train_record/' + config['model'] + '_' + dataset + ".txt", "a+")
                 now = datetime.datetime.now()
@@ -93,7 +120,6 @@ def train(config, restore=False):
                 file1.close()
 
         saver1 = Additional_Saver()
-
         print('Now training data: ', dataset)
         k_fold = config['k_fold'][dataset]
         history_dataset = []
@@ -122,44 +148,21 @@ def train(config, restore=False):
 def train_process(config, model, paths_train_img, paths_train_label, paths_val_img, paths_val_label, dataset,
                   cp_callback,
                   saver1, k_fold_index=0, init_epoch=0):
-    """Internal function"""
 
-    if config['dataset'][0] == "MELANOM":
+    """Internal function
+        Train process"""
 
-        print("reading pipeline for Melanom dataset")
-
-        ds_train = pipeline_melanom(config, paths_train_img, paths_train_label,
-                                    dataset=dataset, augment=True, training=True)
-
-        ds_validation = pipeline_melanom(config, paths_val_img, paths_val_label,
-                                         dataset=dataset, augment=False, training=True)
-
-        # Fit training & validation data into the model
-        # ds_validation_it_next = ds_validation_it.get_next()
-
-        history = model.fit(ds_train,
-                            epochs=config['epochs'] + init_epoch,
-                            #steps_per_epoch=config['train_steps_per_epoch'],
-                            callbacks=[cp_callback, saver1],
-                            initial_epoch=init_epoch,
-                            validation_data=ds_validation,
-                            #validation_steps=config['val_steps_per_epoch'],
-                            validation_freq=config['validation_freq'],
-                            verbose=config['train_verbose_mode'])
-        print(history.history)
-
+    # if active learning is configured use al training process otherwise normal
+    if config['active_learning']:
+        print('Using active learning loop for training')
+        return train_al_process(config, model, paths_train_img, paths_train_label,
+                                paths_val_img, paths_val_label, dataset, cp_callback, saver1)
     else:
-
-        # Building pipelines of training and validation Dataset.
-        print("reading pipeline")
         ds_train = pipeline(config, paths_train_img, paths_train_label, dataset=dataset)
 
         ds_validation = pipeline(config, paths_val_img, paths_val_label, dataset=dataset)
 
         # Fit training & validation data into the model
-
-        print(config['dataset'][0])
-        print(type(config['dataset'][0]))
 
         history = model.fit(ds_train,
                             epochs=config['epochs'] + init_epoch,
@@ -171,14 +174,92 @@ def train_process(config, model, paths_train_img, paths_train_label, paths_val_i
                             validation_freq=config['validation_freq'],
                             verbose=config['train_verbose_mode'])
         print(history.history)
-    # Save the histories and plot figures
-    save_histories_plot_images(history, config=config, dataset=dataset, mode='train_val', k_fold_index=k_fold_index)
+        # Save the histories and plot figures
+        save_histories_plot_images(history, config=config, dataset=dataset, mode='train_val', k_fold_index=k_fold_index)
+        return model, history
+
+
+def train_al_process(config, model, paths_train_img, paths_train_label, paths_val_img, paths_val_label, dataset,
+                     cp_callback,
+                     saver1, k_fold_index=0, init_epoch=0):
+    """
+    Train with Active Learning (AL): alternative to the train_process() function. Uses the same parameters.
+    """
+    # convert the tf_records data to hdf5 if this hasn't already happened
+    print('Making shure data is available as hdf5 file')
+    hdf5_path, train_ids, val_ids = tf_records_as_hdf5(paths_train_img, paths_train_label,
+                                                       paths_val_img, paths_val_label,
+                                                       config, dataset=dataset)
+
+    # Define validation data DataGenerator (Sequence object)
+    val_data = DataGenerator(hdf5_path, val_ids,
+                             batch_size=config['evaluate_batch_size'],
+                             dim=config['patch_size'],
+                             n_channels=len(config['input_channel'][dataset]),
+                             n_classes=len(config['output_channel'][dataset]),
+                             steps_per_epoch=config['val_steps_per_epoch'])
+
+    # choose patches from training data for initial training
+    train_ids, init_ids = choose_random_elements(train_ids,
+                                                 config['al_num_init_patches'])
+
+    # save info of IDs and patches
+    save_used_patches_ids(config, ['hdf5_file', 'train_ids', 'init_ids', 'val_ids'],
+                          [(config['al_patches_data_dir'] + '/' + config['al_patches_data_file']),
+                           train_ids, init_ids, val_ids],
+                          first_time=True)
+
+    # check if enough train patches are available
+    assert len(train_ids) > config['al_iterations'] * config['al_num_instances'], \
+        ('not enough training patches for these AL parameters! Reduce num of '
+         'al iterations and/or num of instances queried every iteration.')
+
+    # define arguments for fit in active learner
+    fit_kwargs = {'callbacks': cp_callback + [saver1],
+                  'shuffle': False,
+                  'validation_data': val_data,
+                  'validation_freq': config['validation_freq'],
+                  'verbose': config['train_verbose_mode'],
+                  'workers': config['al_num_workers'],
+                  'use_multiprocessing': config['al_num_workers'] is not None}
+    # Note: the epoch parameters are defined in the active learner
+
+    # choose query strategy
+    query_strategies = {'uncertainty_sampling': query_selection,
+                        'random_sampling': query_random}
+    query_strategy = query_strategies[config['query_strategy']]
+
+    # instantiate an active learner that manages active learning
+    print('Initializing active learner object, with {0} patches in pool'.format(len(train_ids)))
+    learner = CustomActiveLearner(config, model, query_strategy, hdf5_path,
+                                  train_ids, dataset, config['batch'],
+                                  config['predict_batch_size'],
+                                  init_ids=init_ids,
+                                  train_steps_per_epoch=config['train_steps_per_epoch'],
+                                  **fit_kwargs)
+
+    for al_epoch in range(config['al_iterations']):
+        print('AL epoch ' + str(al_epoch))
+
+        # query new patches
+        query_ids = learner.query(config=config,
+                                  n_instances=config['al_num_instances'],
+                                  al_epoch=al_epoch)
+
+        # labeling of unlabeled data can later be implemented here
+
+        # teach model with new patches and log the data
+        learner.teach(query_ids, only_new=config['al_only_new'], **fit_kwargs)
+
+    history = learner.histories
+
+
     return model, history
 
 
 def train_config_setting(config, dataset):
     """
-    Configuring parameter for training
+    Configuring parameter for training process
     :param config: type dict: config parameter
     :param dataset: type str: dataset  name
     :return: config: type dict: config parameter
@@ -206,7 +287,8 @@ def train_config_setting(config, dataset):
             config['channel_label_num'] = len(config['output_channel'][dataset])
 
         # output channel+1 if the model output background channel (if the stored labels have no background channels)
-        if config['model_add_background_output']:
+        # some pretrained models had already added background output.
+        if config['model_add_background_output']:  # and (not config['train_premodel_add_background_output']):
             config['channel_label_num'] += 1
 
     print('channel_img,', config['channel_img_num'], 'channel_label,', config['channel_label_num'])
@@ -215,7 +297,7 @@ def train_config_setting(config, dataset):
 
 def k_fold_train_process(config, model, k_fold, paths, dataset, cp_callback, init_epoch, saver1):
     """
-    K-fold training
+    K-fold training process
 
     :param config: type dict: config parameter
     :param model:  type tf.keras.Model, training model
@@ -226,11 +308,12 @@ def k_fold_train_process(config, model, k_fold, paths, dataset, cp_callback, ini
     :return: models:  type tf.keras.Model, trained model
     :return: history type  list of float, metrics evaluating value from each epoch.
     """
-    history = None
+    # history = None
     list_1 = list(zip(paths['path_train_val_img'], paths['path_train_val_label']))
     random.shuffle(list_1)
     divided_datapath = len(list_1) // k_fold
     assert (divided_datapath > 0)
+    history = []
     for k in range(k_fold):
         # Split train and eva
         list_val = list_1[k * divided_datapath:(k + 1) * divided_datapath]
@@ -245,20 +328,20 @@ def k_fold_train_process(config, model, k_fold, paths, dataset, cp_callback, ini
         if not config['k_fold_merge_model']:
 
             # train all k-fold on one model
-            model, history_curr = train_process(config, model, paths_train_img, paths_train_label, paths_val_img,
-                                                paths_val_label, dataset, cp_callback,
-                                                saver1, k_fold_index=k,
-                                                init_epoch=k * config['epochs'] + init_epoch)
-            history.append(history_curr)
+
+            model, history = train_process(config, model, paths_train_img, paths_train_label, paths_val_img,
+                                           paths_val_label, dataset, cp_callback,
+                                           saver1, k_fold_index=k,
+                                           init_epoch=k * config['epochs'] + init_epoch)
 
         else:
             # establish one new model at each fold.
-            model, history_curr = train_process(config, model, paths_train_img, paths_train_label, paths_val_img,
-                                                paths_val_label, dataset, cp_callback,
-                                                saver1, k_fold_index=k,
-                                                init_epoch=init_epoch)
+            model, hist = train_process(config, model, paths_train_img, paths_train_label, paths_val_img,
+                                        paths_val_label, dataset, cp_callback,
+                                        saver1, k_fold_index=k,
+                                        init_epoch=init_epoch)
+            history.append(hist)
 
-            history.append(history_curr)
             # save model
             saved_model_path = config['saved_models_dir'] + '/' + config['exp_name'] + '/' + config['model']
             if not os.path.exists(saved_model_path): os.makedirs(saved_model_path)

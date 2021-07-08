@@ -6,11 +6,12 @@ import numpy as np
 from models.metrics import get_custom_metrics
 from keras.utils.np_utils import to_categorical
 import random
+import matplotlib.pyplot as plt
 
 
 def convert_yaml_config(config):
     """
-    Convert str in :param config to Obj
+    Convert str in :param config to type Obj
     :param config: type dict, config parameters
     :return: config : type dict
     """
@@ -29,6 +30,12 @@ def convert_yaml_config(config):
 
     custom_metrics = flatten(config['custom_metrics'])
     config['metrics'] = tf_metrics + custom_metrics
+
+    # Check parameters that might not exist in every config for backwards compatibility
+    if 'max_patch_num' not in config.keys():
+        config['max_patch_num'] = None
+    if 'active_learning' not in config.keys():
+        config['active_learning'] = False
 
     return config
 
@@ -113,7 +120,7 @@ def split(config):
 
 def convert_tf_optimizer(config):
     """
-    parse str in the yaml file -> tensorflow optimizer functions
+    Parse str in the yaml file -> tensorflow optimizer functions
     :param config: type dict: config parameter
     :return: function in tf.keras.optimizers
     """
@@ -137,21 +144,34 @@ def convert_tf_optimizer(config):
 
 
 def convert_integers_to_onehot(img, num_classes=3):
+    """
+    Convert integers-image to onehot-image
+    :param img: type ndarray
+    :param num_classes: type int
+    :return: ndarray onehot image
+    """
     # if some values in img > num_classes-1=> error
     return to_categorical(img, num_classes=num_classes)
 
 
 def convert_onehot_to_integers(img, axis=-1):
     """
-    Convert onehot encoding to integer
+    Convert integers-image to onehot-image
+    :param img: type ndarray
+    :param num_classes: type int
+    :return: ndarray onehot image
     """
     return np.argmax(img, axis=axis)
 
 
+
 def convert_onehot_to_integers_add_bg(img, axis=-1):
     """
-    Convert onehot encoding to integer, considering background
+    Convert onehot-image to integers-image and add background with filling 0
+    :param img: type ndarray
+    :return: ndarray onehot image
     """
+
     shape_img = list(img.shape)
     shape_img[-1] += 1
     new_img = np.zeros(tuple(shape_img))
@@ -159,23 +179,32 @@ def convert_onehot_to_integers_add_bg(img, axis=-1):
     return np.argmax(new_img, axis=axis)
 
 
-def get_thresholds(decision_map, n_classes=6, row_dim=1):
+def get_thresholds (decision_map, n_classes=6, row_dim=1):
+
     """
+    Special for the network body part identification.
     Calculates thresholds (line) of predicted decision map
-    input:  decision_map: type ndarray (size_m* size_n), each element represents chass
-            n_classes: number of classes to calculate thresholds from
+    :param: decision_map: type ndarray (2D), each element represents one class
+    :return: thresholds: type ndarray of size(1,n_classes), threshold line of the class.
+    
     """
-    row_max = np.zeros(decision_map.shape[0],
-                       dtype='int32')  # calculate max value( highest frequency class) of each decision map row
+
+    # Rotate the dimension of decision map for caluating the max pixel value of each column
+    decision_map=decision_map.T
+    row_max = np.zeros(decision_map.shape[0], dtype='int32')
+
+    # calculate max value( highest frequency class) of each decision map row
+
     for i in range(decision_map.shape[0]):
         class_cnt = np.zeros(n_classes, dtype='int32')  # calculate sum of each elem in decision_map row
         for j in range(decision_map.shape[1]):
             class_cnt[decision_map[i, j]] += 1
         row_max[i] = np.argmax(class_cnt)
 
-    thresholds = np.zeros(n_classes - 1, dtype='int32')
+    thresholds = np.zeros(n_classes, dtype='int32')
     idx = 0
 
+    # Determine the threshold line:  ... class n , class n |threshold line| class n+1, class n+1 ...
     for i in range(decision_map.shape[0] - 2):
         # if row_max[i + 1] == row_max[i + 2] --> this row is the threshold line of this class
         if row_max[i] != row_max[i + 1] and row_max[i + 1] == row_max[i + 2]:

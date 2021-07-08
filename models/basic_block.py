@@ -28,10 +28,10 @@ def block(f=64, k=3, s=2, order=None, order_param=None, order_priority=False, **
     **kwargs: supported parameters: name
     :return: func: Model function
     """
-    if order_param is None:
-        order_param = [None] * 3
+
     if order is None:
         order = ['c', 'r', 'b']
+
     #print("len order param: ", len(order_param))
     #print("len order: ", len(order))
     #assert (len(order) == len(order_param))
@@ -73,6 +73,12 @@ def block(f=64, k=3, s=2, order=None, order_param=None, order_priority=False, **
         if key == 'dropout':
             order.append('d')
             dropout_rate = kwargs[key]
+
+
+    if order_param is None:
+        order_param = [None] * len(order)
+
+    assert (len(order) == len(order_param))
 
 
     def func(x):
@@ -119,21 +125,38 @@ def block(f=64, k=3, s=2, order=None, order_param=None, order_priority=False, **
 
                 if item == 'c':
                     if len(x.shape) == 5:
+                        if item_param is not None:
                            x = Conv3D(c_f, c_k, c_s, padding=p, kernel_initializer=k_init, dilation_rate=dr,
                                    kernel_regularizer=k_reg, use_bias=bias_conv)(x)
+
+                        else:
+                            x = Conv3D(c_f, c_k, c_s, padding='same')(x)
+
                     elif len(x.shape) == 4:
-                        x = Conv2D(c_f, c_k, c_s, padding=p, kernel_initializer=k_init, dilation_rate=dr,
-                                   kernel_regularizer=k_reg)(x)
+                        if item_param is not None:
+                            x = Conv2D(c_f, c_k, c_s, padding=p, kernel_initializer=k_init, dilation_rate=dr,
+                                       kernel_regularizer=k_reg)(x)
+                        else:
+                            x = Conv2D(c_f, c_k, c_s, padding='same')(x)
+
                     else:
                         pass
                 else:
 
                     if len(x.shape) == 5:
-                        x = Conv3DTranspose(c_f, c_k, c_s, padding=p, kernel_initializer=k_init, dilation_rate=dr,
-                                            kernel_regularizer=k_reg)(x)
+                        if item_param is not None:
+                            x = Conv3DTranspose(c_f, c_k, c_s, padding=p, kernel_initializer=k_init, dilation_rate=dr,
+                                                kernel_regularizer=k_reg)(x)
+                        else:
+                            x = Conv3DTranspose(c_f, c_k, c_s, padding='same')(x)
+
                     elif len(x.shape) == 4:
-                        x = Conv2DTranspose(c_f, c_k, c_s, padding=p, kernel_initializer=k_init, dilation_rate=dr,
-                                            kernel_regularizer=k_reg)(x)
+                        if item_param is not None:
+                            x = Conv2DTranspose(c_f, c_k, c_s, padding=p, kernel_initializer=k_init, dilation_rate=dr,
+                                                kernel_regularizer=k_reg)(x)
+                        else:
+                            x = Conv2DTranspose(c_f, c_k, c_s, padding='same')(x)
+
                     else:
                         pass
 
@@ -170,8 +193,15 @@ def block(f=64, k=3, s=2, order=None, order_param=None, order_priority=False, **
             elif item == 't':
                 x = tanh()(x)
 
+
+            elif item == 'act_r':
+                x = Activation('relu')(x)
+            elif item == 'act_s':
+                x = Activation('softmax')(x)
+
+
             # Pooling#
-            elif item == 'ap': # average pooling
+            elif item == 'ap':  # average pooling
                 ps, st, p, df = (2,) * (len(x.shape) - 2), None, 'valid', None
                 if item_param is not None:
                     # :param item_param: dict, parameter for configuring average pooling
@@ -179,7 +209,7 @@ def block(f=64, k=3, s=2, order=None, order_param=None, order_priority=False, **
                                     item_param['padding'], item_param['data_format']
                 x = AveragePooling3D(ps, st, p, df)(x) if len(x.shape) == 5 else AveragePooling2D(ps, st, p, df)(x)
 
-            elif item == 'mp': # max pooling
+            elif item == 'mp':  # max pooling
                 ps, st, p, df = (2,) * (len(x.shape) - 2), None, 'valid', None
                 if item_param is not None:
                     # :param item_param: dict, parameter for configuring pooling
@@ -187,7 +217,7 @@ def block(f=64, k=3, s=2, order=None, order_param=None, order_priority=False, **
                         'padding'], item_param['data_format']
                 x = MaxPooling3D(ps, st, p, df)(x) if len(x.shape) == 5 else MaxPooling2D(ps, st, p, df)(x)
 
-            elif item == 'up': # up sampling
+            elif item == 'up':  # up sampling
                 x = UpSampling3D()(x) if len(x.shape) == 5 else UpSampling2D()(x)
 
             elif item == 'd': # dropout

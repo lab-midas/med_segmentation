@@ -8,18 +8,18 @@ from models.metrics import *
 from util import *
 import pickle
 import os
-from util import *
 from med_io.parser_tfrec import parser
 from med_io.get_pad_and_patch import *
 from plot.plot_figure import *
 from plot.plot_config import *
 from models.Premodel_Custom_Class import *
-#import cv2
+import cv2
 from models.load_model import load_model_file
 from med_io.read_mat import read_mat_file
 from med_io.read_dicom import read_dicom_dir
 from med_io.read_nii import read_nii_path
 from predict_data_processing.nifti_process import read_nifti
+from plot.plot_figure import plot_combine
 import scipy.io as sio
 import numpy as np
 from med_io.read_HD5F import *
@@ -53,7 +53,12 @@ def predict(config, datasets=None, save_predict_data=False, name_ID=None):
         for dataset in datasets:
             if not name_ID:
                 # Load path of predict dataset.
-                with open(config['dir_dataset_info'] + '/split_paths_' + dataset + '.pickle', 'rb') as fp:
+                if not config['read_body_identification']:
+                    split_path = config['dir_dataset_info'] + '/split_paths_' + dataset + '.pickle'
+                else:
+                    split_path = config['dir_dataset_info'] + '/split_paths_' + dataset + '_bi.pickle'
+
+                with open(split_path, 'rb') as fp:
                     split_path = pickle.load(fp)
                     dataset_image_path = split_path['path_test_img']
                     dataset_label_path = split_path['path_test_label']
@@ -89,6 +94,7 @@ def predict(config, datasets=None, save_predict_data=False, name_ID=None):
             list_label_TFRecordDataset = [tf.data.TFRecordDataset(i) for i in data_path_label_list]
 
             # Choose and create the model which is the same with the saved model.
+            print('load_model now...')
             model = load_model_file(config, dataset)
 
             collect_predict, collect_label = [], []
@@ -102,44 +108,83 @@ def predict(config, datasets=None, save_predict_data=False, name_ID=None):
                 # elem[0]= data, elem[1]= data shape
                 img_data = [elem[0].numpy() for elem in dataset_image][0]
                 label_data_onehot = [elem[0].numpy() for elem in dataset_label][0]
-                img_data, label_data_onehot = image_transform(config, img_data, label_data_onehot)
 
-                # Patch the image
-                patch_imgs, indice_list = patch_image(config, img_data)
-                print('patch image shape 76: ',patch_imgs.shape)
-                predict_img = predict_image(config, dataset, model, patch_imgs, indice_list)
+                if not config['read_body_identification']:
 
-                predict_img, label_data_onehot = select_output_channel(config, dataset, predict_img, label_data_onehot)
+                    img_data, label_data_onehot = image_transform(config, img_data, label_data_onehot)
+                    # Patch the image
+                    patch_imgs, indice_list = patch_image(config, img_data)
+                    predict_img = predict_image(config, dataset, model, patch_imgs, indice_list)
+                    # Get name_ID from the data path
+                    # The data path must have the specified format which is generated from  med_io/preprocess_raw_dataset.py
+                    name_ID = data_path_image.replace('\\', '/').split('/')[-3]
+                    if isinstance(predict_img, int) and predict_img == -1:
+                        print('failed loading: ' + name_ID)
+                        continue
 
-                predict_img_integers, predict_img_onehot, label_data_integers, label_data_onehot = convert_result(
-                    config, predict_img, label_data_onehot)
+                    if config['output_label_tfrecords']:
+                        predict_img, label_data_onehot = select_output_channel(config, dataset, predict_img,
+                                                                               label_data_onehot)
+                        predict_img_integers, predict_img_onehot, label_data_integers, label_data_onehot = convert_result(
+                            config, predict_img, label_data_onehot)
+                    else:
+                        # bypass
+                        label_data_onehot, label_data_integers = None, None
 
-                # Get name_ID from the data path
-                # The data path must have the specified format which is generated from  med_io/preprocess_raw_dataset.py
-                name_ID = data_path_image.replace('\\', '/').split('/')[-3]
-                print("name_id: ", name_ID)
+                        predict_img = select_output_channel(config, dataset, predict_img)
+                        predict_img_integers, predict_img_onehot = convert_result(config, predict_img)
 
-                # Get data of one patient for plot
+                    # Get data of one patient for plot
+                    dict_data = {'predict_integers': predict_img_integers,
+                                 'predict_onehot': predict_img_onehot,
+                                 'label_integers': label_data_integers,
+                                 'label_onehot': label_data_onehot,
+                                 'original_image': img_data,
+                                 'without_mask': np.zeros(predict_img_integers.shape)}
+                    if config['plot_figure']:
+                        # Plot figure based on the single patient
+                        plot_figures_single(config, dict_data, dataset=dataset, name_ID=name_ID)
+                    if save_predict_data:
+                        save_img_mat(config, dataset, name_ID, 'predict_image', predict_img_integers)
+                    # Collect the image for plot.
+                    collect_predict.append(predict_img_onehot)
+                    collect_label.append(label_data_onehot)
+                else:
 
-                dict_data = {'predict_integers': predict_img_integers,
-                             'predict_onehot': predict_img_onehot,
-                             'label_integers': label_data_integers,
-                             'label_onehot': label_data_onehot,
-                             'original_image': img_data,
-                             'without_mask': np.zeros(predict_img_integers.shape)}
+                    patch_imgs, indice_list = patch_image(config, img_data)
+                    predict_img = predict_image(config, dataset, model, patch_imgs, indice_list)
+
+                    if config['model'] == 'model_body_identification_hybrid' or config[
+                        'model'] == 'model_body_identification_classification':
+                        prob_map, decision_map = predict_img[0], predict_img[1]
+                        select_slice = config['select_body_identification_predict_slice']
+
+                        prob_map = convert_onehot_to_integers(prob_map[select_slice, ...], axis=-1)
+                        decision_map = convert_onehot_to_integers(decision_map[select_slice, ...], axis=-1).astype(
+                            np.int32)
+
+                        pred_thresholds = get_thresholds(decision_map, n_classes=6)
+                        real_thresholds = label_data_onehot
+
+                        name_ID = data_path_image.replace('\\', '/').split('/')[
+                            -3]  # extract name_ID from the tfrecords path
+                        dict_data = {'predict_integers': decision_map.T,
+                                     'original_image': img_data[select_slice, :, :, 0].T * 100,
+                                     'pred_thresholds': pred_thresholds,
+                                     'real_thresholds': real_thresholds,
+                                     'predict_integers_probability': prob_map.T,
+                                     }
+
+                        if config['plot_figure']:
+                            # Plot figure based on the single patient
+                            plot_figures_single(config, dict_data, dataset=dataset, name_ID=name_ID)
+
+            if config['load_predict_from_tfrecords']:
+                # list_images_series: collect  predict data and label data
+                list_images_series = {'predict': collect_predict, 'label': collect_label}
                 if config['plot_figure']:
-                    # Plot figure based on the single patient
-                    plot_figures_single(config, dict_data, dataset=dataset, name_ID=name_ID)
-                if save_predict_data:
-                    save_img_mat(config, dataset, name_ID, 'predict_image', predict_img_integers)
-                # Collect the image for plot.
-                collect_predict.append(predict_img_onehot)
-                collect_label.append(label_data_onehot)
+                    plot_figures_dataset(config, list_images_series, dataset=dataset)
 
-            # list_images_series: collect  predict data and label data
-            list_images_series = {'predict': collect_predict, 'label': collect_label}
-            if config['plot_figure']:
-                plot_figures_dataset(config, list_images_series, dataset=dataset)
 
             print('Predict data ', dataset, 'is finished.')
 
@@ -169,7 +214,7 @@ def predict(config, datasets=None, save_predict_data=False, name_ID=None):
                     img_data, label_data_onehot = image_transform(config, img_data, label_data_onehot=label_data)
                     # Patch the image
                     patch_imgs, indice_list = patch_image(config, img_data)
-                    predict_img = predict_image(config, dataset, model, patch_imgs, indice_list)
+                    predict_img = predict_image(config, dataset, model, patch_imgs, indice_list_model)
                     predict_img, label_data_onehot = select_output_channel(config, dataset, predict_img,
                                                                            label_data_onehot)
                     predict_img_integers, predict_img_onehot, label_data_integers, label_data_onehot \
@@ -236,23 +281,22 @@ def channel_config(config, dataset, evaluate=False):
     if config['load_predict_from_tfrecords'] or evaluate:
         # Load max shape & channels of images and labels.
         if not os.path.exists(config['dir_dataset_info'] + '/split_paths_' + dataset + '.pickle'):
-            raise FileNotFoundError('Paths of dataset   `config[dir_dataset_info]/split_paths.pickle`are not found! ')
+            raise FileNotFoundError('Paths of dataset   `config[dir_dataset_info]/split_paths.pickle` are not found! ')
         with open(config['dir_dataset_info'] + '/max_shape_' + dataset + '.pickle', 'rb') as fp:
             config['max_shape'] = pickle.load(fp)
 
         # Read num of channels of images and labels from the file 'max_shape.pickle'.
         config['channel_img_num'], config['channel_label_num'] = config['max_shape']['image'][-1], \
-                                                                 config['max_shape']['label'][
-                                                                     -1]
-
+                                                                 config['max_shape']['label'][-1]
     # Get the total num of input and output channel of the model
     if config['input_channel'][dataset] is not None:
         config['channel_img_num'] = len(config['input_channel'][dataset])
     if config['output_channel'][dataset] is not None:
         config['channel_label_num'] = len(config['output_channel'][dataset])
 
-    print("channel img num: ", config['channel_img_num'])
-    print("channel label num: ", config['channel_label_num'])
+
+    print('channel_img_num:',config['channel_img_num'],'channel_label_num', config['channel_label_num'])
+
     if (not config['load_predict_from_tfrecords']) and (not evaluate) and (
             (not config['input_channel'][dataset]) or (not config['output_channel'][dataset])):
         raise ValueError('channel_label must be valued.')
@@ -295,7 +339,13 @@ def image_transform(config, img_data, label_data_onehot=None):
 
 
 def patch_image(config, img_data):
-    """Patch the image"""
+    """
+    Patch the image
+    :param config: type dict: config parameter
+    :param img_data:  img_data: type ndarray, image input data
+    :return:  patch_imgs: type ndarray: list of patch images
+    :return:  indice_list: type ndarray: list of the positions of the correspondent patch images
+    """
     patch_imgs, indice_list = get_predict_patches_index(img_data, config['patch_size'],
                                                         overlap_rate=config[
                                                             'predict_patch_overlap_rate'],
@@ -319,7 +369,7 @@ def predict_image(config, dataset, model, patch_imgs, indice_list, img_data_shap
     if config['input_channel'][dataset] is not None:
         patch_imgs = patch_imgs[..., config['input_channel'][dataset]]
 
-    print('patch image 283: ', patch_imgs.shape)
+
     indice_list_model = indice_list
     if config['regularize_indice_list']['max_shape']:
 
@@ -334,29 +384,58 @@ def predict_image(config, dataset, model, patch_imgs, indice_list, img_data_shap
             config['regularize_indice_list']['custom_specified'])
 
     # Predict the test data by given trained model
+
+    print(config['saved_models_dir'] + '/' + config['exp_name'] + '/' + config['model'] + '/' + dataset + '.h5')
+
     try:
-        predict_patch_imgs = model.predict(x=(patch_imgs, indice_list_model), batch_size=1, verbose=1)
+        if not config['read_body_identification']:
+            predict_patch_imgs = model.predict(x=(patch_imgs, indice_list_model), batch_size=1, verbose=1)
+
+            print('predict_patch_imgs_shape', predict_patch_imgs.shape)
+        else:
+
+            if config['model'] == 'model_body_identification_hybrid':
+                predict_patch_imgs, predict_reg = model.predict(x=(patch_imgs[..., 0], indice_list_model), batch_size=1,
+                                                                verbose=1)
+            else:
+                predict_patch_imgs = model.predict(x=(patch_imgs[..., 0]), batch_size=1, verbose=1)
     except:
-        print('Predict by model with load_weights_only=True Failed, Try rebuild model with load_weights_only=False...')
-        config['load_weights_only']= False
-        model = load_model_file(config, dataset)
-        predict_patch_imgs = model.predict(x=(patch_imgs, indice_list_model), batch_size=1, verbose=1)
+        try:
+            print(
+                'Predict by model with load_weights_only=True Failed, Try rebuild model with load_weights_only=False...')
+            config['load_weights_only'] = False
+            model = load_model_file(config, dataset)
 
-    print('predict patch image 298: ',predict_patch_imgs.shape)
+            predict_patch_imgs = model.predict(x=(patch_imgs, indice_list_model), batch_size=1, verbose=1)
+        except:
+            return -1
+
+
     # patch images-> whole image
-    predict_img = unpatch_predict_image(predict_patch_imgs, indice_list, config['patch_size'],
-                                        output_patch_size=config['model_output_size'],
-                                        set_zero_by_threshold=config['set_zero_by_threshold'],
-                                        threshold=config['unpatch_start_threshold'])
-    print('predict image 308: ', predict_img.shape)
+    if not config['read_body_identification']:
 
-    # Adjust model output channel order
-    if config['predict_output_channel_order']:
-        channel_stack = []
-        for j in config['predict_output_channel_order']:
-            channel_stack.append(predict_img[..., j])
-        predict_img = np.stack(tuple(channel_stack), axis=-1)
-    return predict_img
+        predict_img = unpatch_predict_image(predict_patch_imgs, indice_list, config['patch_size'],
+                                            output_patch_size=config['model_output_size'],
+                                            set_zero_by_threshold=config['set_zero_by_threshold'],
+                                            threshold=config['unpatch_start_threshold'])
+        # Adjust model output channel order
+        if config['predict_output_channel_order']:
+            channel_stack = []
+            for j in config['predict_output_channel_order']:
+                channel_stack.append(predict_img[..., j])
+            predict_img = np.stack(tuple(channel_stack), axis=-1)
+
+        return predict_img
+
+    else:
+
+        # Especially for network body identification
+        # prob_map,decision_map(191, 256, 110, 6) (191, 256, 110, 6)
+        prob_map, decision_map = prediction_prob(config, predict_patch_imgs, indice_list)
+        print("prob_map, decision_map", prob_map.shape, decision_map.shape)
+
+
+        return prob_map, decision_map
 
 
 def select_output_channel(config, dataset, predict_img, label_data_onehot=None):
@@ -368,6 +447,7 @@ def select_output_channel(config, dataset, predict_img, label_data_onehot=None):
     :param label_data_onehot: type ndarray, onehot label image
     :return: predict_img, label_data_onehot
     """
+
     # one hot output -> integers map
     if config['select_premodel_output_channel'] is not None:
         predict_img = predict_img[..., config['select_premodel_output_channel']]
@@ -397,15 +477,14 @@ def convert_result(config, predict_img, label_data_onehot=None, predict_class_nu
         predict_img_integers = convert_onehot_to_integers(predict_img)
 
     if predict_class_num is None:
-        print("predict img integers: ", np.max(predict_img_integers))
+
         predict_img_onehot = convert_integers_to_onehot(predict_img_integers, num_classes=predict_img.shape[-1])
 
-        print('line357', predict_img_onehot.shape)
     else:
         predict_img_onehot = convert_integers_to_onehot(predict_img_integers, num_classes=predict_class_num)
 
     # add background on label
-    channel_label_num=config['channel_label_num']
+    channel_label_num = config['channel_label_num']
     if label_data_onehot is not None:
         if config['label_add_background_output']:
             label_data_integers = convert_onehot_to_integers_add_bg(label_data_onehot)
@@ -426,13 +505,21 @@ def convert_result(config, predict_img, label_data_onehot=None, predict_class_nu
 
 
 def save_img_mat(config, dataset, name_ID, item, data):
+    """
+
+    :param config: type dict: config parameter
+    :param dataset: type str:  dataset name
+    :param name_ID: type str: name ID of the patients
+    :param item: type str: mat file data name
+    :param data: type ndarray: saved data
+    :return: None
+    """
     # Config experiment
     save_predict_data_dir = config['result_rootdir'] + '/' + config['exp_name'] + '/' + config[
         'model'] + '/predict_result_all/' + dataset + '/' + name_ID
     if not os.path.exists(save_predict_data_dir): os.makedirs(save_predict_data_dir)
     save_path = save_predict_data_dir + '/' + 'predict_' + config[
         'model'] + '_' + dataset + '_' + name_ID + '.mat'
-
     # Save the predict data in .mat file.
     sio.savemat(save_path, {item: data})
 
@@ -448,12 +535,14 @@ def read_predict_file(config, data_path_img=None, data_path_label=None, name_ID=
     """
     img_data, label_data = None, None
 
+    print('data_path_img:', data_path_img)
     if data_path_img:
         datatype = config['predict_img_datatype']
         if datatype == 'dicom':
             img_data = read_dicom_dir(data_path_img)
         elif datatype == 'mat':
-            img_data, _, _ = read_mat_file(data_path_img, read_label=None, read_info=None)
+            print('mat_now!')
+            img_data, _, _ = read_mat_file(data_path_img, channels_img='IMG', read_label=None, read_info=None)
         elif datatype == 'nii':
             img_data = read_nifti(config, name_ID)
             pass
@@ -463,7 +552,7 @@ def read_predict_file(config, data_path_img=None, data_path_label=None, name_ID=
         if datatype == 'nii':
             label_data = read_dicom_dir(data_path_img)
         elif datatype == 'mat':
-            _, label_data, _ = read_mat_file(data_path_img)
+            _, label_data, _ = read_mat(data_path_img)
         else:
             pass
     if data_path_img and data_path_label:
