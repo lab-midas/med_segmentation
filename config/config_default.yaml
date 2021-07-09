@@ -2,7 +2,9 @@
 
 # Name of the data
 # Choose the data for the whole project.
+
 dataset : [NAKO_AT] # either known database [NAKO_AT,DIXON,TULIP1_5T,TULIP3T,NAKO,KORA, MELANOM]
+
     #(i.e. converting and loading as TFRecords) or leave empty (only test/prediction) -> direct loading from Nifty, information specified in PREDICTION
 project: NORA  # project name
 exp_name: exp_AT  # experiment name (used for storage)
