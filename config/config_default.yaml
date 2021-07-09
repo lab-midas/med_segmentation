@@ -2,10 +2,10 @@
 
 # Name of the data
 # Choose the data for the whole project.
-dataset : [MELANOM] # either known database [NAKO_AT,DIXON,TULIP1_5T,TULIP3T,NAKO,KORA]
+dataset : [NAKO_AT] # either known database [NAKO_AT,DIXON,TULIP1_5T,TULIP3T,NAKO,KORA]
     #(i.e. converting and loading as TFRecords) or leave empty (only test/prediction) -> direct loading from Nifty, information specified in PREDICTION
-project: MELANOM  # project name
-exp_name: exp_Melanom  # experiment name (used for storage)
+project: NORA  # project name
+exp_name: exp_AT  # experiment name (used for storage)
 
 
 # Seed for fixing the random data
@@ -198,7 +198,7 @@ patch_probability_distribution:
 ## MODEL ##
 ##---------
 # Model (to train, evaluate, test)
-model: model_U_net_melanoma # model_U_net_double_decoder # model name, must be chosen from class ModelSet in models/ModelSet.py
+model: model_MRGE     # model_U_net_double_decoder # model name, must be chosen from class ModelSet in models/ModelSet.py
                       # or premodel name, (can be chosen from class Premodel_Set in models/Premodel_Set.py)
 filters: 8 #  base number of filters of the model
 feed_pos: False  # True if the position of the patches is input to the model
@@ -213,7 +213,7 @@ train_premodel: False # True if continue training the pre-trained model
 # load_weights_only: False , load_premodel: False -> Error
 load_weights_only: True # (False: dilated_densenet,Exp_DenseNet_feedpos2-loaded, ..., others are True.)
 load_premodel: True
-saved_premodels_path: '/weights_pretrained_models0/weights_pretrained_models/Melanom/feed_pos/exp_Melanom-loaded.hdf5'
+saved_premodels_path: '/weights_pretrained_models0/weights_pretrained_models/kora/feed_pos/Exp_DenseNet_feedpos3-loaded.hdf5'
 
 select_premodel_output_channel:       # Sometimes the premodel output channels are not corresponded to channels in labels.
                                           # It must be  set to be the same amount channels as the labels
@@ -256,11 +256,11 @@ custom_metrics: [] #[recall_all,recall_per_class] # metric defined by custom, mu
 # Loss
 loss_functions: # loss function of the network, must be chosen from models/loss_function.py, if weight=0 or not specified it is not considered
     # loss function name: weight
-    #jaccard_dist_loss: 1
-    dice_loss: 1
+    jaccard_dist_loss: 1
+    #dice_loss: 1
     #dice_coefficient_loss: 0
     #sigmoid_focal_crossentropy: 0
-use_multiple_loss_function: False #  True if use multiple_loss_fuction for multiple network outputs, else loss_functions is applied on single output note.
+use_multiple_loss_function: True #  True if use multiple_loss_fuction for multiple network outputs, else loss_functions is applied on single output note.
 multiple_loss_function:
     # name of notes of neural network outputs, If  key loss_functions is applied on this note, write "loss_functions"
     # Example of network model_body_identification_hybrid
@@ -294,7 +294,7 @@ number_of_levels: 5 # number of levels of the encoder-decoder part of the UNet N
 # Load prediction data:
 # A) With tfrecords (pre-created): specified in "DATABASES"
 # B) Without tfrecords (directly from file)
-load_predict_from_tfrecords: True  # True: load from pre-created TFRecords, False: load from file (DICOM, MAT, nifti)
+load_predict_from_tfrecords: False  # True: load from pre-created TFRecords, False: load from file (DICOM, MAT, nifti)
 
 # Without tfrecords (directly from file)
 predict_data_dir_img: /nifti/NIFTI # path of prediction image OR paths to the nifti file: Nifty loading is further specified in nifti yaml file; can be left empty here.
