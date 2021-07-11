@@ -134,7 +134,6 @@ def plot_mosaic(config, mask, slice_dim=2, colormap=None, vspace=2, hspace=2, co
     # Define variable h(height), w(width), and slices
     mask_shape = mask.shape[:3]
 
-    mask = mask[:, :, :, 1]
 
     #if mask.shape != origin_image.shape:
     if mask_shape != origin_image.shape:
@@ -165,14 +164,8 @@ def plot_mosaic(config, mask, slice_dim=2, colormap=None, vspace=2, hspace=2, co
 
     if rotate_k==1 or rotate_k==3 or rotate_k==-1 or rotate_k==-3: # +1 represent 90 degree rotation
         h,w=w,h
-    ##_------------------------------------------------------------------
 
-    num_category = len(np.unique(mask)) ## with Melanom Dataset should be 2 (tumor, not tumor)
-    #art_mask = np.random.randint(5, size=mask.shape[:3])
-    #art_mask = np.zeros(mask.shape[:3])
-    #art_mask[100:, 100:, 150:] = 1
-    #num_category = len(np.unique(art_mask))
-    ##-----------------------------------------------------------------
+    num_category = len(np.unique(mask))
     colormap = color_set(num_categories=num_category, costum_colormap=colormap)
     row = math.ceil(slices / col)
     # layout empty figure
@@ -210,15 +203,8 @@ def plot_mosaic(config, mask, slice_dim=2, colormap=None, vspace=2, hspace=2, co
 
 
                     origin_image_slice = Image.fromarray(origin_image_slice).convert("RGBA")
-                    #print("image shape: ", im.size)
-                    #print("origin image slice", origin_image_slice.size)
-                    #if im.size != origin_image_slice.size:
-                        #print("mask size is: ", mask.shape)
-                        #print("slice_",  indice_)
-                        #print("color_image", color_image)
 
                     im = Image.blend(im, origin_image_slice, alpha=alpha_origin)
-                    #im = Image.blend(im, origin_image_slice, alpha=0.0)
 
                 # Draw slice index on the left top of the image
                 draw = ImageDraw.Draw(im)
@@ -263,8 +249,7 @@ def plot_area_ratio(config, list_images_series, slice_dim=2, merge_channel_plot=
     sum_ = len(list_images_series[0])
 
     # shape of each patients 4D image
-    #channel = list_images_series[0][0].shape[-1]
-    channel = None
+    channel = list_images_series[0][0].shape[-1]
 
     mean_map_series = []
     std_map_series = []

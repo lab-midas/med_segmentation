@@ -167,7 +167,7 @@ def get_predict_patches_index(data_img, patch_size, overlap_rate=0.5, start=None
     assert (len(patch_size) == len(start) == len(overlap_rate) == dim)
     patch_size = [min(data_size[i], patch_size[i]) for i in range(dim)]
     if output_patch_size is None:
-        step = patch_size - np.round(overlap_rate * patch_size)*2
+        step = patch_size - np.round(overlap_rate * patch_size)
     else:
         step = output_patch_size - np.round(overlap_rate * output_patch_size)
     end = [data_size[i] - patch_size[i] for i in range(dim)]

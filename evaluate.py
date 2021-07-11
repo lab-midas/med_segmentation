@@ -11,8 +11,6 @@ import os
 from models.load_model import load_model_file
 from predict import channel_config
 
-from med_io.pipeline_melanom import *
-
 
 def evaluate(config, datasets=None):
     """
@@ -33,10 +31,14 @@ def evaluate(config, datasets=None):
 
         # Set the config files
         config = channel_config(config, dataset, evaluate=True)
-        # create pipeline dataset
-        ds_test = pipeline_melanom(config, dataset_image_path, dataset_label_path, dataset=dataset, evaluate=True)
 
-        #ds_test = pipeline(config, dataset_image_path, dataset_label_path, dataset=dataset)
+        # create pipeline dataset
+        if dataset == 'MELANOM':
+            ds_test = pipeline_melanom(config, dataset_image_path, dataset_label_path, dataset=dataset, evaluate=True)
+
+        else:
+            ds_test = pipeline(config, dataset_image_path, dataset_label_path, dataset=dataset)
+
         # Choose the training model.
         model = load_model_file(config, dataset)
 
@@ -47,22 +49,17 @@ def evaluate(config, datasets=None):
         print('Now evaluating data ', dataset,' ...')
 
         # Fit training & validation data into the model
-        #print(ds_test[0].shape)
-        #print("Size of dataset: ", len(ds_test))
+
         list_loss_and_metrics = model.evaluate(ds_test,verbose=config['evaluate_verbose_mode'])
         lists_loss_and_metrics.append(list_loss_and_metrics)
-
-        #print("printing metrics from evaluation.......")
-        #print(list_loss_and_metrics)
 
         path_pickle = config['result_rootdir'] + '/' + config['exp_name']+ '/' + config['model']+'/evaluate_loss_and_metrics/'
         if not os.path.exists(path_pickle): os.makedirs(path_pickle)
 
         dictionary=dict()
         # Save loss
-        #dictionary['evaluate_loss'] = list_loss_and_metrics[0]
-        #dictionary['evaluate_acc'] = list_loss_and_metrics[1]
-        #dictionary['evaluate_dicecoef'] = list_loss_and_metrics[2]
+        dictionary['evaluate_loss'] = list_loss_and_metrics[0]
+
         # Save metrics
         for item, value in zip(list_metrics, list_loss_and_metrics):
             dictionary['evaluate_'+item] = value

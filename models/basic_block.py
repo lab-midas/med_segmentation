@@ -32,39 +32,6 @@ def block(f=64, k=3, s=2, order=None, order_param=None, order_priority=False, **
     if order is None:
         order = ['c', 'r', 'b']
 
-    #print("len order param: ", len(order_param))
-    #print("len order: ", len(order))
-    #assert (len(order) == len(order_param))
-
-    order_param_items = []
-    activation_func = ['l', 'e']
-    normalizations = ['g', 'b']
-    pooling = ['mp', 'ap']
-    for elem in order:
-        if elem == 'c' or elem == 'dc':
-            order_param_items.append(order_param['convolution'])
-
-        elif elem in activation_func:
-            order_param_items.append(order_param['activation_function'])
-
-        elif elem in normalizations:
-            order_param_items.append(order_param['normalization'])
-        elif elem in pooling:
-            order_param_items.append(order_param)
-        else:
-            order_param_items.append(None)
-
-    #while len(order) < len(order_param):
-        #new_elem = None
-        #order.append(new_elem)
-        #print("new len order param: ", len(order_param))
-        #print("new len order: ", len(order))
-
-    assert (len(order) == len(order_param_items))
-
-    name = None
-    dropout = None
-
     for key in kwargs.keys():
 
         if key == 'name':
@@ -105,7 +72,7 @@ def block(f=64, k=3, s=2, order=None, order_param=None, order_priority=False, **
 
             return func
 
-        for item, item_param in zip(order, order_param_items):
+        for item, item_param in zip(order, order_param):
 
             # Convolution #
             if item == 'c' or item == 'dc':

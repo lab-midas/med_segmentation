@@ -1,5 +1,4 @@
 import pickle
-import tensorflow as tf
 import numpy as np
 import os
 from .read_mat import *
@@ -9,9 +8,7 @@ from .read_HD5F import *
 from .write_tf_record import *
 from .read_and_save_datapath import *
 from .read_nrrd_path import *
-import h5py
 from keras.utils.np_utils import to_categorical
-from tests.test_augmentation import test_augmentation
 
 def preprocess_raw_dataset(config):
     """
@@ -46,6 +43,30 @@ def preprocess_raw_dataset(config):
         if not os.path.exists(dir_tfrec_info): os.makedirs(dir_tfrec_info)
         return dir_tfrec_img, dir_tfrec_label, dir_tfrec_info
 
+    def write_tfrec_and_pickle_melanoma(imgs_data=None, dir_tfrec_img=None, labels_data=None, dir_tfrec_label=None, info=None,
+                               dir_tfrec_info=None, img_tf_name='image', label_tf_name='label', info_name='info'):
+        """
+        Write images and label pairs into tfrecord files, and save infomation of patient into pickle files
+        for Melanoma dataset
+        :param imgs_data: type ndarray
+        :param dir_tfrec_img:  type str
+        :param labels_data:  type ndarray
+        :param dir_tfrec_label: type str
+        :param info: type dict
+        :param dir_tfrec_info: type str
+        :return:
+        """
+        if imgs_data is not None:
+            write_tfrecord_melanoma(imgs_data, info['validation_for_cancer'], path=dir_tfrec_img + '/'+img_tf_name+'.tfrecords')
+            print("Image succesfully written")
+
+        if labels_data is not None:
+            write_tfrecord_melanoma(labels_data, info['validation_for_cancer'], path=dir_tfrec_label + '/'+label_tf_name+'.tfrecords')
+            print("Mask succesfully written")
+
+        if info is not None:
+            pickle.dump(info, open(dir_tfrec_info + '/'+info_name+'.pickle', 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
+
     def write_tfrec_and_pickle(imgs_data=None, dir_tfrec_img=None, labels_data=None, dir_tfrec_label=None, info=None,
                                dir_tfrec_info=None, img_tf_name='image', label_tf_name='label', info_name='info'):
         """
@@ -59,13 +80,9 @@ def preprocess_raw_dataset(config):
         :return:
         """
         if imgs_data is not None:
-            write_tfrecord(imgs_data, info['validation_for_cancer'], path=dir_tfrec_img + '/'+img_tf_name+'.tfrecords')
-            print("Image succesfully written")
-
+            write_tfrecord(imgs_data, path=dir_tfrec_img + '/'+img_tf_name+'.tfrecords')
         if labels_data is not None:
-            write_tfrecord(labels_data, info['validation_for_cancer'], path=dir_tfrec_label + '/'+label_tf_name+'.tfrecords')
-            print("Mask succesfully written")
-
+            write_tfrecord(labels_data, path=dir_tfrec_label + '/'+label_tf_name+'.tfrecords')
         if info is not None:
             pickle.dump(info, open(dir_tfrec_info + '/'+info_name+'.pickle', 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
 
@@ -575,7 +592,7 @@ def preprocess_raw_dataset(config):
                     rootdir_tfrec=rootdir_tfrec)
 
                 ## write tfrec in pickle file
-                write_tfrec_and_pickle(imgs_data=img_normalized, dir_tfrec_img=dir_tfrec_img,
+                write_tfrec_and_pickle_melanoma(imgs_data=img_normalized, dir_tfrec_img=dir_tfrec_img,
                                        labels_data=mask_one_hot, dir_tfrec_label=dir_tfrec_label,
                                        info=infos, dir_tfrec_info=dir_tfrec_info)
                 ##save the max shape

@@ -1,6 +1,5 @@
 import tensorflow as tf
 from med_io.pipeline import *
-from med_io.pipeline_melanom import *
 from models.ModelSet import *
 from sklearn.model_selection import train_test_split
 from util import *
@@ -158,9 +157,20 @@ def train_process(config, model, paths_train_img, paths_train_label, paths_val_i
         return train_al_process(config, model, paths_train_img, paths_train_label,
                                 paths_val_img, paths_val_label, dataset, cp_callback, saver1)
     else:
-        ds_train = pipeline(config, paths_train_img, paths_train_label, dataset=dataset)
 
-        ds_validation = pipeline(config, paths_val_img, paths_val_label, dataset=dataset)
+        if dataset == 'MELANOM':
+            print("reading pipeline for Melanom dataset")
+
+            ds_train = pipeline_melanom(config, paths_train_img, paths_train_label,
+                                        dataset=dataset, augment=True, training=True)
+
+            ds_validation = pipeline_melanom(config, paths_val_img, paths_val_label,
+                                             dataset=dataset, augment=False, training=True)
+
+        else:
+            ds_train = pipeline(config, paths_train_img, paths_train_label, dataset=dataset)
+
+            ds_validation = pipeline(config, paths_val_img, paths_val_label, dataset=dataset)
 
         # Fit training & validation data into the model
 

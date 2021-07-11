@@ -48,7 +48,7 @@ def generate_label(config, label, patch_pos, patch_size):
         reg_label_=[]
         threshold_=[]
 
-        for idx in range(config['num_classes'] - 1):
+        for idx in range(config['body_identification_n_classes'] - 1):
             threshold_.append( (label[idx] + label[idx + 1]) / 2)
 
         threshold= tf.stack(threshold_,axis=0)

@@ -516,7 +516,7 @@ def save_img_mat(config, dataset, name_ID, item, data):
     """
     # Config experiment
     save_predict_data_dir = config['result_rootdir'] + '/' + config['exp_name'] + '/' + config[
-        'model'] + '/predict_result_all/' + dataset + '/' + name_ID
+        'model'] + '/predict_result/' + dataset + '/' + name_ID
     if not os.path.exists(save_predict_data_dir): os.makedirs(save_predict_data_dir)
     save_path = save_predict_data_dir + '/' + 'predict_' + config[
         'model'] + '_' + dataset + '_' + name_ID + '.mat'

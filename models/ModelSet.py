@@ -349,7 +349,7 @@ class ModelSet:
         else:
             return create_and_compile_model(inputs, out, config)
 
-
+    # body identification network for 2D coronal
     def model_body_identification_hybrid(self, config):
         '''
         Model is build after Philip Wolfs (ISS master student) model
@@ -492,6 +492,7 @@ class ModelSet:
         else:
             return create_and_compile_model(inputs, outputs, config)
 
+    # tumor lesion segmentation for PET/CT melanoma dataset
     def model_U_net_melanoma(self, config):
         ## is config the only parameter for the model?
         '''
@@ -652,7 +653,7 @@ def create_and_compile_model(inputs, outputs, config, premodel=None):
     else:
         model = premodel
 
-
+    if config['multi_gpu']:  model = multi_gpu_model(model, gpus=config['multi_gpu'])
     flatten = lambda x: [y for l in x for y in flatten(l)] if type(x) is list else [x]
 
     if premodel is None:
