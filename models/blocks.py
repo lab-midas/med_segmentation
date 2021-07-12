@@ -8,12 +8,17 @@ from .basic_block import *
 """combined network building blocks"""
 
 """Dilated convolution block"""
+
+
 def DilatedConv(filters, conv_param):
     if conv_param['dilation_rate'] is None:
         print('Warning! dilation_rate is set to 1!')
     return block(filters, k=3, s=1, order=['b', 'r', 'c'], order_param=[None, None, conv_param])
 
+
 """atrous spatial pyramid pooling"""
+
+
 def ASPP(filters, strides, conv_param, dilation_rate_list, image_level_pool_size):
     ## pyramid part
     def func(x):
@@ -40,6 +45,8 @@ def ASPP(filters, strides, conv_param, dilation_rate_list, image_level_pool_size
 """
 === blocks for Merge and Run (MR) series: MRGE_net, Focal_MRGE
 """
+
+
 def MR_local_path(filters, conv_param):
     return block(filters, 3, 1, order=['b', 'r', 'c', 'b', 'r', 'c'],
                  order_param=[None, None, conv_param, None, None, conv_param])
@@ -55,7 +62,7 @@ def MR_local_pr(filters, conv_param):
         x = block(filters // 2, 1, 1, order=['c', 'r'], order_param=[conv_param, None])(x)
         x = block(filters // 2, 3, 1, order=['b', 'r', 'c', 'b', 'r', 'c'],
                   order_param=[None, None, conv_param, None, None, conv_param])(x)
-        return  block(filters, 1, 1, order=['c', 'r'], order_param=[conv_param, None])(x)
+        return block(filters, 1, 1, order=['c', 'r'], order_param=[conv_param, None])(x)
 
     return MR_local_pr
 
@@ -64,7 +71,8 @@ def MR_global_pr(filters, conv_param):
     def MR_global_pr(x):
         x = block(filters // 2, 1, 1, order=['c', 'r'], order_param=[conv_param, None])(x)
         x = block(filters, k=3, s=1, order=['b', 'r', 'c'], order_param=[None, None, conv_param])(x)
-        return  block(filters, 1, 1, order=['c', 'r'], order_param=[conv_param, None])(x)
+        return block(filters, 1, 1, order=['c', 'r'], order_param=[conv_param, None])(x)
+
     return MR_global_pr
 
 
@@ -74,6 +82,7 @@ def MR_local_pr_no_bn(filters, conv_param):
         x = block(filters // 2, 3, 1, order=['c', 'r', 'c', 'r'],
                   order_param=[conv_param, None, conv_param, None])(x)
         return block(filters, 1, 1, order=['c', 'r'], order_param=[conv_param, None])(x)
+
     return MR_local_pr_no_bn
 
 
@@ -81,30 +90,31 @@ def MR_global_pr_no_bn(filters, conv_param):
     def MR_global_pr_no_bn(x):
         x = block(filters // 2, 1, 1, order=['c', 'r'], order_param=[conv_param, None])(x)
         x = block(filters // 2, 3, 1, order=['c', 'r', 'c', 'r'], order_param=[conv_param, None])(x)
-        return  block(filters, 1, 1, order=['c', 'r'], order_param=[conv_param, None])(x)
+        return block(filters, 1, 1, order=['c', 'r'], order_param=[conv_param, None])(x)
+
     return MR_global_pr_no_bn
 
 
-def MR_block(filters, conv_param_local,conv_param_global):
+def MR_block(filters, conv_param_local, conv_param_global):
     # implementation of the merge-and-run block in https://arxiv.org/pdf/1611.07718.pdf
     def MR_block(x, y):
         mid = Add()([x, y])
         x_conv = MR_local_path(filters, conv_param_local)(x)
         y_conv = MR_local_path(filters, conv_param_global)(y)
-        x_out,y_out = Add()([x_conv, mid]), Add()([y_conv, mid])
+        x_out, y_out = Add()([x_conv, mid]), Add()([y_conv, mid])
         return x_out, y_out
 
     return MR_block
 
 
-def MR_GE_block(filters, conv_param_local,conv_param_global):
+def MR_GE_block(filters, conv_param_local, conv_param_global):
     # GE stands for global enhanced
     # a novel idea for combining local path with global path
     def MR_GE_block(x, y):
         mid = Add()([x, y])
         x_conv = MR_local_path(filters, conv_param_local)(x)
         y_conv = MR_global_path(filters, conv_param_global)(y)
-        x_out,y_out = Add()([x_conv, mid]),Add()([y_conv, mid])
+        x_out, y_out = Add()([x_conv, mid]), Add()([y_conv, mid])
         return x_out, y_out
 
     return MR_GE_block
@@ -113,52 +123,55 @@ def MR_GE_block(filters, conv_param_local,conv_param_global):
 def MR_block_split(filters, conv_param):
     def MR_block_split(x):
         x = block(filters, 1, 1, order=['b', 'r', 'c'], order_param=[None, None, conv_param])(x)
-        x_out,y_out=x,x
+        x_out, y_out = x, x
         return x_out, y_out
 
     return MR_block_split
 
 
-def MR_GE_block_merge(filters, conv_param_local,conv_param_global):
+def MR_GE_block_merge(filters, conv_param_local, conv_param_global):
     def MR_GE_block_merge(x, y):
         mid = Add()([x, y])
         x_conv = MR_local_path(filters, conv_param_local)(x)
         y_conv = MR_global_path(filters, conv_param_global)(y)
         return Add()([Add()([x_conv, y_conv]), mid])
+
     return MR_GE_block_merge
 
 
-def MRGE_exp_block(filters, dilation_max, conv_param_local,conv_param_global):
+def MRGE_exp_block(filters, dilation_max, conv_param_local, conv_param_global):
     def MRGE_exp_block(x):
         x, y = MR_block_split(filters, conv_param_local)(x)
         block_num = int(log2(dilation_max) + 1)
         rate_list = [2 ** i for i in range(block_num)]
         for rate in rate_list[:-1]:
             conv_param_local['dilation_rate'] = rate
-            x, y = MR_GE_block(filters, conv_param_local,conv_param_global)(x, y)
-        x = MR_GE_block_merge(filters, conv_param_local,conv_param_global)(x, y)
+            x, y = MR_GE_block(filters, conv_param_local, conv_param_global)(x, y)
+        x = MR_GE_block_merge(filters, conv_param_local, conv_param_global)(x, y)
         return x
 
     return MRGE_exp_block
+
+
 """
 === end merge and run blocks
 """
 
-
 """
 === Residual networks: resnet, resnext blocks
 """
+
+
 def resnext_branch(fin, fout, conv_param):
     def resnext_branch(x):
         x = block(fin, 1, 1, order=['c', 'r'], order_param=[conv_param, None])(x)
         x = block(fin, 3, 1, order=['b', 'r', 'c'], order_param=[None, None, conv_param])(x)
-        return  block(fout, 1, 1, order=['c', 'r'], order_param=[conv_param, None])(x)
+        return block(fout, 1, 1, order=['c', 'r'], order_param=[conv_param, None])(x)
 
     return resnext_branch
 
 
 def resnext_block(sp, fin, fout, conv_param):
-
     def resnext_block(x):
         input = block(fout, 1, 1, order=['c', 'r'], order_param=[conv_param, None])(x)
         branch = [input]
@@ -177,14 +190,154 @@ def res_block(filters, conv_param, scale=0.1):
         return Add()([x, res])
 
     return res_block
+
+
+###--------------------------------------------------------------------------------------------------------------------
+##-------------------------------------------------------------------------------------------------------------------
+## this block must contain 2 convolutions, residual connection
+## the arqchitecture is described in the papes
+##  https://arxiv.org/pdf/1706.00120.pdf
+
+
+def block_ExtResNet(out_channels, kernel_size=(3, 3, 3), stride_size=(1, 1, 1),
+                    order=['c', 'b', 'r'], order_param=None, name=None):
+    def block_ExtResNet(x):
+
+        #print("dimension entering x is: ", x.shape)
+
+        ## we start at creating 2 and the second output is used as residual connection
+        conv1 = block(f=out_channels, k=kernel_size, s=stride_size, order=order,
+                      order_param=order_param, order_priority=False)(x)
+
+        #print("dimension after conv 1 is: ", conv1.shape)
+
+        residual = conv1
+
+        conv2 = block(f=out_channels, k=kernel_size, s=stride_size, order=order,
+                      order_param=order_param, order_priority=False)(conv1)
+
+        #print("dimension after conv 2 is: ", conv2.shape)
+
+        ## remove non-linearity from the 3rd convolution since it's going to be applied after adding the residual
+        activation_order = ['r', 'l', 'p', 'e', 's', 't']
+        n_order = order.copy()
+        last_order = []
+
+        for c in activation_order:
+            if c in n_order:
+                n_order.remove(c)
+                last_order.append(c)
+
+        #print("new order: ", n_order)
+        conv3 = block(f=out_channels, k=kernel_size, s=stride_size, order=n_order, order_param=order_param,
+                      order_priority=False)(conv2)
+
+        #print("dimension after conv 3 is: ", conv3.shape)
+
+        res_connection = Add()([conv3, residual])#tf.concat([conv3, residual], axis=-1)
+
+        #print("dimension after residual connection is: ", res_connection.shape)
+
+        #print("order after concat: ", last_order)
+        x = block(f=out_channels, k=kernel_size, s=stride_size, order=last_order,
+                  order_param=order_param, order_priority=False, name=name)(res_connection)
+        return x
+
+    return block_ExtResNet
+
+
+def encoder_block(out_channels, conv_kernel_size=(3, 3, 3), stride_size_conv=(1, 1, 1), apply_pooling=True,
+                  stride_pool=(2, 2, 2), pool_kernel_size=(2, 2, 2), pool_type='mp', basic_block=block_ExtResNet,
+                  conv_layer_order=['c', 'b', 'r'], order_param=None, name=None):
+    def encoder_block(x):
+
+        ## here is missing the pool_kernel_size
+        if apply_pooling:
+            pooling_order =[]
+            order_param_pool = {'pool_size': pool_kernel_size,
+                                'strides': stride_pool,
+                                'padding': 'valid',
+                                'data_format': None}
+            # pool_size: [2, 2, 2]
+            # strides: [2, 2, 2]
+            # padding: 1
+            # data_format:
+            if pool_type == 'mp':
+                pooling_order.append(pool_type)
+                x = block(order=pooling_order, order_param=order_param_pool)(x)
+
+            else:
+                pooling_order.append(pool_type)
+                x = block(order=pooling_order, order_param=order_param_pool)(x)
+
+        x = basic_block(out_channels, kernel_size=conv_kernel_size, stride_size=stride_size_conv,
+                        order=conv_layer_order, order_param=order_param, name=name)(x)
+
+        return x
+
+    return encoder_block
+
+
+def decoder_block(out_channels, kernel_size=(3, 3, 3), stride_size_conv=(1, 1, 1),
+                  stride_factor_up=(2, 2, 2), basic_module=block_ExtResNet, pool_type='up',
+                  conv_layer_order=['c', 'b', 'r'], order_up=['dc', 'b', 'e'],
+                  order_param=None, last_decoder=False, concat=True):
+
+    def decoder_block(x, encoder_feature):
+        ##x = Conv3DTranspose(out_channels, kernel_size=kernel_size, strides=scale_factor, padding='same')(x)
+        if not last_decoder:
+            x = block(out_channels, kernel_size, s=stride_factor_up,
+                      order=order_up, order_param=order_param)(x)  # Deconvolution process
+
+        else:
+            print("last decoder x2")
+            x = block(out_channels, kernel_size, s=stride_factor_up,
+                      order=order_up, order_param=order_param)(x)  # Deconvolution process
+
+        if concat:
+            x = tf.concat([x, encoder_feature], axis=-1)  # Concatenation with encoder part
+
+        else: ## summation joining with the encoder part
+                ## this does not increase the number of feature maps
+
+            x = Add()([x, encoder_feature])
+
+        x = basic_module(out_channels, kernel_size=kernel_size,
+                         order=conv_layer_order, order_param=order_param)(x)
+
+        return x
+
+    return decoder_block
+
+def final_conv(out_channels, kernel_size=(1,1,1), s=1,
+               conv_layer_order=['c', 'b', 'e'], order_param=None):
+
+    def final_conv(x):
+
+        # for the last convolution, the bias parameter in the convolution must be set as True
+
+        order_param['convolution']['bias'] = True
+
+        x = block(f=out_channels, k=kernel_size, s=s, order=conv_layer_order,
+                      order_param=order_param, order_priority=False)(x)
+
+        # print("dimension after 1x1x1 conv is: ", conv1.shape)
+
+        return x
+
+    return final_conv
+###--------------------------------------------------------------------------------------------------------------------
+###--------------------------------------------------------------------------------------------------------------------
+
 """
 === end residual networks
 """
 
-
 """
 === blocks for DCNet series: DCCN_ORI, DCCN_TR(transpose conv)
 """
+
+
 # Dense connection
 def dense_block(l, filters, conv_param):
     """
@@ -193,15 +346,15 @@ def dense_block(l, filters, conv_param):
     :param conv_param: type dict: parameters of convolution
     :return: function dense_block
     """
-    def dense_block(x):
 
+    def dense_block(x):
         ins = [x, dense_conv(filters, conv_param)(x)]
         for i in range(l - 1):
-            ins.append(dense_conv(filters, conv_param)(tf.concat(ins,axis=-1)))
+            ins.append(dense_conv(filters, conv_param)(tf.concat(ins, axis=-1)))
         return Concatenate(axis=-1)(ins)
 
-
     return dense_block
+
 
 # Dense convolution
 def dense_conv(filters, conv_param):
@@ -211,36 +364,40 @@ def dense_conv(filters, conv_param):
     :param conv_param:   conv_param: type dict: parameters of convolution
     :return: function dense_conv
     """
+
     def dense_conv(x):
-        x = block(filters, 3, 1, order=['b', 'r', 'c'], order_param=[ None,None,conv_param])(x)
-        return  block(filters, 1, 1, order=['b', 'r', 'c'], order_param=[None, None, conv_param])(x)
+        x = block(filters, 3, 1, order=['b', 'r', 'c'], order_param=[None, None, conv_param])(x)
+        return block(filters, 1, 1, order=['b', 'r', 'c'], order_param=[None, None, conv_param])(x)
+
     return dense_conv
 
 
 # Transition pool layer
-def transitionLayerPool(filters,conv_param):
-        return lambda x: block(filters, 1,1,order=['b','r','c','ap'], order_param=[None,None, conv_param,{'pool_size':2}])(x)
+def transitionLayerPool(filters, conv_param):
+    return lambda x: block(filters, 1, 1, order=['b', 'r', 'c', 'ap'],
+                           order_param=[None, None, conv_param, {'pool_size': 2}])(x)
+
 
 # Transition transpose up layer
 def transitionLayerTransposeUp(filters, conv_param):
     def func(x):
-        x=block(filters, 1, 1, order=['b', 'r', 'c'],order_param=[None, None, conv_param])(x)
-        return block(filters, 3, 2, order=[ 'dc'],order_param=[conv_param])(x)
+        x = block(filters, 1, 1, order=['b', 'r', 'c'], order_param=[None, None, conv_param])(x)
+        return block(filters, 3, 2, order=['dc'], order_param=[conv_param])(x)
+
     return func
+
 
 # Attention layer
-def attention_layer_1(filters_out,conv_param,filters=16,alpha=1):
-    def func (x1,x2):
-        x1 = block(filters, 1, 1, order=['c','b', 'r' ], order_param=[conv_param,None, None])(x1)
-        x2 = block(filters, 1, 1, order=['c','b', 'r'], order_param=[conv_param,None, None])(x2)
-        x = block(filters, 1, 1, order=['r', 'b', 'c','s'], order_param=[ None, None,conv_param,None])(x1+x2)
-        return  block(filters_out, 1, 1, order=['c','b', 'r'], order_param=[conv_param,None, None])(x*alpha*x1)
+def attention_layer_1(filters_out, conv_param, filters=16, alpha=1):
+    def func(x1, x2):
+        x1 = block(filters, 1, 1, order=['c', 'b', 'r'], order_param=[conv_param, None, None])(x1)
+        x2 = block(filters, 1, 1, order=['c', 'b', 'r'], order_param=[conv_param, None, None])(x2)
+        x = block(filters, 1, 1, order=['r', 'b', 'c', 's'], order_param=[None, None, conv_param, None])(x1 + x2)
+        return block(filters_out, 1, 1, order=['c', 'b', 'r'], order_param=[conv_param, None, None])(x * alpha * x1)
+
     return func
+
+
 """
-=== end blocks 
+=== end blocks
 """
-
-
-
-
-

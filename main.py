@@ -13,11 +13,13 @@ from Patient.Patient import *
 import os
 from packaging import version
 
+
 import argparse
 
 
 def args_argument():
     parser = argparse.ArgumentParser(prog='MedSeg')
+
     parser.add_argument('-e', '--exp_name', type=str, default='exp0',
                         help='Name of experiment (subfolder in result_rootdir)')
 
@@ -28,6 +30,7 @@ def args_argument():
     parser.add_argument('--restore', action="store_true", help='Restore the unfinished trained model')
     parser.add_argument('-c', '--config_path', type=str, default='./config/config_default.yaml',
                         help='Configuration file of the project')
+
 
     parser.add_argument("--gpu", type=int, default=0, help="Specify the GPU to use")
     parser.add_argument('--gpu_memory', type=float, default=None, help='Set GPU allocation. (in GB) ')
@@ -72,6 +75,7 @@ def main(args):
 
     with open(args.config_path, "r") as yaml_file:
         config = yaml.load(yaml_file.read())
+
         config = convert_yaml_config(config)
 
     # set random seed to fix the randomness in training
@@ -127,10 +131,12 @@ def main(args):
 
     if args.train:  # train the model
         train(config, args.restore)
+
         print("Training finished for %s" % (config['dir_model_checkpoint'] + os.sep + config['exp_name']))
     if args.evaluate:  # evaluate the metrics of a trained model
         evaluate(config, datasets=config['dataset'])
         print("Evaluation finished for %s" % (config['result_rootdir'] + os.sep + config['exp_name']))
+
     if args.predict:  # predict and generate output masks of a trained model
         predict(config, datasets=config['dataset'], save_predict_data=config['save_predict_data'])
         print("Prediction finished for %s" % (config['result_rootdir'] + os.sep + config['exp_name']))

@@ -20,9 +20,11 @@ def save_histories_plot_images(history, dataset, config, mode='train_val',k_fold
     :param k_fold_index: type int:
     :return:
     """
-    path_figures = config['result_rootdir'] + '/' + config[
-        'model'] + '/figures/train_loss_and_metrics/' + dataset + '/'
-    path_pickle = config['result_rootdir'] + '/' + config['model'] + '/train_history/' + dataset + '/'
+
+    path_figures = config['result_rootdir'] + '/' + config['exp_name'] + '/' + config['model'] + \
+                   '/figures/train_loss_and_metrics/' + dataset + '/'
+    path_pickle = config['result_rootdir'] + '/' + config['exp_name'] + '/' + config['model'] \
+                  + '/train_history/' + dataset + '/'
 
     if not os.path.exists(path_figures): os.makedirs(path_figures)
     if not os.path.exists(path_pickle): os.makedirs(path_pickle)
@@ -131,12 +133,27 @@ def plot_mosaic(config, mask, slice_dim=2, colormap=None, vspace=2, hspace=2, co
     """
     # Define variable h(height), w(width), and slices
     mask_shape = mask.shape[:3]
+
+
+    #if mask.shape != origin_image.shape:
+    if mask_shape != origin_image.shape:
+    ## sometimes after the unpatching, the predicted image is smaller than original
+        difference = [(origin_image.shape[i] - mask_shape[i]) for i in range(len(origin_image.shape))]
+        array_difference = [(0, difference[0]), (0, difference[1]), (0, difference[2])]
+        new_mask = np.pad(mask, array_difference, mode='constant', constant_values=0)
+        mask = new_mask
+        print("new mask after padding: ", mask.shape)
+        ##with this it is ensure that dimensions are good
+
+    ## slice_dim = 2
+
     if origin_image is not None:
         shape_1,shape_2=origin_image.shape,mask.shape
         shape_=np.minimum(shape_1,shape_2)
 
         origin_image= origin_image[0: shape_[0],0: shape_[1],0:shape_[2]]
         mask = mask[0: shape_[0], 0: shape_[1], 0:shape_[2]]
+
 
     if slice_dim == 2:
         h, w, slices = mask_shape[0], mask_shape[1], mask_shape[2]
@@ -171,7 +188,6 @@ def plot_mosaic(config, mask, slice_dim=2, colormap=None, vspace=2, hspace=2, co
                 if flip_axis:
                     color_image=np.flip(color_image,axis=flip_axis)
 
-
                 im = Image.fromarray(color_image)
                 im = im.convert("RGBA")
 
@@ -197,7 +213,7 @@ def plot_mosaic(config, mask, slice_dim=2, colormap=None, vspace=2, hspace=2, co
                 #draw.text((7, 7), str(slice_index+1), font=font)
                 #figure.paste(im, (col_index * (w + vspace), row_index * (h + hspace)))
 
-    dir_figures = config['result_rootdir'] + '/' + config['model'] + '/figures/plot_mosaic/' + dataset + '/' + name_ID
+    dir_figures = config['result_rootdir'] + '/' + config['exp_name'] + '/' + config['model'] + '/figures/plot_mosaic/' + dataset + '/' + name_ID
     if client_save_rootdir is not None:
         dir_figures=client_save_rootdir+'/'+dir_figures
     if not os.path.exists(dir_figures): os.makedirs(dir_figures)
@@ -242,6 +258,7 @@ def plot_area_ratio(config, list_images_series, slice_dim=2, merge_channel_plot=
     for list_img in list_images_series:  # for each sublist,
         sum_ratio = []
         max_slice = 0
+        channel = list_img[0][0].shape[-1]
 
         for n in range(sum_):  # sum_: total number of patients in this series.
             img = list_img[n]

@@ -1,14 +1,14 @@
 import pickle
-import tensorflow as tf
 import numpy as np
 import os
 from .read_mat import *
 from .read_dicom import *
 from .read_nii import *
+from .read_HD5F import *
 from .write_tf_record import *
 from .read_and_save_datapath import *
 from .read_nrrd_path import *
-
+from keras.utils.np_utils import to_categorical
 
 def preprocess_raw_dataset(config):
     """
@@ -43,6 +43,30 @@ def preprocess_raw_dataset(config):
         if not os.path.exists(dir_tfrec_info): os.makedirs(dir_tfrec_info)
         return dir_tfrec_img, dir_tfrec_label, dir_tfrec_info
 
+    def write_tfrec_and_pickle_melanoma(imgs_data=None, dir_tfrec_img=None, labels_data=None, dir_tfrec_label=None, info=None,
+                               dir_tfrec_info=None, img_tf_name='image', label_tf_name='label', info_name='info'):
+        """
+        Write images and label pairs into tfrecord files, and save infomation of patient into pickle files
+        for Melanoma dataset
+        :param imgs_data: type ndarray
+        :param dir_tfrec_img:  type str
+        :param labels_data:  type ndarray
+        :param dir_tfrec_label: type str
+        :param info: type dict
+        :param dir_tfrec_info: type str
+        :return:
+        """
+        if imgs_data is not None:
+            write_tfrecord_melanoma(imgs_data, info['validation_for_cancer'], path=dir_tfrec_img + '/'+img_tf_name+'.tfrecords')
+            print("Image succesfully written")
+
+        if labels_data is not None:
+            write_tfrecord_melanoma(labels_data, info['validation_for_cancer'], path=dir_tfrec_label + '/'+label_tf_name+'.tfrecords')
+            print("Mask succesfully written")
+
+        if info is not None:
+            pickle.dump(info, open(dir_tfrec_info + '/'+info_name+'.pickle', 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
+
     def write_tfrec_and_pickle(imgs_data=None, dir_tfrec_img=None, labels_data=None, dir_tfrec_label=None, info=None,
                                dir_tfrec_info=None, img_tf_name='image', label_tf_name='label', info_name='info'):
         """
@@ -67,8 +91,12 @@ def preprocess_raw_dataset(config):
         Change pixel values in img to (0,1)
         :param img: type ndarray: input images
         :param globalscale: type boolean: (True) perform normalization on whole 2D/3D image, (False) axis independent normalization
+        :param channel_at_beginning: type boolean: channels are at the beginning of input shape
         :return:img: type ndarray
         """
+        num_channels = img.shape[-1]
+        print("Shape to normalize is: ", img.shape)
+
         if globalscale:
             maxval = np.amax(img)
             minval = np.amin(img)
@@ -76,8 +104,16 @@ def preprocess_raw_dataset(config):
 
 
         else:
-            img = [(img[..., i] - np.min(img[..., i])) / (np.ptp(img[..., i]) + 1E-16) for i in range(img.shape[-1])]
-        img = np.rollaxis(np.float32(np.array(img)), 0, 4)
+            img = [(img[..., i] - np.min(img[..., i])) / (np.ptp(img[..., i]) + 1E-16) for i in
+                       range(img.shape[-1])]
+            img = np.rollaxis(np.float32(np.array(img)), 0, 4)
+
+        print("Shape after normalization: ", img.shape)
+
+        assert num_channels == img.shape[-1], "normalization was not good performed"
+
+        print("Final Shape: ", img.shape)
+
         return img
 
     def calculate_max_shape(max_shape, img_data):
@@ -111,7 +147,7 @@ def preprocess_raw_dataset(config):
         config['rootdir_raw_data_label']]
     if isinstance(config['rootdir_tfrec'], str): config['rootdir_tfrec'] = [config['rootdir_tfrec']]
 
-    # Keep the images shape coinstant with labels.
+    # Keep the images shape constant with labels.
     # image_reshape = lambda x: np.rollaxis(np.rollaxis(np.rollaxis(x, 0, 4), 0, 3), 0, 2)  # shape order(x,y,z,channel)
     image_reshape = lambda x: np.transpose(x, (3, 2, 1, 0))  # shape order(x,y,z,channel)
 
@@ -119,6 +155,7 @@ def preprocess_raw_dataset(config):
         max_shape_img, max_shape_label = None, None
 
         print('Start processing dataset: ', dataset, ' ...')
+
         # Adipose Tissue databases
         print('dataset:',dataset)
         if dataset in ['TULIP1_5T', 'NAKO_AT', 'TULIP3T']:
@@ -448,8 +485,125 @@ def preprocess_raw_dataset(config):
                                            dir_tfrec_info)
                     save_max_shape(dataset, max_shape_img, max_shape_label)
 
+        ## for Melanom dataset
+        elif dataset == 'MELANOM':
+
+            # directories in server for the HD5F files
+            # directory of images and masks are the same
+            rootdir_file = config['rootdir_raw_data_img'][dataset]
+            print("root dir from img and label is: ", rootdir_file)
+            #rootdir_label = config['rootdir_raw_data_label'][dataset]
+            #print(root_dir_label)
+            rootdir_tfrec = config['rootdir_tfrec'][dataset]
+            print("root dir for tfrecords is: ", rootdir_tfrec)
+
+            #dir_patterns = {'images': '/*/image', 'mask': '/*/mask'}
+
+            #we get the img_IDs from images, the HD5F file, the keys from file
+            #img_IDs, file, file_keys = read_HD5F(dataset, rootdir_file, padded=False)
+            Data_Reader = HD5F_Reader(dataset, rootdir_file)
+
+            img_IDs = Data_Reader.img_IDs
+            file_keys = Data_Reader.file_keys
+
+            i=0
+            ## iterate over the IDs in order to save each image as tfrecord
+            for img_ID in img_IDs:
+
+
+                #for channel in range(num_channels): # (PET, CT)
+                print("------------------------------------------------------------------")
+                print("ID: ", img_ID)
+
+                img_h5 = Data_Reader.file[file_keys[0]][img_ID]
+                print("Shape of the image is: ", img_h5.shape)
+                # the form of the images are  (channel, H, W, D)
+
+                mask_type = config['keys_reader'][1]
+                if mask_type == 'mask_iso':
+                    mask_h5 = Data_Reader.file[file_keys[2]][img_ID] # mask iso
+                    print("Shape of the mask_h5 is: ", mask_h5.shape)
+
+                else:
+                    mask_h5 = Data_Reader.file[file_keys[1]][img_ID]  # mask
+                    print("Shape of the mask_h5 is: ", mask_h5.shape)
+
+                img_array = np.rollaxis(np.float32(np.array(img_h5)), 0, 4)
+                print("Shape of the image ARRAY is: ", img_array.shape)
+
+                mask_array = np.rollaxis(np.float32(np.array(mask_h5)), 0, 4)
+                print("Shape of the mask ARRAY is: ", mask_array.shape)
+                un = np.unique(mask_array)
+
+                ## shape = (x, y, z, 1)
+
+                ##_-----transform the mask into one hot encoded -----------------
+                values_b = np.unique(mask_array)
+                ##assert values_b == [0.0,1.0], "Labels do not contain only 0s and 1s"
+                mask_one_hot = to_categorical(mask_array, num_classes=config['num_classes'])
+                #values_1 = np.unique(mask_one_hot[...,0])
+                #values_2 = np.unique(mask_one_hot[..., 1])
+                assert mask_one_hot.shape[-1] == config['num_classes'], "Mask is not in one hot encoded"
+
+                ##--------------------------------------------------------------
+                # some images do not present lesion in the image
+                # for further pipeline development we need to validate them
+                # if they have lesion or not
+                # lesion appears in the mask as 1
+                # Non-lesion appears in the mask as 0
+                # in case an image has lesion and non-lesion parameters
+                # then it must have 2 elements, otherwise just 1
+
+                values_in_array = np.unique(mask_array)
+                print("values in mask: ", values_in_array)
+                validation_for_cancer = False
+
+                if values_in_array.size == 2:
+                    validation_for_cancer = True
+
+                print("validation for cancer: ", validation_for_cancer)
+                ##-------------------------------------------------------------------
+
+                max_shape_img = calculate_max_shape(max_shape_img, img_array)
+                print("MaxShape of the image is: ", max_shape_img)
+                #max_shape_label = calculate_max_shape(max_shape_label, mask_array)
+                #print("MaxShape of the mask is: ", max_shape_label)
+                max_shape_label = calculate_max_shape(max_shape_label, mask_one_hot)
+                print("MaxShape of the mask one hot encoded is: ", max_shape_label)
+                #max_shape_mask_iso = calculate_max_shape(max_shape_label, img['mask_iso'][img_ID])
+                img_normalized = normalize(img_array).astype(np.float32)
+                print("The normalized shape is: ", img_normalized.shape)
+
+                #assert img_normalized.shape[:3] == mask_array.shape[:3], "Dimensions from image and mask do not match"
+                assert img_normalized.shape[:3] == mask_one_hot.shape[:3], "Dimensions from image and mask do not match"
+
+                infos = {'name_ID': img_ID,
+                         'info_patient': "info",
+                         'name_input_channel': config['name_input_channel'][dataset],
+                         'name_output_channel': config['name_output_channel'][dataset],
+                         'validation_for_cancer': validation_for_cancer}
+                #print(img_ID, ': image shape:', img_normalized.shape, ' labels shape:', mask_array.shape)
+                print(img_ID, ': image shape:', img_normalized.shape, ' labels shape:', mask_one_hot.shape)
+
+                ## create tfrecord directory
+                dir_tfrec_img, dir_tfrec_label, dir_tfrec_info = create_tfrec_dir(
+                    dir_file=rootdir_file + '/' + img_ID,
+                    rootdir=rootdir_file,
+                    rootdir_tfrec=rootdir_tfrec)
+
+                ## write tfrec in pickle file
+                write_tfrec_and_pickle_melanoma(imgs_data=img_normalized, dir_tfrec_img=dir_tfrec_img,
+                                       labels_data=mask_one_hot, dir_tfrec_label=dir_tfrec_label,
+                                       info=infos, dir_tfrec_info=dir_tfrec_info)
+                ##save the max shape
+                save_max_shape(dataset, max_shape_img, max_shape_label)
+
+                i = i+1
+
+            print("Melanom Dataset preprocessed")
+
         # read all paths of tfrecords and save into the pickle files
+        print(rootdir_tfrec)
         read_and_save_tfrec_path(config, rootdir_tfrec,
                                  filename_tfrec_pickle=config['filename_tfrec_pickle'][dataset],
                                  dataset=dataset)
-

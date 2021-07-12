@@ -8,6 +8,8 @@ import models.loss_function as loss_function
 from .metrics import *
 from util import convert_tf_optimizer
 import copy
+import numpy as np
+from torch.autograd import Variable
 
 
 class ModelSet:
@@ -128,27 +130,33 @@ class ModelSet:
 
         # add crop-position
 
+
         in_pos = Input(shape=(3,), name='input_position')
         pos = Reshape(target_shape=(1, 1, 1, 3))(in_pos)
         if config['pos_noise_stdv'] != 0: pos = GaussianNoise(config['pos_noise_stdv'])(pos)
+
 
         pos = BatchNormalization()(pos)
 
         # encoder path
         x = Conv3D(filters=k_0, kernel_size=(7, 7, 7), strides=(2, 2, 2), padding='same')(in_)
 
+
         shortcuts = []
         for l in ls:
             x = denseBlock(mode='3D', l=l, k=k, lbda=lbda)(x)
             shortcuts.append(x)
+
             k_0 = int(round((k_0 + k * l) * theta))
             x = transitionLayerPool(mode='3D', f=k_0, lbda=lbda)(x)
 
         # concatenate position at feature map (bottleneck)
+
         if config['feed_pos']:
             shape = x.shape[1:4]
             pos = UpSampling3D(size=shape)(pos)
             x = Concatenate(axis=-1)([x, pos])
+
 
         # decoder path
         for l, shortcut in reversed(list(zip(ls, shortcuts))):
@@ -161,16 +169,19 @@ class ModelSet:
         x = Conv3D(filters=config['channel_label_num'], kernel_size=(1, 1, 1))(x)
         out = Activation('softmax', name='output_Y')(x)
 
+
         if config['feed_pos']:
             return create_and_compile_model([in_, in_pos], out, config)
         else:
             return create_and_compile_model(in_, out, config)
+
 
     # modified 3D DenseNet
     def model_DenstNet_3Dv2(self, config):
         conv_param = config['convolution_parameter']
 
         def denseBlock(dense_block_len, filters):
+
 
             def dense_block_instance(x):
                 x1 = block(filters, 1, 1, order=['b', 'r', 'c'], order_param=[None, None, None])(x)
@@ -471,7 +482,9 @@ class ModelSet:
 
         # Here additional flattening layer to get right dimensionsionality
         flattening_1 = Flatten()(dense_2)
+
         outputs = Dense(config['body_identification_n_classes'], activation='softmax', name='output_a')(flattening_1)
+
 
         # Wrap in a Model
         if config['feed_pos']:
@@ -479,11 +492,137 @@ class ModelSet:
         else:
             return create_and_compile_model(inputs, outputs, config)
 
+    # tumor lesion segmentation for PET/CT melanoma dataset
+    def model_U_net_melanoma(self, config):
+        ## is config the only parameter for the model?
+        '''
+        Model designed for melanom/methastases segmentation in PET/CT Images
+        This model is based on the following paper:
+        'https://arxiv.org/pdf/1706.00120.pdf'
+        as a copy of 3D UNet created by Tobias Hepp
+        '''
+
+        conv_param = config['convolution_parameter']
+
+        ## the input tensor of the application is generated
+        inputs = Input(shape=(*config['patch_size'],) + (config['channel_img_num'],), name='inp1')
+
+        x = inputs
+        print("Input shape of the network: ", x.shape)
+
+        ## we design a 5 levels in the encoder path according to the described paper
+        ## assume that config['filters_melanoma'] is 32 according to paper
+
+        f_maps = [config['filters_melanoma'] * 2 ** i for i in range(config['number_of_levels'])]
+        print("number of f maps used: ", f_maps)
+
+        ## config['filters_melanoma'] is assumed to be in config file, it can be added there
+        ## config['number_of_levels'] are assumed to be in config file, it can be added there
+
+        ##---------- U Net in encoder part ------------------------------------------------------------------------
+        # for this experiment, we try with group normalization
+
+        encoders = []
+        list_f_maps = enumerate(f_maps)
+
+        # the encoder parths are created and added to encoders list
+        # An external Residual block is consider in the last encoder
+        # without pooling, this is done to keep latent space
+        # at the bottom for other networks
+
+        for i, out_feature_num in list_f_maps:
+            if i == 0:
+                # feature maps at the end of convolution should be equal according to torch implementation
+
+                encoder = encoder_block(out_feature_num, conv_kernel_size=(3, 3, 3), stride_size_conv=(1, 1, 1),
+                                        apply_pooling=False, basic_block=block_ExtResNet,
+                                        conv_layer_order=['c', 'g', 'e'],
+                                        order_param=conv_param)
+
+
+            elif i == len(f_maps)-1: ## last layer in encoder / bottleneck
+
+                encoder = encoder_block(out_feature_num, conv_kernel_size=(3, 3, 3), stride_size_conv=(1, 1, 1),
+                                        apply_pooling=True, stride_pool = (2, 2, 2),
+                                        pool_kernel_size=(2, 2, 2), pool_type='mp',
+                                        basic_block=block_ExtResNet, conv_layer_order=['c', 'g', 'e'],
+                                        order_param=conv_param, name='bottleneck')
+                print("name: Bottleneck")
+                #write_latent_space(encoder.get_layer.output)
+
+            else:
+                encoder = encoder_block(out_feature_num, conv_kernel_size=(3, 3, 3), stride_size_conv=(1, 1, 1),
+                                        apply_pooling=True, stride_pool = (2, 2, 2),
+                                        pool_kernel_size=(2, 2, 2), pool_type='mp',
+                                        basic_block=block_ExtResNet, conv_layer_order=['c', 'g', 'e'],
+                                        order_param=conv_param)
+            encoders.append(encoder)
+
+        print("number of encoder paths: ", len(encoders))
+
+        ##---------------------------decoder part-----------------------------------------------
+        decoders = []
+        reversed_f_maps = list(reversed(f_maps))
+
+        for i in range(len(reversed_f_maps) - 1):
+
+            if i == (len(reversed_f_maps) - 2): ## last decoder
+                print("last decoder")
+                decoder = decoder_block(reversed_f_maps[i + 1], kernel_size=(3, 3, 3), stride_size_conv=(1, 1, 1),
+                                        stride_factor_up=(2, 2, 2), basic_module=block_ExtResNet,
+                                        conv_layer_order=['c', 'g', 'e'],
+                                        order_up=['dc'], order_param=conv_param,
+                                        last_decoder=True, concat=False)
+
+            else:
+                decoder = decoder_block(reversed_f_maps[i + 1], kernel_size=(3, 3, 3), stride_size_conv=(1, 1, 1),
+                                        stride_factor_up=(2, 2, 2), basic_module=block_ExtResNet,
+                                        conv_layer_order=['c', 'g', 'e'],
+                                        order_up=['dc'], order_param=conv_param,
+                                        concat=False)
+
+            decoders.append(decoder)
+
+        print("number of decoder paths: ", len(decoders))
+
+        # join encoder and decoder in a Unet architecture
+        encoders_features = []
+        num_encoder = 1
+        for encoder in encoders:
+            print("encoder num: ", num_encoder)
+            x = encoder(x)
+            # reverse the encoder outputs to be aligned with the decoder
+            encoders_features.insert(0, x)
+            num_encoder = num_encoder+1
+
+        # remove the last encoder's output from the list
+        # !!remember: the first in the list
+        encoders_features = encoders_features[1:]
+
+        num_decoder = 1
+        for decoder, encoder_feature in zip(decoders, encoders_features):
+            # pass the output from the corresponding encoder and the output
+            # of the previous decoder
+            print("decoder num: ", num_decoder)
+            x = decoder(x, encoder_feature)
+            num_decoder = num_decoder + 1
+
+        ## we have another final convolution according to the architecture proposed
+        ##final_conv
+
+        x = final_conv(2, kernel_size=(1,1,1), s=1,
+                       conv_layer_order=['c'], order_param=conv_param)(x)
+
+        ## here should be the softmax activation function, sigmoid can also be used
+
+        x = block(order=['s'])(x)
+
+        return create_and_compile_model(inputs, x, config)
+
 
 """
 === end network models
 """
-
 
 def create_and_compile_model(inputs, outputs, config, premodel=None):
     """
@@ -499,6 +638,7 @@ def create_and_compile_model(inputs, outputs, config, premodel=None):
         if config['loss_functions'] is not None:
             for name_loss_function in config['loss_functions']:
                 loss_func = getattr(loss_function, name_loss_function)(y_true, y_pred, config=config)
+
                 weight = config['loss_functions'][name_loss_function]
                 sum_ = sum_ + weight * loss_func
         return sum_
@@ -548,6 +688,7 @@ def create_and_compile_model(inputs, outputs, config, premodel=None):
     else:
         #  Single network output
 
+
         use_tensorflow_loss_function = config['use_tensorflow_loss_function']
         if not use_tensorflow_loss_function:
             loss_func_dict = loss_func
@@ -555,8 +696,12 @@ def create_and_compile_model(inputs, outputs, config, premodel=None):
             print('use tensor loss')
             loss_func_dict = config['tensorflow_loss_function']
 
+
+    print("Start compiling model")
     model.compile(loss=loss_func_dict,
                   optimizer=optimizer_func,
                   metrics=custom_metrics_list)
 
+
     return model, list_metric_name
+

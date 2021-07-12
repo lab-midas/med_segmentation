@@ -35,6 +35,78 @@ def dice_loss(y_true, y_pred, config):
 
     """
 
+    # smooth = 1E-16
+    smooth = K.epsilon()
+    sum_loss, weight_sum = 0, 0
+    for class_index in range(config['channel_label_num']):
+        y_t = y_true[..., class_index] #(x, y, z)
+        y_p = y_pred[..., class_index]
+        intersection = K.sum(K.abs(y_t * y_p), axis=-1) #(x, y)
+        loss = 1 - (2. * intersection + smooth) / (K.sum(K.square(y_t), -1) + K.sum(K.square(y_p), -1) + smooth)
+        sum_loss += loss * config['loss_channel_weight'][class_index]
+        weight_sum += config['loss_channel_weight'][class_index]
+    return sum_loss / (weight_sum + smooth)
+
+def dice_loss_melanoma(y_true, y_pred, config):
+    """ Dice loss for Melanoma network
+            y_true: true targets tensor.
+            y_pred: predictions tensor.
+            Dice calculation with smoothing to avoid division by zero
+    """
+    # smooth = 1E-16
+    #assert y_true.shape == y_pred.shape
+    smooth = K.epsilon()
+    #assert len(y_true.shape) == 5
+    sum_loss, weight_sum = 0, 0
+
+    for class_index in range(config['num_classes']):
+        y_t = y_true[..., class_index]
+        y_p = y_pred[..., class_index]
+        intersection = tf.math.reduce_sum(y_t * y_p) * config['loss_channel_weight'][class_index]
+        denominator = tf.math.reduce_sum(y_t) + tf.math.reduce_sum(y_p) + smooth
+
+        loss = 1 - (2. * intersection / denominator)
+
+        sum_loss += loss ## this returns a tensor
+        weight_sum += config['loss_channel_weight'][class_index] ## this returns a tensor too
+
+    y_mean = sum_loss/weight_sum
+
+    return y_mean
+
+def dice_loss_melanoma_2(y_true, y_pred, config):
+    """ Dice loss for Melanoma network
+            y_true: true targets tensor.
+            y_pred: predictions tensor.
+            Dice calculation with smoothing to avoid division by zero
+    """
+    ## here it is assumed that the y_true is already in one hot encoded
+    assert y_true.shape == y_pred.shape
+    smooth = K.epsilon()
+    sum_loss, weight_sum = 0, 0
+    for class_index in range(config['num_classes']):
+        y_t = y_true[..., class_index]
+        y_p = y_pred[..., class_index]
+        intersection = K.sum(K.abs(y_t * y_p), axis=-1)
+        loss = 1 - (2. * intersection + smooth) / (K.sum(K.square(y_t), -1) + K.sum(K.square(y_p), -1) + smooth)
+        sum_loss += loss * config['loss_channel_weight'][class_index] ## this returns a tensor
+        weight_sum += config['loss_channel_weight'][class_index] ## this returns a tensor too
+
+    return sum_loss / (weight_sum + smooth)
+
+def dice_coefficient_loss(y_true, y_pred, config, smooth=K.epsilon(), axis=None):
+    """ Dice coefficient along specific axis (same as  1+dice_loss() if axis=None)
+            y_true: true targets tensor.
+            y_pred: predictions tensor.
+            smooth: smoothing parameter to avoid division by zero
+            axis: along which to calculate Dice
+    """
+    intersection = K.sum(K.abs(y_true * y_pred), axis=axis)
+    return -(2. * intersection + smooth) / (K.sum(K.abs(y_true), axis=axis) + K.sum(K.abs(y_pred), axis=axis) + smooth)
+
+
+def dice_loss_v2(y_true, y_pred, config):
+
     smooth = 1E-16
     # smooth = K.epsilon()
     sum_loss, weight_sum = 0, 0
@@ -48,8 +120,10 @@ def dice_loss(y_true, y_pred, config):
     return sum_loss / (weight_sum + smooth)
 
 
+
 def dice_coefficient_loss(y_true, y_pred,config,  axis=None):
     """ Dice coefficient along specific axis (same as  1+dice_loss() if axis=None)
+
             y_true: true targets tensor.
             y_pred: predictions tensor.
             smooth: smoothing parameter to avoid division by zero
@@ -58,6 +132,7 @@ def dice_coefficient_loss(y_true, y_pred,config,  axis=None):
     smooth = 1E-16
     intersection = K.sum(K.abs(y_true * y_pred), axis=axis)
     return -(2. * intersection + smooth) / (K.sum(K.abs(y_true), axis=axis) + K.sum(K.abs(y_pred), axis=axis) + smooth)
+
 
 
 def focal_loss(y_true, y_pred, config, alpha=0.25, gamma=2.0):
@@ -108,11 +183,13 @@ def focal_loss(y_true, y_pred, config, alpha=0.25, gamma=2.0):
 
         return tf.reduce_sum(alpha_factor * modulating_factor * ce, axis=-1)
 
+
     smooth = K.epsilon()
     sum_loss, weight_sum = 0, 0
     for class_index in range(config['channel_label_num']):
         fl = sigmoid_focal_crossentropy(y_true[..., class_index], y_pred[..., class_index], alpha=alpha, gamma=gamma)
         loss = K.mean(fl)
+
         sum_loss += loss * config['loss_channel_weight'][class_index]
         weight_sum += config['loss_channel_weight'][class_index]
 
@@ -129,6 +206,7 @@ def TverskyLoss(y_true, y_pred, config):
     inputs = K.flatten(y_pred)
     targets = K.flatten(y_true)
 
+
     # True Positives, False Positives & False Negatives
     TP = K.sum((inputs * targets))
     FP = K.sum(((1 - targets) * inputs))
@@ -139,10 +217,12 @@ def TverskyLoss(y_true, y_pred, config):
     return 1 - Tversky
 
 
+
 def focal_Tversky_loss(y_true, y_pred, config, alpha=0.5, beta=0.5, gamma=1, smooth=1e-6):
     # flatten label and prediction tensors
     inputs = K.flatten(y_pred)
     targets = K.flatten(y_true)
+
 
     # True Positives, False Positives & False Negatives
     TP = K.sum((inputs * targets))
@@ -153,6 +233,7 @@ def focal_Tversky_loss(y_true, y_pred, config, alpha=0.5, beta=0.5, gamma=1, smo
     FocalTversky = K.pow((1 - Tversky), gamma)
 
     return FocalTversky
+
 
 
 def combo_loss(y_true, y_pred, config):
@@ -187,6 +268,7 @@ def jaccard_dist_loss(y_true, y_pred, config):
     return sum_loss / (weight_sum + smooth)
 
 
+
 def jaccard_dist_loss_hybrid(y_true, y_pred, config):
     smooth = K.epsilon()
     y_tru = y_true[0]
@@ -202,3 +284,4 @@ def jaccard_dist_loss_hybrid(y_true, y_pred, config):
     sum_loss += loss
 
     return sum_loss
+

@@ -22,7 +22,20 @@ from predict_data_processing.nifti_process import read_nifti
 from plot.plot_figure import plot_combine
 import scipy.io as sio
 import numpy as np
+from med_io.read_HD5F import *
 
+def generate_all_keys(split_path):
+    """
+    Returns all the key images and labels requiered for prediction
+    """
+
+    dataset_image_path = split_path['path_train_val_img'] + split_path['path_test_img']
+    dataset_label_path = split_path['path_train_val_label'] + split_path['path_test_label']
+
+    data_path_image_list = [t[i] for t in dataset_image_path for i in range(len(dataset_image_path[0]))]
+    data_path_label_list = [t[i] for t in dataset_label_path for i in range(len(dataset_label_path[0]))]
+
+    return data_path_image_list, data_path_label_list
 
 def predict(config, datasets=None, save_predict_data=False, name_ID=None):
     """
@@ -55,10 +68,28 @@ def predict(config, datasets=None, save_predict_data=False, name_ID=None):
                 dataset_image_path = [[config['rootdir_tfrec'][dataset] + '/' + name_ID + '/image/image.tfrecords']]
                 dataset_label_path = [[config['rootdir_tfrec'][dataset] + '/' + name_ID + '/label/label.tfrecords']]
 
+
+            ##max shape, channel img num, channel label num, condigured
             config = channel_config(config, dataset)
+
             # Reformat data path list: [[path1],[path2], ...] ->[[path1, path2, ...]]
             data_path_image_list = [t[i] for t in dataset_image_path for i in range(len(dataset_image_path[0]))]
             data_path_label_list = [t[i] for t in dataset_label_path for i in range(len(dataset_label_path[0]))]
+
+            ########------------------------------------------------------------------
+
+            # in case RAM Memory is completely used and the task killed, use these lines of code
+            # in order to retrieve the task starting from an specific id to the end
+            # comment the last two lines
+
+            #data_path_image_list, data_path_label_list = generate_all_keys(split_path)
+            #i_index = 429
+
+            #data_path_image_list = data_path_image_list[i_index:]
+            #data_path_label_list = data_path_label_list[i_index:]
+
+            ########------------------------------------------------------------------
+
             list_image_TFRecordDataset = [tf.data.TFRecordDataset(i) for i in data_path_image_list]
             list_label_TFRecordDataset = [tf.data.TFRecordDataset(i) for i in data_path_label_list]
 
@@ -77,6 +108,7 @@ def predict(config, datasets=None, save_predict_data=False, name_ID=None):
                 # elem[0]= data, elem[1]= data shape
                 img_data = [elem[0].numpy() for elem in dataset_image][0]
                 label_data_onehot = [elem[0].numpy() for elem in dataset_label][0]
+
                 if not config['read_body_identification']:
 
                     img_data, label_data_onehot = image_transform(config, img_data, label_data_onehot)
@@ -153,7 +185,9 @@ def predict(config, datasets=None, save_predict_data=False, name_ID=None):
                 if config['plot_figure']:
                     plot_figures_dataset(config, list_images_series, dataset=dataset)
 
+
             print('Predict data ', dataset, 'is finished.')
+
     else:
         # Load dataset not from tfrecords. e.g. from nifti
 
@@ -260,7 +294,9 @@ def channel_config(config, dataset, evaluate=False):
     if config['output_channel'][dataset] is not None:
         config['channel_label_num'] = len(config['output_channel'][dataset])
 
+
     print('channel_img_num:',config['channel_img_num'],'channel_label_num', config['channel_label_num'])
+
     if (not config['load_predict_from_tfrecords']) and (not evaluate) and (
             (not config['input_channel'][dataset]) or (not config['output_channel'][dataset])):
         raise ValueError('channel_label must be valued.')
@@ -333,6 +369,7 @@ def predict_image(config, dataset, model, patch_imgs, indice_list, img_data_shap
     if config['input_channel'][dataset] is not None:
         patch_imgs = patch_imgs[..., config['input_channel'][dataset]]
 
+
     indice_list_model = indice_list
     if config['regularize_indice_list']['max_shape']:
 
@@ -373,6 +410,7 @@ def predict_image(config, dataset, model, patch_imgs, indice_list, img_data_shap
         except:
             return -1
 
+
     # patch images-> whole image
     if not config['read_body_identification']:
 
@@ -395,6 +433,7 @@ def predict_image(config, dataset, model, patch_imgs, indice_list, img_data_shap
         # prob_map,decision_map(191, 256, 110, 6) (191, 256, 110, 6)
         prob_map, decision_map = prediction_prob(config, predict_patch_imgs, indice_list)
         print("prob_map, decision_map", prob_map.shape, decision_map.shape)
+
 
         return prob_map, decision_map
 
@@ -436,8 +475,11 @@ def convert_result(config, predict_img, label_data_onehot=None, predict_class_nu
         predict_img_integers = convert_onehot_to_integers_add_bg(predict_img)
     else:
         predict_img_integers = convert_onehot_to_integers(predict_img)
+
     if predict_class_num is None:
+
         predict_img_onehot = convert_integers_to_onehot(predict_img_integers, num_classes=predict_img.shape[-1])
+
     else:
         predict_img_onehot = convert_integers_to_onehot(predict_img_integers, num_classes=predict_class_num)
 

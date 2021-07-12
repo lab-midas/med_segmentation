@@ -14,6 +14,8 @@ from models.load_model import load_model_file
 import pickle
 import datetime
 import os
+import random
+
 
 
 def train(config, restore=False):
@@ -25,6 +27,9 @@ def train(config, restore=False):
     :return: histories type list of of list of float, metrics evaluating value from each epoch.
     """
     models, histories = [], []
+
+    print("database: ", config['dataset'])
+    print("type database: ", type(config['dataset']))
     for pickle_path, pickle_max_shape, dataset in zip(config['filename_tfrec_pickle'],
                                                       config['filename_max_shape_pickle'],
                                                       config['dataset']):
@@ -142,6 +147,7 @@ def train(config, restore=False):
 def train_process(config, model, paths_train_img, paths_train_label, paths_val_img, paths_val_label, dataset,
                   cp_callback,
                   saver1, k_fold_index=0, init_epoch=0):
+
     """Internal function
         Train process"""
 
@@ -151,9 +157,20 @@ def train_process(config, model, paths_train_img, paths_train_label, paths_val_i
         return train_al_process(config, model, paths_train_img, paths_train_label,
                                 paths_val_img, paths_val_label, dataset, cp_callback, saver1)
     else:
-        ds_train = pipeline(config, paths_train_img, paths_train_label, dataset=dataset)
 
-        ds_validation = pipeline(config, paths_val_img, paths_val_label, dataset=dataset)
+        if dataset == 'MELANOM':
+            print("reading pipeline for Melanom dataset")
+
+            ds_train = pipeline_melanom(config, paths_train_img, paths_train_label,
+                                        dataset=dataset, augment=True, training=True)
+
+            ds_validation = pipeline_melanom(config, paths_val_img, paths_val_label,
+                                             dataset=dataset, augment=False, training=True)
+
+        else:
+            ds_train = pipeline(config, paths_train_img, paths_train_label, dataset=dataset)
+
+            ds_validation = pipeline(config, paths_val_img, paths_val_label, dataset=dataset)
 
         # Fit training & validation data into the model
 
@@ -246,6 +263,7 @@ def train_al_process(config, model, paths_train_img, paths_train_label, paths_va
 
     history = learner.histories
 
+
     return model, history
 
 
@@ -263,6 +281,9 @@ def train_config_setting(config, dataset):
         filename_max_shape = config['dir_dataset_info'] + '/max_shape_' + dataset + '.pickle'
     with open(filename_max_shape, 'rb') as fp:
         config['max_shape'] = pickle.load(fp)
+
+    print("max shape image: ", config['max_shape']['image'])
+    print("max shape label: ", config['max_shape']['label'])
     # Get the amount of input and output channel
     # config[channel_img]: channel amount of model input, config[channel_label]: channel amount of model output
     config['channel_img_num'], config['channel_label_num'] = config['max_shape']['image'][-1], \
@@ -317,6 +338,7 @@ def k_fold_train_process(config, model, k_fold, paths, dataset, cp_callback, ini
         if not config['k_fold_merge_model']:
 
             # train all k-fold on one model
+
             model, history = train_process(config, model, paths_train_img, paths_train_label, paths_val_img,
                                            paths_val_label, dataset, cp_callback,
                                            saver1, k_fold_index=k,
@@ -329,6 +351,7 @@ def k_fold_train_process(config, model, k_fold, paths, dataset, cp_callback, ini
                                         saver1, k_fold_index=k,
                                         init_epoch=init_epoch)
             history.append(hist)
+
             # save model
             saved_model_path = config['saved_models_dir'] + '/' + config['exp_name'] + '/' + config['model']
             if not os.path.exists(saved_model_path): os.makedirs(saved_model_path)

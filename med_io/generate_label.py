@@ -29,7 +29,8 @@ def generate_label(config, label, patch_pos, patch_size):
         for idx in range(patch_pos.shape[0]):
             new_label = label*-1+(patch_pos[idx][2] + patch_size[2] // 2)
             class_pos = tf.where(new_label > 0)[0][-1]
-            one_hot = tf.one_hot(class_pos, config['body_identification_n_classes'], dtype=tf.float32)
+
+            one_hot = tf.one_hot(class_pos, len(config['name_output_channel'][config['dataset']]), dtype=tf.float32)
             temp[idx]=one_hot
 
 

@@ -30,28 +30,41 @@ def evaluate(config, datasets=None):
             dataset_label_path = split_path['path_test_label']
 
         # Set the config files
-        config= channel_config(config, dataset, evaluate=True)
+        config = channel_config(config, dataset, evaluate=True)
+
         # create pipeline dataset
-        ds_test = pipeline(config, dataset_image_path, dataset_label_path,dataset=dataset)
+        if dataset == 'MELANOM':
+            ds_test = pipeline_melanom(config, dataset_image_path, dataset_label_path, dataset=dataset, evaluate=True)
+
+        else:
+            ds_test = pipeline(config, dataset_image_path, dataset_label_path, dataset=dataset)
 
         # Choose the training model.
         model = load_model_file(config, dataset)
 
+        ## get the names of metrics used
+        list_metrics = model.metrics_names
+        print(list_metrics)
+
         print('Now evaluating data ', dataset,' ...')
 
         # Fit training & validation data into the model
+
         list_loss_and_metrics = model.evaluate(ds_test,verbose=config['evaluate_verbose_mode'])
         lists_loss_and_metrics.append(list_loss_and_metrics)
 
-        path_pickle = config['result_rootdir'] +config['exp_name']+ '/'+config['model']+'/evaluate_loss_and_metrics/'
+        path_pickle = config['result_rootdir'] + '/' + config['exp_name']+ '/' + config['model']+'/evaluate_loss_and_metrics/'
         if not os.path.exists(path_pickle): os.makedirs(path_pickle)
 
         dictionary=dict()
         # Save loss
         dictionary['evaluate_loss'] = list_loss_and_metrics[0]
+
         # Save metrics
-        for i, item in enumerate(lists_loss_and_metrics):
-            dictionary['evaluate_'+item]=list_loss_and_metrics[i+1]
+        for item, value in zip(list_metrics, list_loss_and_metrics):
+            dictionary['evaluate_'+item] = value
+
+        print(dictionary)
 
         with open(path_pickle+dataset + '.pickle', 'wb') as fp:
             pickle.dump(dictionary, fp, protocol=pickle.HIGHEST_PROTOCOL)
