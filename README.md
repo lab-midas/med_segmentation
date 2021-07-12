@@ -1,6 +1,6 @@
 # MedSeg: Medical Segmentation
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-8-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-9-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 ## Introduction
@@ -120,6 +120,7 @@ Thanks to Marc Fischer for providing the med_io pipeline around which this frame
   </tr>
   <tr>
     <td align="center"><a href="https://github.com/CDStark"><img src="https://avatars.githubusercontent.com/u/64153881?v=4?s=100" width="100px;" alt=""/><br /><sub><b>CDStark</b></sub></a><br /><a href="https://github.com/lab-midas/med_segmentation/commits?author=CDStark" title="Code">💻</a> <a href="#maintenance-CDStark" title="Maintenance">🚧</a></td>
+    <td align="center"><a href="https://github.com/fl3on"><img src="https://avatars.githubusercontent.com/u/57361099?v=4?s=100" width="100px;" alt=""/><br /><sub><b>fl3on</b></sub></a><br /><a href="https://github.com/lab-midas/med_segmentation/commits?author=fl3on" title="Code">💻</a> <a href="https://github.com/lab-midas/med_segmentation/commits?author=fl3on" title="Tests">⚠️</a></td>
   </tr>
 </table>
 
