@@ -96,6 +96,16 @@
         "code",
         "maintenance"
       ]
+    },
+    {
+      "login": "fl3on",
+      "name": "fl3on",
+      "avatar_url": "https://avatars.githubusercontent.com/u/57361099?v=4",
+      "profile": "https://github.com/fl3on",
+      "contributions": [
+        "code",
+        "test"
+      ]
     }
   ],
   "contributorsPerLine": 7,
