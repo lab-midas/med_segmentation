@@ -94,7 +94,6 @@ name_output_channel:
 
 channel_img_num:
 channel_label_num:
-num_classes: 2
 
 ## for Melanoma dataset, it is to control the keys to be used for reading data
 keys_reader: ['image', 'mask_iso']
