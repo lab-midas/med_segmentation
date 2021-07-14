@@ -106,6 +106,15 @@
         "code",
         "test"
       ]
+    },
+    {
+      "login": "hksonngan",
+      "name": "haison",
+      "avatar_url": "https://avatars.githubusercontent.com/u/780912?v=4",
+      "profile": "https://github.com/hksonngan",
+      "contributions": [
+        "bug"
+      ]
     }
   ],
   "contributorsPerLine": 7,
